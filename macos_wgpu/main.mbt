@@ -12,11 +12,11 @@ fn initial_document_from_args() -> String? {
 
 ///|
 fn main {
-  let runtime = @markdown_editor.runtime(
+  let runtime = @momark.runtime(
     environment=@macos_backend.app_environment(),
     initial_document_path=initial_document_from_args(),
   )
-  let menus = @markdown_editor.application_menus()
+  let menus = @momark.application_menus()
   @runtime.run_app("MoUI Markdown Editor (WGPU)", runtime)
   .render(
     @render_wgpu.native(

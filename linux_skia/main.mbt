@@ -12,7 +12,7 @@ fn initial_document_from_args() -> String? {
 
 ///|
 fn main {
-  let runtime = @markdown_editor.runtime(
+  let runtime = @momark.runtime(
     environment=@linux_backend.app_environment(),
     initial_document_path=initial_document_from_args(),
   )
@@ -23,7 +23,7 @@ fn main {
   .backend(
     @linux_backend.entry(
       smoke_options=@linux_backend.LinuxHostSmokeOptions::new(
-        first_frame_smoke_auto_exit=@markdown_editor.env_flag(
+        first_frame_smoke_auto_exit=@momark.env_flag(
           "MOUI_FIRST_FRAME_EXIT",
         ),
       ),

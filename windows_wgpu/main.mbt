@@ -12,7 +12,7 @@ fn initial_document_from_args() -> String? {
 
 ///|
 fn main {
-  let runtime = @markdown_editor.runtime(
+  let runtime = @momark.runtime(
     environment=@windows_backend.app_environment(),
     initial_document_path=initial_document_from_args(),
   )

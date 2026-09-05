@@ -1,6 +1,6 @@
 ///|
 fn main {
-  let runtime = @markdown_editor.runtime(
+  let runtime = @momark.runtime(
     environment=@web.app_environment(),
     width=1200.0,
   )
