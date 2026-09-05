@@ -1,0 +1,12 @@
+import {
+  "moonbitlang/core/env",
+  "wzzc-dev/moui/runtime",
+  "wzzc-dev/moui/services",
+  "wzzc-dev/momark/app",
+}
+
+supported_targets = "+native+wasm-gc"
+
+options(
+  targets: { },
+)
