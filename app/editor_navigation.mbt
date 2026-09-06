@@ -481,14 +481,13 @@ fn MarkdownEditorApp::replace_all_find_matches(
 ///|
 fn MarkdownEditorApp::sync_target_inputs(self : MarkdownEditorApp) -> Unit {
   let session = self.document_session
-  let source = session.source()
   let selection = self.selection
   let active_block = markdown_editor_session_active_block(session, selection)
   let block_label = markdown_editor_session_active_block_label(active_block)
   self.block_label = block_label
   match
     markdown_editor_session_selected_link_target(
-      source, selection, active_block,
+      session, selection, active_block,
     ) {
     Some(target) => {
       self.link_target = target
@@ -499,7 +498,7 @@ fn MarkdownEditorApp::sync_target_inputs(self : MarkdownEditorApp) -> Unit {
   }
   match
     markdown_editor_session_selected_image_target(
-      source, selection, active_block,
+      session, selection, active_block,
     ) {
     Some(target) => {
       self.image_target = target
@@ -508,7 +507,7 @@ fn MarkdownEditorApp::sync_target_inputs(self : MarkdownEditorApp) -> Unit {
     None =>
       match
         markdown_editor_session_selected_footnote_text(
-          source, selection, active_block,
+          session, selection, active_block,
         ) {
         Some(text) => {
           self.footnote_text = text

@@ -9,13 +9,16 @@ fn MarkdownEditorApp::load_document(
   source : String,
   path~ : String,
 ) -> Unit {
+  // Clear the find session before the source swap: a visible find bar
+  // would otherwise trigger one full-document match scan with the stale
+  // query inside replace_document_source, only to be reset right after.
+  self.reset_find_session()
   self.replace_document_source(source, reason=LoadDocument)
   self.document_path = path
   self.record_recent_document_path(path)
   self.saved_document = source
   self.selection = { caret: 0, selection: None }
   self.selection_engaged = false
-  self.reset_find_session()
   self.reset_format_palette()
   self.transfer_status = TransferReady
   self.clear_history()
