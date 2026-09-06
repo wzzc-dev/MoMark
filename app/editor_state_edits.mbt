@@ -55,14 +55,13 @@ fn MarkdownEditorApp::apply_command_to_selection(
     result.caret == before.selection.caret {
     return
   }
-  self.document_session = self.document_session.apply(
-    MarkdownEditTransaction::from_edit_result(
-      before.source,
-      result,
-      reason=CommandEdit,
-    ),
+  let transaction = MarkdownEditTransaction::from_edit_result(
+    before.source,
+    result,
+    reason=CommandEdit,
   )
-  self.record_edit_history(before~)
+  self.document_session = self.document_session.apply(transaction)
+  self.record_edit_history_from_transaction(before~, transaction~)
   self.document = result.source
   self.refresh_find_matches_if_visible()
   self.selection = { caret: result.caret, selection: result.selection }
@@ -82,10 +81,12 @@ fn MarkdownEditorApp::apply_text_transform(
     transform.caret == before.selection.caret {
     return
   }
-  self.document_session = self.document_session.apply(
-    MarkdownEditTransaction::from_input_transform(before.source, transform),
+  let transaction = MarkdownEditTransaction::from_input_transform(
+    before.source,
+    transform,
   )
-  self.record_edit_history(before~)
+  self.document_session = self.document_session.apply(transaction)
+  self.record_edit_history_from_transaction(before~, transaction~)
   self.document = transform.text
   self.refresh_find_matches_if_visible()
   self.selection = { caret: transform.caret, selection: transform.selection }
@@ -347,6 +348,31 @@ fn MarkdownEditorApp::record_edit_history(
 }
 
 ///|
+/// Push the undo entry from the transaction's own edit shape. The
+/// transaction already carries the exact `(start, deleted, replacement)`
+/// triple the incremental apply consumed; re-deriving it with
+/// `text_history_delta` materialized both whole-document sources into
+/// char arrays and suffix-scanned them on every keystroke, which
+/// dominated the stress-fixture input latency.
+fn MarkdownEditorApp::record_edit_history_from_transaction(
+  self : MarkdownEditorApp,
+  before~ : MarkdownEditorPreEdit,
+  transaction~ : MarkdownEditTransaction,
+) -> Unit {
+  self.push_undo({
+    delta: {
+      start: transaction.edit_range.start,
+      before: transaction.deleted,
+      after: transaction.replacement,
+      caret: before.selection.caret,
+      selection: before.selection.selection,
+    },
+    selection: before.selection,
+  })
+  self.redo_stack = []
+}
+
+///|
 fn MarkdownEditorApp::push_undo(
   self : MarkdownEditorApp,
   entry : MarkdownEditorHistoryEntry,
@@ -418,14 +444,13 @@ fn MarkdownEditorApp::toggle_task_at(
   match markdown_editor_toggle_task_at(self.document, content_offset) {
     Some(result) => {
       let before = self.pre_edit_state()
-      self.document_session = self.document_session.apply(
-        MarkdownEditTransaction::from_edit_result(
-          self.document,
-          result,
-          reason=ToggleTaskEdit,
-        ),
+      let transaction = MarkdownEditTransaction::from_edit_result(
+        self.document,
+        result,
+        reason=ToggleTaskEdit,
       )
-      self.record_edit_history(before~)
+      self.document_session = self.document_session.apply(transaction)
+      self.record_edit_history_from_transaction(before~, transaction~)
 
       self.document = result.source
       self.refresh_find_matches_if_visible()
@@ -442,14 +467,13 @@ fn MarkdownEditorApp::toggle_current_task(self : MarkdownEditorApp) -> Unit {
   match markdown_editor_toggle_current_task(self.document, self.selection) {
     Some(result) => {
       let before = self.pre_edit_state()
-      self.document_session = self.document_session.apply(
-        MarkdownEditTransaction::from_edit_result(
-          self.document,
-          result,
-          reason=ToggleTaskEdit,
-        ),
+      let transaction = MarkdownEditTransaction::from_edit_result(
+        self.document,
+        result,
+        reason=ToggleTaskEdit,
       )
-      self.record_edit_history(before~)
+      self.document_session = self.document_session.apply(transaction)
+      self.record_edit_history_from_transaction(before~, transaction~)
 
       self.document = result.source
       self.refresh_find_matches_if_visible()
