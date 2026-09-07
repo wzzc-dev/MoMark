@@ -7,9 +7,8 @@
 MoMark is a Typora-style WYSIWYG Markdown editing prototype. A single typed
 Markdown application model is shared between source and visual editing modes,
 plus a toolbar, format palette, find/replace, outline, file sidebar, toasts,
-and HTML export. It is the standalone continuation of the MoUI
-[`examples/markdown_editor`](https://github.com/wzzc-dev/MoUI/tree/main/examples/markdown_editor)
-app and the primary proof of the `@moui_richtext` markdown editing surface.
+and HTML export. It is the standalone continuation of MoUI's
+former `examples/markdown_editor` app and the primary proof of the `@moui_richtext` markdown editing surface.
 
 ## Package Shape
 
