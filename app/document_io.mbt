@@ -572,17 +572,29 @@ fn MarkdownEditorApp::insert_text_at_cursor(
 ) -> Unit {
   let doc = self.document
   let sel = self.selection
-  let caret = sel.caret
-  let range = sel.selection
-  let (before, after) = match range {
-    Some(r) => (doc[:r.start].to_owned(), doc[r.end:].to_owned())
-    None => (doc[:caret].to_owned(), doc[caret:].to_owned())
+  let start = match sel.selection {
+    Some(r) => r.start
+    None => sel.caret
   }
-  let new_caret = before.length() + text.length()
+  let end = match sel.selection {
+    Some(r) => r.end
+    None => sel.caret
+  }
+  let deleted = if start < end {
+    doc[start:end].to_owned()
+  } else {
+    ""
+  }
+  let new_caret = start + text.length()
   self.apply_editor_transaction(
-    MarkdownEditTransaction::from_sources(
+    // Direct constructor: skips the whole-document prefix/suffix diff
+    // that `from_sources` performs to recover the edit range.
+    MarkdownEditTransaction::from_edit(
       doc,
-      before + text + after,
+      doc[:start].to_owned() + text + doc[end:].to_owned(),
+      start,
+      deleted~,
+      replacement=text,
       caret=new_caret,
       selection=None,
       reason=MediaEdit,
