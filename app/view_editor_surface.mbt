@@ -690,14 +690,18 @@ fn markdown_editor_source_inspector_width() -> Double {
 }
 
 ///|
-/// A thin scroll indicator drawn at the right edge of the editor viewport.
-/// The framework's `scroll_view` exposes only the current offset (not the
-/// content size), so this is a presence indicator — visible while the document
-/// is scrolled — rather than a proportional thumb. It fades out at the top so
-/// the page edge stays clean when unscrolled.
+/// A thin scroll bar drawn at the right edge of the window (the indicator is
+/// stacked over the full-width editor row, so its track hugs the window edge
+/// instead of the centered page column).
+/// `content_height` is the same estimated document height the scroll offset is
+/// clamped against in `editor_source_layout`, so the thumb length equals the
+/// visible fraction of the document and its travel maps one-to-one to the
+/// scroll range. It fades in from the top so the page edge stays clean when
+/// unscrolled.
 fn markdown_editor_scroll_indicator(
   scroll : @geometry.Point,
   viewport_height~ : Double,
+  content_height~ : Double,
   theme : @moui.Theme,
 ) -> @moui.View[MarkdownEditorMsg] {
   let offset_y = scroll.y
@@ -706,9 +710,9 @@ fn markdown_editor_scroll_indicator(
     @views.empty()
   } else {
     let indicator_alpha = if offset_y > 40.0 {
-      0.5
+      0.65
     } else {
-      offset_y / 40.0 * 0.5
+      offset_y / 40.0 * 0.65
     }
     custom_layout(
       measure=constraints => {
@@ -725,19 +729,27 @@ fn markdown_editor_scroll_indicator(
           width=3.0,
           height=frame.size.height,
         )
-        let thumb_height = markdown_editor_max_double(
-          40.0,
-          frame.size.height * 0.18,
+        // Thumb length = visible fraction of the document, clamped so short
+        // documents still show a grabbable thumb.
+        let viewport = markdown_editor_max_double(1.0, frame.size.height)
+        let content = markdown_editor_max_double(viewport, content_height)
+        let thumb_height = markdown_editor_min_double(
+          viewport * 0.5,
+          markdown_editor_max_double(30.0, viewport * viewport / content),
         )
-        // Position the thumb proportionally to the offset within the visible
-        // region (approximate, since content size is unknown).
-        let max_thumb_travel = markdown_editor_max_double(
+        // Thumb travel maps the scroll offset linearly across the track.
+        let max_scroll = markdown_editor_max_double(
           1.0,
-          frame.size.height - thumb_height,
+          content - viewport,
         )
+        let scroll_fraction = markdown_editor_clamp_double(
+          offset_y,
+          0.0,
+          max_scroll,
+        ) / max_scroll
         let thumb_y = track.origin.y +
-          markdown_editor_min_double(max_thumb_travel, offset_y / 4.0)
-        let track_color = theme.palette.muted.multiply_alpha(0.18)
+          scroll_fraction * (viewport - thumb_height)
+        let track_color = theme.palette.muted.multiply_alpha(0.28)
         let thumb_color = theme.palette.muted.multiply_alpha(indicator_alpha)
         fill_rect(ctx, track, track_color)
         fill_rect(
@@ -923,15 +935,6 @@ fn editor_source_layout(
   // }
   let editor_view = editor
 
-  let editor_with_indicator = @views.stack([
-    editor_view,
-    markdown_editor_scroll_indicator(app.editor_scroll, viewport_height~, theme),
-    // Temporarily disabled: selection-triggered format bubble (B/I/S/... toolbar).
-    // markdown_editor_format_bubble_overlay(
-    //   app, session, selection, editor_font, theme, normalized_offset, editor_width,
-    //   viewport_height,
-    // ),
-  ])
   let side_children : Array[@moui.View[MarkdownEditorMsg]] = []
   if show_files {
     side_children.push(
@@ -939,7 +942,7 @@ fn editor_source_layout(
     )
   }
   side_children.push(spacer(min_length=0.0, weight=1.0))
-  side_children.push(editor_with_indicator)
+  side_children.push(editor_view)
   side_children.push(spacer(min_length=0.0, weight=1.0))
   if show_info {
     side_children.push(
@@ -956,11 +959,27 @@ fn editor_source_layout(
       source_inspector(session.source(), theme, height=viewport_height),
     )
   }
-  let editor_and_sidebars = row(
-    side_children,
-    spacing=0.0,
-    align=@views.CrossAlign::Stretch,
-  ).frame(width=viewport_width)
+  // The scroll indicator is stacked over the FULL-width row (not the
+  // centered editor column), so its track pins to the right edge of the
+  // window rather than the right edge of the page column.
+  // Temporarily disabled: selection-triggered format bubble (B/I/S/... toolbar).
+  // markdown_editor_format_bubble_overlay(
+  //   app, session, selection, editor_font, theme, normalized_offset, editor_width,
+  //   viewport_height,
+  // )
+  let editor_and_sidebars = @views.stack([
+    row(
+      side_children,
+      spacing=0.0,
+      align=@views.CrossAlign::Stretch,
+    ).frame(width=viewport_width),
+    markdown_editor_scroll_indicator(
+      app.editor_scroll,
+      viewport_height~,
+      content_height=content_height,
+      theme,
+    ),
+  ])
   column(
     if target_kind == PlainSelection || !show_source {
       [editor_and_sidebars]
