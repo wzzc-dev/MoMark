@@ -1,0 +1,89 @@
+name: Release
+
+# 发布 macOS arm64 二进制到 GitHub Release。
+# 触发：打 `v*` tag（正式发布）或手动 workflow_dispatch（滚动 prerelease 快照）。
+#
+# MoMark 的应用代码跟随 MoUI main 演进，快于 mooncakes 已发布版本，
+# 单独仓库构建会因注册表版本过旧而编译失败。与本地开发（md_editor 根
+# workspace 用 vendor/MoUI 成员覆盖发布版）一致，CI 把 MoUI 与 MoMark 放
+# 进同一个合成 workspace 从源码构建。MOUI_SHA 需要随 app 侧使用的 MoUI
+# 新 API 一起 bump（与 MoUI main 上的提交对应）。
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  MOUI_SHA: 653bf8fe6530858f6c936a4714dbed8220626c0e
+
+jobs:
+  macos-arm64:
+    name: macOS arm64
+    runs-on: macos-14
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout MoMark
+        uses: actions/checkout@v4
+        with:
+          path: momark
+
+      - name: Checkout MoUI (pinned)
+        uses: actions/checkout@v4
+        with:
+          repository: wzzc-dev/MoUI
+          ref: ${{ env.MOUI_SHA }}
+          path: MoUI
+
+      - name: Compose build workspace
+        run: |
+          cat > moon.work <<'EOF'
+          members = [
+            "./MoUI/moui",
+            "./MoUI/moui_richtext",
+            "./MoUI/moui_skia",
+            "./MoUI/moui_skia_renderer",
+            "./MoUI/moui_wgpu_renderer",
+            "./momark",
+          ]
+          EOF
+
+      - name: Set up MoonBit
+        uses: hustcer/setup-moonbit@v1
+        with:
+          version: latest
+
+      - name: Toolchain versions
+        run: moon version --all
+
+      - name: Build (native release)
+        run: moon build momark/macos_skia --target native --release
+
+      - name: Package
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          [ "${{ github.event_name }}" = "workflow_dispatch" ] && tag="dev-snapshot"
+          echo "TAG=$tag" >> "$GITHUB_ENV"
+          exe="_build/native/release/build/wzzc-dev/momark/macos_skia/macos_skia.exe"
+          [ -f "$exe" ] || { echo "missing $exe" >&2; exit 1; }
+          cp "$exe" momark-macos-arm64
+          chmod +x momark-macos-arm64
+          zip -j "momark_${tag}_macos-arm64.zip" momark-macos-arm64
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG }}
+          prerelease: ${{ github.event_name == 'workflow_dispatch' }}
+          generate_release_notes: ${{ github.event_name == 'push' }}
+          files: momark_${{ env.TAG }}_macos-arm64.zip
+          body: |
+            MoMark macOS arm64 命令行二进制（未签名：首次运行如被 Gatekeeper 拦截，
+            执行 `xattr -d com.apple.quarantine momark-macos-arm64`，或在终端直接运行）。
+            用法：`./momark-macos-arm64 [document.md]`，无参数时打开内置示例文档。
