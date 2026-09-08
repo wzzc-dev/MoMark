@@ -62,6 +62,9 @@ jobs:
       - name: Toolchain versions
         run: moon version --all
 
+      - name: Resolve MoonBit dependencies
+        run: moon update
+
       - name: Build (native release)
         run: moon build momark/macos_skia --target native --release
 
