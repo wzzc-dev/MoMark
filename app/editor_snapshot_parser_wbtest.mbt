@@ -331,12 +331,14 @@ test "markdown formatter renders footnotes as structured rich text" {
 
 ///|
 test "markdown formatter renders html blocks as structured rich text" {
-  let document = markdown_to_rich_text("<div>Block</div>")
+  let document = markdown_to_rich_text("<section>Block</section>")
   inspect(document.blocks.length(), content="1")
   guard document.blocks[0]
     is {
       background: Some(_),
-      runs: [{ text: "<div>Block</div>", font: Some({ families, .. }), .. }],
+      runs: [
+        { text: "<section>Block</section>", font: Some({ families, .. }), .. },
+      ],
       ..,
     } else {
     fail("expected styled html block")
