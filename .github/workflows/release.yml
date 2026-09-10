@@ -18,7 +18,7 @@ permissions:
   contents: write
 
 env:
-  MOUI_SHA: 653bf8fe6530858f6c936a4714dbed8220626c0e
+  MOUI_SHA: 1709b311b53c6855d66cdfe8abd878621a0b2f0f
 
 jobs:
   macos-arm64:
