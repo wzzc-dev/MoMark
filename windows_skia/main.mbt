@@ -12,6 +12,8 @@ fn initial_document_from_args() -> String? {
 
 ///|
 fn main {
+  /// Image intrinsic-size probe for the markdown layout (native only).
+  @native_metrics.register_image_metrics()
   let runtime = @momark.runtime(
     environment=@windows_backend.app_environment(),
     initial_document_path=initial_document_from_args(),
@@ -23,9 +25,7 @@ fn main {
   .backend(
     @windows_backend.entry(
       smoke_options=@windows_backend.WindowsHostSmokeOptions::new(
-        first_frame_smoke_auto_exit=@momark.env_flag(
-          "MOUI_FIRST_FRAME_EXIT",
-        ),
+        first_frame_smoke_auto_exit=@momark.env_flag("MOUI_FIRST_FRAME_EXIT"),
       ),
     ),
   )

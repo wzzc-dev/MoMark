@@ -1,0 +1,6 @@
+import {
+  "moonbitlang/x/fs",
+  "wzzc-dev/moui_richtext" @richtext,
+}
+
+supported_targets = "native"

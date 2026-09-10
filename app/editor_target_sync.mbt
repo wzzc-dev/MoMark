@@ -121,8 +121,7 @@ fn markdown_editor_session_selected_image_target(
     match markdown_editor_session_block_scoped_probe(selection, block) {
       Some((text, block_local)) =>
         markdown_editor_selected_image_target(text, block_local)
-      None =>
-        markdown_editor_selected_image_target(session.source(), selection)
+      None => markdown_editor_selected_image_target(session.source(), selection)
     }
   } else {
     None
@@ -261,7 +260,8 @@ fn markdown_editor_session_selected_footnote_text(
   block : @moui_richtext.MarkdownEditorBlock?,
 ) -> String? {
   match markdown_editor_active_selection(selection.selection) {
-    Some(_) => markdown_editor_selected_footnote_text(session.source(), selection)
+    Some(_) =>
+      markdown_editor_selected_footnote_text(session.source(), selection)
     None =>
       match block {
         Some(
@@ -278,8 +278,10 @@ fn markdown_editor_session_selected_footnote_text(
           if text.contains("[^") {
             match markdown_editor_session_block_scoped_probe(selection, block) {
               Some((block_text, block_local)) =>
-                match markdown_editor_session_footnote_reference_label(
-                    block_text, block_local.caret,
+                match
+                  markdown_editor_session_footnote_reference_label(
+                    block_text,
+                    block_local.caret,
                   ) {
                   Some(label) =>
                     markdown_editor_session_footnote_definition_text(
@@ -288,7 +290,10 @@ fn markdown_editor_session_selected_footnote_text(
                   None => None
                 }
               None =>
-                markdown_editor_selected_footnote_text(session.source(), selection)
+                markdown_editor_selected_footnote_text(
+                  session.source(),
+                  selection,
+                )
             }
           } else {
             None
@@ -314,9 +319,7 @@ fn markdown_editor_session_footnote_reference_label(
   while open > 0 && chars[open] != '[' {
     open = open - 1
   }
-  if open + 3 >= chars.length() ||
-    chars[open] != '[' ||
-    chars[open + 1] != '^' {
+  if open + 3 >= chars.length() || chars[open] != '[' || chars[open + 1] != '^' {
     return None
   }
   let mut close = open + 2
@@ -341,12 +344,11 @@ fn markdown_editor_session_footnote_definition_text(
 ) -> String? {
   let key = markdown_editor_session_reference_label_key(label)
   for block in session.editor_blocks {
-    if block.block.kind is
-      @moui_richtext.MarkdownBlockKind::FootnoteDefinition(_) {
+    if block.block.kind
+      is @moui_richtext.MarkdownBlockKind::FootnoteDefinition(_) {
       for line_view in block.block.text.split("\n").to_array() {
-        match markdown_editor_session_footnote_definition_line(
-            line_view.to_owned(),
-          ) {
+        match
+          markdown_editor_session_footnote_definition_line(line_view.to_owned()) {
           Some((definition_label, content)) =>
             if markdown_editor_session_reference_label_key(definition_label) ==
               key {
@@ -369,8 +371,7 @@ fn markdown_editor_session_footnote_definition_line(
 ) -> (String, String)? {
   let chars = line.to_array()
   let mut start = 0
-  while start < chars.length() &&
-        (chars[start] == ' ' || chars[start] == '\t') {
+  while start < chars.length() && (chars[start] == ' ' || chars[start] == '\t') {
     start = start + 1
   }
   if start + 4 >= chars.length() ||

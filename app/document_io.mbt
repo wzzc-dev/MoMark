@@ -580,11 +580,7 @@ fn MarkdownEditorApp::insert_text_at_cursor(
     Some(r) => r.end
     None => sel.caret
   }
-  let deleted = if start < end {
-    doc[start:end].to_owned()
-  } else {
-    ""
-  }
+  let deleted = if start < end { doc[start:end].to_owned() } else { "" }
   let new_caret = start + text.length()
   self.apply_editor_transaction(
     // Direct constructor: skips the whole-document prefix/suffix diff
