@@ -81,7 +81,7 @@ fn MarkdownEditorApp::root(
   // padding_layout clamps child frame width to min(available, intrinsic),
   // which would prevent the workspace from filling the window width.
   outer_children.push(workspace.expanded())
-  outer_children.push(spacer(min_length=theme.spacing_scale.xl, weight=0.0))
+  outer_children.push(spacer(min_length=4.0, weight=0.0))
   if !zen {
     outer_children.push(
       self.bottom_status_bar(
@@ -133,7 +133,7 @@ fn MarkdownEditorApp::root_with_environment(
   let viewport = view_environment.viewport_size()
   let theme = self.chrome_theme()
   let zen = self.zen_mode_enabled
-  let mut fixed_height = theme.spacing_scale.xl
+  let mut fixed_height = 4.0
   if !zen {
     fixed_height = fixed_height + 28.0 + 20.0
     let mut auxiliary_count = 0
