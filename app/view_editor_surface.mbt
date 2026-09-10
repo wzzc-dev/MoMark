@@ -738,15 +738,11 @@ fn markdown_editor_scroll_indicator(
           markdown_editor_max_double(30.0, viewport * viewport / content),
         )
         // Thumb travel maps the scroll offset linearly across the track.
-        let max_scroll = markdown_editor_max_double(
-          1.0,
-          content - viewport,
-        )
+        let max_scroll = markdown_editor_max_double(1.0, content - viewport)
         let scroll_fraction = markdown_editor_clamp_double(
-          offset_y,
-          0.0,
-          max_scroll,
-        ) / max_scroll
+            offset_y, 0.0, max_scroll,
+          ) /
+          max_scroll
         let thumb_y = track.origin.y +
           scroll_fraction * (viewport - thumb_height)
         let track_color = theme.palette.muted.multiply_alpha(0.28)
@@ -968,15 +964,13 @@ fn editor_source_layout(
   //   viewport_height,
   // )
   let editor_and_sidebars = @views.stack([
-    row(
-      side_children,
-      spacing=0.0,
-      align=@views.CrossAlign::Stretch,
-    ).frame(width=viewport_width),
+    row(side_children, spacing=0.0, align=@views.CrossAlign::Stretch).frame(
+      width=viewport_width,
+    ),
     markdown_editor_scroll_indicator(
       app.editor_scroll,
       viewport_height~,
-      content_height=content_height,
+      content_height~,
       theme,
     ),
   ])

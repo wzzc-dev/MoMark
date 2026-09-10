@@ -346,18 +346,19 @@ test "markdown editor keeps target bar contextual controls detached" {
   // because it is document content, not overlay chrome. The caret-side target
   // logic itself is covered by the target-sync tests.
   let control_labels = [
-    "Link target", "Image src", "Table tools", "+Row", "+Col", "-Col", "-Row",
-    "Center", "Auto", "Code lang", "HTML block",
+    "Link target", "Image src", "Table tools", "+Row", "+Col", "-Col", "-Row", "Center",
+    "Auto", "Code lang", "HTML block",
   ]
-  let detached = (commands : Array[@core.DrawCommand]) =>
-    control_labels.all(label =>
+  let detached = (commands : Array[@core.DrawCommand]) => {
+    control_labels.all(label => {
       !commands.any(command => {
         match command {
           @core.DrawCommand::DrawText({ text, .. }) => text == label
           _ => false
         }
       })
-    )
+    })
+  }
   let app = MarkdownEditorApp::new()
   app.set_document("Visit [MoUI](https://old.example) and ![logo](old.png)")
   assert_true(detached(app.runtime(width=980.0, height=700.0).draw_commands()))
@@ -384,9 +385,7 @@ test "markdown editor keeps target bar contextual controls detached" {
   assert_true(detached(code))
   app.set_document("Intro\n<div>Old</div>\nTail")
   app.set_selection(9, None)
-  assert_true(
-    detached(app.runtime(width=980.0, height=700.0).draw_commands()),
-  )
+  assert_true(detached(app.runtime(width=980.0, height=700.0).draw_commands()))
 }
 
 ///|

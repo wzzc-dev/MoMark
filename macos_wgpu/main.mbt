@@ -12,6 +12,8 @@ fn initial_document_from_args() -> String? {
 
 ///|
 fn main {
+  /// Image intrinsic-size probe for the markdown layout (native only).
+  @native_metrics.register_image_metrics()
   let runtime = @momark.runtime(
     environment=@macos_backend.app_environment(),
     initial_document_path=initial_document_from_args(),

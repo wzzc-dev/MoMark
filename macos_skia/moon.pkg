@@ -5,6 +5,7 @@ import {
   "wzzc-dev/moui_skia_renderer" @render_skia,
   "wzzc-dev/window/dpi",
   "wzzc-dev/momark",
+  "wzzc-dev/momark/native_metrics",
 }
 
 supported_targets = "native"
