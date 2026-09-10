@@ -50,6 +50,8 @@ jobs:
             "./MoUI/moui_skia",
             "./MoUI/moui_skia_renderer",
             "./MoUI/moui_wgpu_renderer",
+            "./MoUI/moui_sun",
+            "./MoUI/moui_sun_renderer",
             "./momark",
           ]
           EOF
