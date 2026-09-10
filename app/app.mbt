@@ -283,6 +283,7 @@ pub enum MarkdownEditorMsg {
   CommandClickAt(Int)
   SetSelection(Int, @text.TextRange?)
   EditorScrollChanged(@geometry.Point)
+  RemoteImageMetricsChanged
   OpenRecentDocument(String)
   JumpToOutline(Int)
   JumpToNextHeading
@@ -488,6 +489,10 @@ fn MarkdownEditorApp::update_in_place(
     CommandClickAt(offset) => self.handle_command_click(offset)
     SetSelection(caret, selection) => self.set_selection(caret, selection)
     EditorScrollChanged(offset) => self.editor_scroll = offset
+    // A remote image's intrinsic size arrived after layout; re-rendering with
+    // the cleared rich-text conversion cache re-projects the affected blocks
+    // at their real aspect ratio.
+    RemoteImageMetricsChanged => ()
     OpenRecentDocument(path) =>
       self.transfer_status = TransferUnavailable(
         "opening " +
@@ -662,6 +667,23 @@ fn MarkdownEditorApp::subscriptions(
     }
     None => ()
   }
+  // Remote image fetches complete outside the layout pass. Feed their bytes
+  // into the intrinsic-size cache and, when a size actually changed, re-render
+  // so the affected blocks re-project at the real aspect ratio.
+  subscriptions.push(
+    @moui.Subscription::listen(
+      key="markdown-editor:remote-image-metrics",
+      label="Remote image intrinsic-size updates",
+      start=dispatch => {
+        @image_remote.set_remote_image_completed_listener((source, bytes) => {
+          if @moui_richtext.markdown_image_metrics_note_bytes(source, bytes) {
+            dispatch(RemoteImageMetricsChanged)
+          }
+        })
+        None
+      },
+    ),
+  )
   @moui.Subscription::batch(subscriptions)
 }
 

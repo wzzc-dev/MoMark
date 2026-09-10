@@ -1,6 +1,7 @@
 import {
   "wzzc-dev/moui/services",
   "wzzc-dev/moui/core",
+  "wzzc-dev/moui/image_remote" @image_remote,
   "wzzc-dev/moui_richtext",
   "wzzc-dev/moui/views",
   "moonbitlang/core/json",

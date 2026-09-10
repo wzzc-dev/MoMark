@@ -343,8 +343,10 @@ test "markdown editor keeps target bar contextual controls detached" {
   // temporarily disabled (see the disable note in `view_editor_surface`).
   // Its contextual controls must stay invisible across plain, link, image,
   // table, and html caret states; code-fence source text stays visible
-  // because it is document content, not overlay chrome. The caret-side target
-  // logic itself is covered by the target-sync tests.
+  // because it is document content, not overlay chrome. The html block under
+  // the caret reveals its raw markup in place instead (see the reveal test
+  // below), and the caret-side target logic is covered by the target-sync
+  // tests.
   let control_labels = [
     "Link target", "Image src", "Table tools", "+Row", "+Col", "-Col", "-Row", "Center",
     "Auto", "Code lang", "HTML block",
@@ -409,4 +411,94 @@ test "markdown editor target palette engages only after caret placement" {
   assert_false(app.selection_engaged)
   app.set_selection(8, None)
   assert_true(app.selection_engaged)
+}
+
+
+///|
+test "markdown editor gives an html block ownership of its image subtree" {
+  let app = MarkdownEditorApp::new()
+  let source = "<div align=\"center\">\n<img src=\"assets/a.svg\" alt=\"A\"/>\n</div>"
+  app.set_document(source)
+  // Carets sitting inside the block's <img> markup still resolve to the block,
+  // so the block's own source stays reachable where the block renders images.
+  for caret in [22, 25, 30, 35, 40, 45] {
+    app.set_selection(caret, None)
+    guard app.target_kind() is HtmlBlockTarget else {
+      fail("expected html block target at caret " + caret.to_string())
+    }
+  }
+  inspect(app.html_block_text(), content=source)
+}
+
+///|
+test "markdown editor click on a gallery badge reveals the raw html in place" {
+  // A real pointer click on the rendered badge image must collapse the html
+  // block to its raw markup at the block's own position — the source the
+  // caret is meant to edit — rather than only offering a separate bar.
+  let app = MarkdownEditorApp::new()
+  app.load_document(
+    "<div align=\"center\">\n    <a href=\"./LICENSE\"><img src=\"https://img.shields.io/badge/license-Apache--2.0-blue.svg\" alt=\"license: Apache-2.0\" /></a>\n    <a href=\"https://github.com/wzzc-dev/MoUI\"><img src=\"https://img.shields.io/github/stars/wzzc-dev/MoUI?style=social\" alt=\"GitHub Stars\" /></a>\n</div>",
+    path="",
+  )
+  let runtime = app.runtime(width=980.0, height=700.0)
+  let commands = runtime.draw_commands()
+  // Before the click the block renders as images, so no monospace raw-view
+  // text is drawn (the raw reveal renders the block in monospace).
+  assert_true(
+    !commands.any(command => {
+      match command {
+        @core.DrawCommand::DrawText(run) =>
+          run.font.families.families.any(family => {
+            family is @core.FontFamily::UiMonospace
+          })
+        _ => false
+      }
+    }),
+  )
+  // Find the rendered license badge image frame.
+  let mut badge_frame : @core.Rect? = None
+  for command in commands {
+    match command {
+      @core.DrawCommand::DrawImage(run) =>
+        if run.source.contains("shields.io") && badge_frame is None {
+          badge_frame = Some(run.frame)
+        }
+      _ => ()
+    }
+  }
+  let badge_frame = match badge_frame {
+    Some(frame) => frame
+    None => fail("expected the badge image to render")
+  }
+  // Click the middle of the badge.
+  ignore(
+    runtime.dispatch_pointer_input(
+      @core.PointerEvent::new(
+        position=@core.Point::new(
+          x=badge_frame.origin.x + badge_frame.size.width / 2.0,
+          y=badge_frame.origin.y + badge_frame.size.height / 2.0,
+        ),
+        phase=@core.PointerPhase::Down,
+      ),
+    ),
+  )
+  guard app.target_kind() is HtmlBlockTarget else {
+    fail("expected html block target after clicking the badge")
+  }
+  let after = runtime.draw_commands()
+  // The raw markup renders in place (monospace raw-view text) ...
+  assert_true(
+    after.any(command => {
+      match command {
+        @core.DrawCommand::DrawText(run) =>
+          run.font.families.families.any(family => {
+            family is @core.FontFamily::UiMonospace
+          })
+        _ => false
+      }
+    }),
+  )
+  // ... and no docked target bar appears (the floating palette stays
+  // disabled; the in-place source replaced it).
+  assert_true(markdown_editor_text_frame(after, "HTML block") is None)
 }
