@@ -6,6 +6,7 @@ import {
   "wzzc-dev/moui/backend/common/image" @window_image,
   "wzzc-dev/moui/image_remote" @image_remote,
   "wzzc-dev/moui_skia_renderer" @render_skia,
+  "wzzc-dev/moui_sun_renderer" @svg_text,
   "wzzc-dev/window/dpi",
   "wzzc-dev/momark",
   "wzzc-dev/momark/native_metrics",
