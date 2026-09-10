@@ -12,6 +12,9 @@ test "markdown editor actions update canonical markdown" {
   assert_true(app.document().contains("**bold text**"))
   app.apply_action("strike")
   assert_true(app.document().contains("~~old text~~"))
+  app.clear()
+  app.apply_action("highlight")
+  assert_true(app.document().contains("==highlighted text=="))
   app.apply_action("link")
   assert_true(app.document().contains("[link text](https://example.com)"))
   app.apply_action("link-target")
@@ -56,7 +59,7 @@ test "markdown editor actions update canonical markdown" {
 test "markdown editor actions seed every supported action from empty document" {
   for
     expected in [
-      "**bold text**", "*italic text*", "`code`", "~~old text~~", "[link text](https://example.com)",
+      "**bold text**", "*italic text*", "`code`", "~~old text~~", "==highlighted text==", "[link text](https://example.com)",
       "[link text](https://wzzc-dev.github.io/MoUI)", "![image alt](image.png)",
       "![image alt](assets/image.png)", "Paragraph", "# Heading", "## Section", "### Detail",
       "#### Subdetail", "##### Note", "###### Caption", "- List item", "- [ ] Task item",
@@ -116,6 +119,8 @@ fn markdown_action_from_seed(expected : String) -> String {
     "code"
   } else if expected == "~~old text~~" {
     "strike"
+  } else if expected == "==highlighted text==" {
+    "highlight"
   } else if expected == "[link text](https://example.com)" {
     "link"
   } else if expected == "[link text](https://wzzc-dev.github.io/MoUI)" {

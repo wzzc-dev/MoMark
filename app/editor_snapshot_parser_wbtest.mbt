@@ -29,6 +29,15 @@ test "markdown parser recognizes supported block and inline subset" {
   assert_true(
     blocks[6].inlines.any(span => span.kind == MarkdownInlineKind::Strikethrough),
   )
+  let highlighted = parse_markdown("Note ==important== point")
+  guard highlighted[0].kind is Paragraph else { fail("expected paragraph") }
+  assert_true(
+    highlighted[0].inlines.any(span => span.kind == MarkdownInlineKind::Highlight),
+  )
+  assert_true(
+    highlighted[0].inlines.any(span =>
+      span.kind == MarkdownInlineKind::Highlight && span.text == "important"),
+  )
   guard blocks[7].kind is UnorderedListItem else {
     fail("expected unordered list")
   }

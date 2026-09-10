@@ -604,6 +604,12 @@ fn markdown_editor_format_palette_items() -> Array[
       shortcut: "Meta+Shift+X",
     },
     {
+      action: "highlight",
+      label: "Highlight",
+      group: "Inline",
+      shortcut: "Meta+Shift+H",
+    },
+    {
       action: "link",
       label: "Link",
       group: "Inline",
@@ -830,7 +836,8 @@ fn markdown_editor_document_info_from_parts(
         Image => image_count = image_count + 1
         FootnoteReference =>
           footnote_reference_count = footnote_reference_count + 1
-        Plain | Bold | Italic | Code | Strikethrough | HtmlInline => ()
+        Plain | Bold | Italic | Code | Strikethrough | Highlight | HtmlInline =>
+          ()
       }
     }
   }

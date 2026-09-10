@@ -260,6 +260,35 @@ test "markdown editor runtime link strike and image shortcuts use tracked select
 }
 
 ///|
+test "markdown editor runtime highlight shortcut wraps tracked selection" {
+  let app = MarkdownEditorApp::new()
+  app.set_document("Text mark me")
+  app.set_selection(12, Some(@core.TextRange::new(start=5, end=12)))
+  let mut runtime = app.runtime(width=980.0, height=640.0)
+  runtime.dispatch_event(
+    @core.AppEvent::Keyboard(
+      @core.KeyboardEvent::new(
+        key="h",
+        modifiers=@core.KeyModifiers::new(meta=true, shift=true),
+      ),
+    ),
+  )
+  inspect(app.document(), content="Text ==mark me==")
+  // Reapplying the shortcut inside the highlighted span removes the markers.
+  app.set_selection(14, Some(@core.TextRange::new(start=7, end=14)))
+  runtime = app.runtime(width=980.0, height=640.0)
+  runtime.dispatch_event(
+    @core.AppEvent::Keyboard(
+      @core.KeyboardEvent::new(
+        key="h",
+        modifiers=@core.KeyModifiers::new(meta=true, shift=true),
+      ),
+    ),
+  )
+  inspect(app.document(), content="Text mark me")
+}
+
+///|
 test "markdown editor runtime ctrl k wraps tracked selection as link" {
   let app = MarkdownEditorApp::new()
   app.set_document("Visit docs today")

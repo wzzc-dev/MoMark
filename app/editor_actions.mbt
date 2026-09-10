@@ -10,6 +10,8 @@ fn markdown_editor_command_from_action(
     Some(Code)
   } else if action == "strike" {
     Some(Strikethrough)
+  } else if action == "highlight" {
+    Some(Highlight)
   } else if action == "link" {
     Some(Link)
   } else if action == "link-target" {
@@ -87,7 +89,7 @@ fn markdown_editor_command_active(
   command : MarkdownEditorCommand,
 ) -> Bool {
   match command {
-    Bold | Italic | Code | Strikethrough =>
+    Bold | Italic | Code | Strikethrough | Highlight =>
       markdown_editor_inline_command_active(source, selection, command)
     Link => markdown_editor_link_context(source, selection) is Some(_)
     Image => markdown_editor_image_context(source, selection) is Some(_)
@@ -475,6 +477,12 @@ pub fn markdown_editor_program_commands() -> Array[
     ApplyCommand(Strikethrough),
   )
   both(
+    "Highlight",
+    markdown_editor_shift_shortcut("h"),
+    markdown_editor_control_shift_shortcut("h"),
+    ApplyCommand(Highlight),
+  )
+  both(
     "Link",
     markdown_editor_shortcut("l"),
     markdown_editor_control_shortcut("k"),
@@ -725,6 +733,11 @@ pub fn markdown_editor_application_menus() -> Array[@services.ApplicationMenu] {
         "Strikethrough",
         markdown_editor_shift_shortcut("x"),
         ApplyCommand(Strikethrough),
+      ),
+      markdown_editor_menu_item(
+        "Highlight",
+        markdown_editor_shift_shortcut("h"),
+        ApplyCommand(Highlight),
       ),
       markdown_editor_menu_item(
         "Link",

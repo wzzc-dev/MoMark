@@ -259,6 +259,7 @@ fn markdown_editor_html_inline(inline : MarkdownInline) -> String {
     Italic => "<em>" + text + "</em>"
     Code => "<code>" + text + "</code>"
     Strikethrough => "<del>" + text + "</del>"
+    Highlight => "<mark>" + text + "</mark>"
     Link | Autolink => {
       let target = match inline.target {
         Some(target) => target

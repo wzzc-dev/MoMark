@@ -137,7 +137,10 @@ canonical (injected soft breaks are stripped).
 
 The editor supports formatted editing for common block and inline structures:
 
-- Inline commands for bold, italic, code, strikethrough, links, and images.
+- Inline commands for bold, italic, code, strikethrough, highlight, links, and
+  images. Highlight uses the `==text==` marker and renders as a marker-yellow
+  highlighted run; `Cmd+Shift+H` / `Ctrl+Shift+H` and the format bubble apply
+  or unwrap it like the other inline spans, and HTML export emits `<mark>`.
   Typed bold markers support both `**` and `__` input forms; selected text can
   be wrapped with `*` or `_` italic markers. Reapplying an inline formatting
   command inside the current formatted span removes that span's Markdown
