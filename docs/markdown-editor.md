@@ -331,7 +331,13 @@ The editor supports formatted editing for common block and inline structures:
 - The formatted surface keeps Markdown markers hidden in inactive spans, then
   temporarily reveals the active inline span's markers while the caret or
   selection is inside bold, italic, code, strikethrough, link, image, or
-  autolink text.
+  autolink text. The reveal anchor is the whole construct — delimiters and, for
+  links and images, the `(...)` target included — so editing a link/image target
+  keeps the raw source on screen. While an image span is revealed the image
+  binding is dropped, so the painter shows the raw Markdown (or the empty
+  `![alt]()` form) instead of the picture; the image renders again once the
+  caret leaves the span, and a caret resting just before the opening `!` or just
+  after the closing `)` counts as outside.
 - The active block also temporarily reveals its Markdown prefix, including
   heading markers, list and task markers, ordered-list numbers, and blockquote
   markers, while inactive blocks keep their cleaner visual presentation. Fenced

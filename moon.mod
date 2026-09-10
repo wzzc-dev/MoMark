@@ -6,6 +6,7 @@ preferred_target = "native"
 
 import {
   "moonbitlang/x@0.5.1",
+  "moonbitlang/async@0.21.0",
   "wzzc-dev/moui@0.1.12",
   "wzzc-dev/moui_richtext@0.1.10",
   "wzzc-dev/window@0.5.4-0.1.7",

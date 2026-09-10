@@ -485,6 +485,21 @@ fn MarkdownEditorApp::sync_target_inputs(self : MarkdownEditorApp) -> Unit {
   let active_block = markdown_editor_session_active_block(session, selection)
   let block_label = markdown_editor_session_active_block_label(active_block)
   self.block_label = block_label
+  // A raw HTML block owns its whole subtree: the `<a>` and `<img>` inside it are
+  // part of the block's markup, not markdown links or images that the inline
+  // editors could rewrite. Classify the block first, so clicking anywhere
+  // inside the rendered block — its images included — offers that block's own
+  // source instead of falling through to a target that cannot edit it. The
+  // gallery in a README is almost entirely images, which is why image targets
+  // used to swallow nearly every click in the region.
+  match markdown_editor_session_selected_html_block_text(active_block) {
+    Some(text) => {
+      self.html_block_text = text
+      self.target_kind = HtmlBlockTarget
+      return
+    }
+    None => ()
+  }
   match
     markdown_editor_session_selected_link_target(
       session, selection, active_block,
@@ -514,17 +529,10 @@ fn MarkdownEditorApp::sync_target_inputs(self : MarkdownEditorApp) -> Unit {
           self.target_kind = FootnoteTarget
         }
         None =>
-          match markdown_editor_session_selected_html_block_text(active_block) {
-            Some(text) => {
-              self.html_block_text = text
-              self.target_kind = HtmlBlockTarget
-            }
-            None =>
-              if block_label == "Table" {
-                self.target_kind = TableTools
-              } else {
-                self.target_kind = PlainSelection
-              }
+          if block_label == "Table" {
+            self.target_kind = TableTools
+          } else {
+            self.target_kind = PlainSelection
           }
       }
   }
