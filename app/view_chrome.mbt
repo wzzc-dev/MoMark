@@ -81,7 +81,7 @@ fn MarkdownEditorApp::root(
   // padding_layout clamps child frame width to min(available, intrinsic),
   // which would prevent the workspace from filling the window width.
   outer_children.push(workspace.expanded())
-  outer_children.push(spacer(min_length=4.0, weight=0.0))
+  outer_children.push(spacer(min_length=1.0, weight=0.0))
   if !zen {
     outer_children.push(
       self.bottom_status_bar(
@@ -275,19 +275,21 @@ fn MarkdownEditorApp::bottom_status_bar(
   width : Double,
 ) -> @moui.View[MarkdownEditorMsg] {
   let show_files = self.file_sidebar_visible
-  let tree_button = button(
-    "",
-    on_click=ToggleFileSidebar,
-    variant=if show_files {
-      @views.ButtonVariant::Tonal
+  // Sidebar toggle as a clickable sphere dot (replaces the old 26x20 icon
+  // button). Inset 10px from the left so it clears the window's rounded
+  // corner; gray when closed, medium gray when the file sidebar is open.
+  let sphere =
+    if show_files {
+      sphere_dot(
+        size=15.0,
+        fill=@graphics.Color::rgba(r=0.80, g=0.80, b=0.80),
+        ring=@graphics.Color::rgba(r=0.55, g=0.55, b=0.55),
+      )
     } else {
-      @views.ButtonVariant::Ghost
-    },
-    theme~,
-    icon=Some(@views.IconName::Sidebar),
-    width=26.0,
-    height=20.0,
-  )
+      sphere_dot(size=15.0)
+    }
+  let tree_button = padding_edges(sphere, left=8.0, bottom=8.0)
+    .on_tap(ToggleFileSidebar)
 
   let save_state = if self.is_dirty() { "Unsaved" } else { "Saved" }
   let transfer = markdown_editor_transfer_status_label(self.transfer_status)
@@ -297,9 +299,9 @@ fn MarkdownEditorApp::bottom_status_bar(
     markdown_editor_session_status_label(block_label, session, selection) +
     transfer_suffix
 
-  // 状态文字宽度自适应：最小 160px，最大撑满窗口宽度（减去 tree_button 26px），
+  // 状态文字宽度自适应：最小 160px，最大撑满窗口宽度（减去 sphere 区域 24px），
   // 不再限制 500px 上限，长状态也能完整显示。
-  let status_width = markdown_editor_max_double(160.0, width - 26.0)
+  let status_width = markdown_editor_max_double(160.0, width - 24.0)
   let status_frame = frame(
     row(
       [
@@ -316,7 +318,7 @@ fn MarkdownEditorApp::bottom_status_bar(
   ).repaint_boundary()
   let tree_aligned = @views.align(
     tree_button,
-    alignment=@geometry.Alignment::new(x=-1.0, y=0.0),
+    alignment=@geometry.Alignment::new(x=-1.0, y=1.0),
   )
   @views.stack([status_frame, tree_aligned])
 }

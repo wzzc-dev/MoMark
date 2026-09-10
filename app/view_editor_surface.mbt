@@ -651,7 +651,7 @@ fn markdown_editor_primary_editor_width_for_viewport(
 
 ///|
 fn markdown_editor_source_editor_width() -> Double {
-  640.0
+  720.0
 }
 
 ///|
