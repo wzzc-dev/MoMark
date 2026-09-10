@@ -126,6 +126,17 @@ fn markdown_editor_append_tree_item_ids(
 }
 
 ///|
+/// Hairline divider separating the recent list from the pinned footer.
+fn markdown_editor_file_sidebar_divider(
+  theme : @moui.Theme,
+  width~ : Double,
+) -> @moui.View[MarkdownEditorMsg] {
+  frame(empty(), width~, height=1.0).background(
+    theme.palette.muted.multiply_alpha(0.24),
+  )
+}
+
+///|
 fn files_inspector(
   app : MarkdownEditorApp,
   session : MarkdownDocumentSession,
@@ -149,80 +160,85 @@ fn files_inspector(
   } else {
     markdown_editor_tree_item_ids(tree_items)
   }
-  // Cap the tree scroll height at the actual tree content height so the
-  // scroll view doesn't leave an empty gap when the tree has few items.
-  let max_tree_scroll_height = markdown_editor_max_double(0.0, height - 300.0)
-  let tree_scroll_height = if tree_expanded {
+  let row_gap = theme.spacing_scale.xs
+  // The file list is the panel's primary content, so it is laid out directly
+  // under a compact header and receives the bulk of the available height.
+  // The folder picker and status text move to a footer pinned to the bottom.
+  let tree_scroll_present = tree_expanded && tree_items.length() > 0
+  let tree_empty_notice = tree_expanded && tree_items.length() == 0
+  let recent_scroll_present = recent_paths.length() > 0 &&
+    filtered_recent_paths.length() > 0
+  let recent_notice = !recent_scroll_present
+  // Only fixed-height rows are counted here; the two list regions flex into
+  // whatever height is left over.
+  let mut fixed_height = 32.0 + 24.0 + 30.0 + 34.0 + 1.0
+  let mut total_rows = 5
+  if working_directory != "" {
+    fixed_height = fixed_height + 24.0
+    total_rows = total_rows + 1
+  }
+  if tree_empty_notice {
+    fixed_height = fixed_height + 28.0
+    total_rows = total_rows + 1
+  }
+  if recent_notice {
+    fixed_height = fixed_height + 28.0
+    total_rows = total_rows + 1
+  }
+  if tree_scroll_present {
+    total_rows = total_rows + 1
+  }
+  if recent_scroll_present {
+    total_rows = total_rows + 1
+  }
+  let total_gaps = (total_rows - 1).to_double() * row_gap
+  let usable = markdown_editor_max_double(0.0, height - fixed_height - total_gaps)
+  // Cap the tree at its real content height so a short tree leaves the slack
+  // to the recent list instead of rendering an empty gap.
+  let tree_scroll_height = if tree_scroll_present {
     let visible_count = markdown_editor_count_visible_tree_items(
       tree_items, tree_expanded_paths,
     )
     let tree_row_height = 30.0
     let spacing_total = if visible_count > 0 {
-      (visible_count - 1).to_double() * theme.spacing_scale.xs
+      (visible_count - 1).to_double() * row_gap
     } else {
       0.0
     }
     let tree_content_height = visible_count.to_double() * tree_row_height +
       spacing_total
-    markdown_editor_min_double(tree_content_height, max_tree_scroll_height)
+    let budget = if recent_scroll_present { usable * 0.6 } else { usable }
+    markdown_editor_min_double(tree_content_height, budget)
   } else {
     0.0
   }
-  let recent_content = if recent_paths.length() == 0 {
-    text("No recent files", width=content_width, height=28.0)
-    .font(theme.typography.caption)
-    .foreground(theme.palette.muted)
-  } else if filtered_recent_paths.length() == 0 {
-    text("No matching recent files", width=content_width, height=28.0)
-    .font(theme.typography.caption)
-    .foreground(theme.palette.muted)
+  let recent_scroll_height = if recent_scroll_present {
+    if tree_scroll_present {
+      markdown_editor_max_double(0.0, usable - tree_scroll_height)
+    } else {
+      usable
+    }
   } else {
-    scroll_view(
-      file_sidebar_recent_rows(
-        filtered_recent_paths,
-        current_path=app.document_path,
-        theme,
-      ),
-      width=content_width,
-      height=markdown_editor_max_double(
-        0.0,
-        height - 220.0 - tree_scroll_height,
-      ),
-    )
+    0.0
   }
   let file_rows : Array[@moui.View[MarkdownEditorMsg]] = [
-    text("Files", width=content_width, height=24.0)
-    .font(theme.typography.caption)
-    .foreground(theme.palette.muted),
-    text(
-      markdown_editor_file_sidebar_current_label(
-        path=app.document_path,
-        fallback=session.active_heading,
-        dirty=app.is_dirty(),
-      ),
-      width=content_width,
-      height=30.0,
-    )
-    .font(theme.typography.caption)
-    .foreground(theme.palette.foreground),
-    editor_button(
-      if working_directory == "" {
-        "Pick folder"
-      } else {
-        "Change folder"
-      },
-      PickWorkingDirectory,
-      @views.ButtonVariant::Ghost,
-      theme,
-    ),
-    clearable_text_field(
-      file_filter_query,
-      on_input=value => UpdateFileFilterQuery(value),
-      on_clear=UpdateFileFilterQuery(""),
-      placeholder="Filter files",
-      theme~,
-      width=content_width,
-      height=32.0,
+    row(
+      [
+        text("Files", width=44.0, height=32.0)
+        .font(theme.typography.caption)
+        .foreground(theme.palette.muted),
+        clearable_text_field(
+          file_filter_query,
+          on_input=value => UpdateFileFilterQuery(value),
+          on_clear=UpdateFileFilterQuery(""),
+          placeholder="Filter files",
+          theme~,
+          width=markdown_editor_max_double(80.0, content_width - 44.0 - row_gap),
+          height=32.0,
+        ),
+      ],
+      spacing=row_gap,
+      align=@views.CrossAlign::Center,
     ),
   ]
   if working_directory != "" {
@@ -246,7 +262,7 @@ fn files_inspector(
         align=@views.CrossAlign::Center,
       ),
     )
-    if tree_expanded {
+    if tree_scroll_present {
       file_rows.push(
         scroll_view(
           @views.tree_view(
@@ -261,15 +277,65 @@ fn files_inspector(
           height=tree_scroll_height,
         ),
       )
-      if tree_items.length() == 0 {
-        file_rows.push(
-          text("No matching files", width=content_width, height=28.0)
-          .font(theme.typography.caption)
-          .foreground(theme.palette.muted),
-        )
-      }
     }
+    if tree_empty_notice {
+      file_rows.push(
+        text("No matching files", width=content_width, height=28.0)
+        .font(theme.typography.caption)
+        .foreground(theme.palette.muted),
+      )
+    }
+  }
+  file_rows.push(
+    text("Recent", width=content_width, height=24.0)
+    .font(theme.typography.caption)
+    .foreground(theme.palette.muted),
+  )
+  if recent_scroll_present {
     file_rows.push(
+      scroll_view(
+        file_sidebar_recent_rows(
+          filtered_recent_paths,
+          current_path=app.document_path,
+          theme,
+        ),
+        width=content_width,
+        height=recent_scroll_height,
+      ),
+    )
+  } else if recent_paths.length() == 0 {
+    file_rows.push(
+      text("No recent files", width=content_width, height=28.0)
+      .font(theme.typography.caption)
+      .foreground(theme.palette.muted),
+    )
+  } else {
+    file_rows.push(
+      text("No matching recent files", width=content_width, height=28.0)
+      .font(theme.typography.caption)
+      .foreground(theme.palette.muted),
+    )
+  }
+  // Footer pinned to the bottom: current-document status + folder actions.
+  file_rows.push(
+    markdown_editor_file_sidebar_divider(theme, width=content_width),
+  )
+  file_rows.push(
+    text(
+      markdown_editor_file_sidebar_current_label(
+        path=app.document_path,
+        fallback=session.active_heading,
+        dirty=app.is_dirty(),
+      ),
+      width=content_width,
+      height=30.0,
+    )
+    .font(theme.typography.caption)
+    .foreground(theme.palette.foreground),
+  )
+  let footer_actions : Array[@moui.View[MarkdownEditorMsg]] = []
+  if working_directory != "" {
+    footer_actions.push(
       editor_button(
         "Refresh folder",
         RefreshFileTree,
@@ -278,17 +344,26 @@ fn files_inspector(
       ),
     )
   }
-  file_rows.push(
-    text("Recent", width=content_width, height=24.0)
-    .font(theme.typography.caption)
-    .foreground(theme.palette.muted),
+  footer_actions.push(
+    editor_button(
+      if working_directory == "" {
+        "Pick folder"
+      } else {
+        "Change folder"
+      },
+      PickWorkingDirectory,
+      @views.ButtonVariant::Ghost,
+      theme,
+    ),
   )
-  file_rows.push(recent_content)
+  file_rows.push(
+    row(footer_actions, spacing=row_gap, align=@views.CrossAlign::Center),
+  )
   let pinned_content = frame(
     padding_edges(
       column(
         file_rows,
-        spacing=theme.spacing_scale.xs,
+        spacing=row_gap,
         align=@views.CrossAlign::Start,
       ),
       top=theme.spacing_scale.md,
