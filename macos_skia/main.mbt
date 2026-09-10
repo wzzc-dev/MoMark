@@ -22,6 +22,10 @@ fn initial_document_from_args() -> String? {
 async fn main {
   /// Image intrinsic-size probe for the markdown layout (native only).
   @native_metrics.register_image_metrics()
+  // Vector outlines for SVG `<text>` (badge legibility): pure-MoonBit glyph
+  // outlines replace the renderer's bitmap fallback. No-op when no default
+  // platform font loads.
+  let _ = @svg_text.install_svg_text_path_resolver()
   let remote_images = @image_remote.RemoteImageOwner::new()
   @window_image.window_image_task_starter_install(
     @image_remote.remote_image_starter(remote_images),
