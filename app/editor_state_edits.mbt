@@ -323,6 +323,103 @@ fn MarkdownEditorApp::pre_edit_state(
 }
 
 ///|
+/// Open typing-group bookkeeping for raw text input undo entries:
+/// consecutive single-character typing, backspace, and forward-delete
+/// edits at contiguous positions inside a short window share one undo
+/// entry, so one undo reverts a typed run instead of one character.
+/// Command, task, and paste edits close the group, as do undo/redo.
+priv struct MarkdownEditorHistoryGroup {
+  mut kind : Int
+  mut start : Int
+  mut after_length : Int
+  mut last_push_ms : Int
+  mut expected_stack_length : Int
+}
+
+let markdown_editor_history_group : Ref[MarkdownEditorHistoryGroup] = Ref({
+  kind: 0,
+  start: -1,
+  after_length: -1,
+  last_push_ms: -1,
+  expected_stack_length: -1,
+})
+
+let markdown_editor_history_merge_window_ms : Int = 500
+
+///|
+/// Position the next same-kind edit must land on to stay in the open
+/// group: one past the previous insertion, one before the previous
+/// backspace, or the same spot for a repeated forward delete.
+fn markdown_editor_history_group_delta(kind : Int) -> Int {
+  if kind == 1 {
+    1
+  } else if kind == 2 {
+    -1
+  } else {
+    0
+  }
+}
+
+///|
+/// Classify a single-character typing, backspace, or forward-delete edit
+/// from the transaction's known edit range. `caret` is the post-edit
+/// caret and `caret_before` the pre-edit one, so backspace (deleted the
+/// character left of the caret) and forward delete (deleted the one at
+/// the caret) stay distinguishable.
+fn markdown_editor_history_single_edit_shape(
+  start~ : Int,
+  deleted~ : String,
+  replacement~ : String,
+  caret~ : Int,
+  caret_before~ : Int,
+) -> (Int, Int, Char)? {
+  let deleted_chars = deleted.to_array()
+  let replacement_chars = replacement.to_array()
+  if deleted_chars.length() == 0 {
+    if replacement_chars.length() == 1 &&
+      replacement_chars[0] != '\n' &&
+      caret_before == start {
+      Some((1, start, replacement_chars[0]))
+    } else {
+      None
+    }
+  } else if replacement_chars.length() == 0 {
+    if deleted_chars.length() == 1 && deleted_chars[0] != '\n' {
+      if caret_before == start + 1 {
+        Some((2, start, deleted_chars[0]))
+      } else if caret_before == start {
+        Some((3, start, deleted_chars[0]))
+      } else {
+        None
+      }
+    } else {
+      None
+    }
+  } else {
+    None
+  }
+}
+
+///|
+/// Wall-clock milliseconds for the typing merge window. The app runtime
+/// dispatches edits synchronously, so consecutive keystrokes always land
+/// inside the window unless real wall time really moved past it.
+fn markdown_editor_history_now_ms() -> Int {
+  @env.now().to_int()
+}
+
+///|
+/// Forget the open typing group so the next edit starts a fresh one.
+fn markdown_editor_history_group_close() -> Unit {
+  let group = markdown_editor_history_group.val
+  group.kind = 0
+  group.start = -1
+  group.after_length = -1
+  group.last_push_ms = -1
+  group.expected_stack_length = -1
+}
+
+///|
 /// Push the completed command as a delta undo entry (and clear the
 /// redo branch), diffing the captured pre-edit source against the
 /// current document.
@@ -330,6 +427,7 @@ fn MarkdownEditorApp::record_edit_history(
   self : MarkdownEditorApp,
   before~ : MarkdownEditorPreEdit,
 ) -> Unit {
+  markdown_editor_history_group_close()
   let (start, removed, inserted) = @core.text_history_delta(
     before.source,
     self.document_session.source(),
@@ -359,17 +457,87 @@ fn MarkdownEditorApp::record_edit_history_from_transaction(
   before~ : MarkdownEditorPreEdit,
   transaction~ : MarkdownEditTransaction,
 ) -> Unit {
-  self.push_undo({
-    delta: {
-      start: transaction.edit_range.start,
-      before: transaction.deleted,
-      after: transaction.replacement,
-      caret: before.selection.caret,
-      selection: before.selection.selection,
-    },
-    selection: before.selection,
-  })
-  self.redo_stack = []
+  let group = markdown_editor_history_group.val
+  let now = markdown_editor_history_now_ms()
+  let shape : (Int, Int, Char)? = if transaction.reason is TextInput {
+    markdown_editor_history_single_edit_shape(
+      start=transaction.edit_range.start,
+      deleted=transaction.deleted,
+      replacement=transaction.replacement,
+      caret=transaction.caret,
+      caret_before=before.selection.caret,
+    )
+  } else {
+    None
+  }
+  let after_length = markdown_editor_text_length(transaction.previous_source) +
+    markdown_editor_text_length(transaction.replacement) -
+    markdown_editor_text_length(transaction.deleted)
+  let stack_length = self.undo_stack.length()
+  let merges = match shape {
+    Some((kind, start, _)) =>
+      group.kind == kind &&
+      stack_length == group.expected_stack_length &&
+      markdown_editor_text_length(transaction.previous_source) == group.after_length &&
+      group.last_push_ms >= 0 &&
+      group.last_push_ms <= now &&
+      now - group.last_push_ms <= markdown_editor_history_merge_window_ms &&
+      start == group.start + markdown_editor_history_group_delta(kind)
+    None => false
+  }
+  if merges {
+    match shape {
+      Some((kind, _, ch)) => {
+        let top_index = self.undo_stack.length() - 1
+        let top = self.undo_stack[top_index]
+        let character = ch.to_string()
+        self.undo_stack[top_index] = if kind == 1 {
+          { ..top, delta: { ..top.delta, after: top.delta.after + character } }
+        } else if kind == 2 {
+          { ..top,
+            delta: {
+              ..top.delta,
+              start: top.delta.start - 1,
+              before: character + top.delta.before,
+            },
+          }
+        } else {
+          { ..top, delta: { ..top.delta, before: top.delta.before + character } }
+        }
+        group.last_push_ms = now
+        match shape {
+          Some((_, start, _)) => group.start = start
+          None => ()
+        }
+      }
+      None => ()
+    }
+  } else {
+    match shape {
+      Some((kind, start, _)) => {
+        group.kind = kind
+        group.start = start
+      }
+      None => {
+        group.kind = 0
+        group.start = -1
+      }
+    }
+    group.after_length = after_length
+    group.last_push_ms = now
+    group.expected_stack_length = stack_length + 1
+    self.push_undo({
+      delta: {
+        start: transaction.edit_range.start,
+        before: transaction.deleted,
+        after: transaction.replacement,
+        caret: before.selection.caret,
+        selection: before.selection.selection,
+      },
+      selection: before.selection,
+    })
+    self.redo_stack = []
+  }
 }
 
 ///|
@@ -397,6 +565,7 @@ fn MarkdownEditorApp::restore_history(
   self : MarkdownEditorApp,
   undo~ : Bool,
 ) -> Bool {
+  markdown_editor_history_group_close()
   let stack = if undo { self.undo_stack } else { self.redo_stack }
   if stack.length() == 0 {
     return false

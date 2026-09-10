@@ -27,6 +27,12 @@ fn MarkdownEditorApp::format_bubble(
             ApplyCommand(Strikethrough),
             theme,
           ),
+          format_bubble_button(
+            "≡",
+            "Highlight",
+            ApplyCommand(Highlight),
+            theme,
+          ),
           format_bubble_button("</>", "Code", ApplyCommand(Code), theme),
           format_bubble_button(
             "H1",
