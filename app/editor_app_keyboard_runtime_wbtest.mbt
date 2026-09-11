@@ -479,6 +479,68 @@ test "markdown editor runtime arrow up down moves caret across lines" {
 }
 
 ///|
+fn markdown_editor_last_text_frame(
+  commands : Array[@core.DrawCommand],
+  text : String,
+) -> @core.Rect? {
+  let mut last : @core.Rect? = None
+  for command in commands {
+    match command {
+      @core.DrawCommand::DrawText({ text: value, frame, .. }) =>
+        if value == text {
+          last = Some(frame)
+        }
+      _ => ()
+    }
+  }
+  last
+}
+
+///|
+test "markdown editor runtime arrow up walks paragraphs with identical text" {
+  // 三个段落渲染出同样的 "123"：内容相同的 block 必须各自保留自己的
+  // source offsets。否则第二、三段会共用第一段的源码映射，点击和
+  // ArrowUp 都会落回第一段，整条上下移动链会塌到第一段上。
+  let app = MarkdownEditorApp::new()
+  app.set_document("123\n\n123\n\n123")
+  let runtime = app.runtime(width=980.0, height=640.0)
+  guard markdown_editor_last_text_frame(runtime.draw_commands(), "123")
+    is Some(frame) else {
+    fail("expected rendered 123 text")
+  }
+  let point = @geometry.Point::new(
+    x=frame.origin.x + frame.size.width - 1.0,
+    y=frame.origin.y + frame.size.height / 2.0,
+  )
+  runtime.dispatch_event(
+    @core.AppEvent::Pointer(
+      @core.PointerEvent::new(position=point, phase=@core.PointerPhase::Down),
+    ),
+  )
+  runtime.dispatch_event(
+    @core.AppEvent::Pointer(
+      @core.PointerEvent::new(position=point, phase=@core.PointerPhase::Up),
+    ),
+  )
+  // 点击最后一行的行尾：caret 落在文档末尾（13）。
+  inspect(app.selection_caret(), content="13")
+  // 每段之间只有一行空行，是纯粹的段落分隔（Typora 里也不显示、光标进不去），
+  // 所以向上依次落到第二段尾、第一段尾、文档开头，每段各自的 offset 都不串。
+  runtime.dispatch_event(
+    @core.AppEvent::Keyboard(@core.KeyboardEvent::new(key="ArrowUp")),
+  )
+  inspect(app.selection_caret(), content="8")
+  runtime.dispatch_event(
+    @core.AppEvent::Keyboard(@core.KeyboardEvent::new(key="ArrowUp")),
+  )
+  inspect(app.selection_caret(), content="3")
+  runtime.dispatch_event(
+    @core.AppEvent::Keyboard(@core.KeyboardEvent::new(key="ArrowUp")),
+  )
+  inspect(app.selection_caret(), content="0")
+}
+
+///|
 test "markdown editor arrow keys navigate across empty line heading and code block" {
   let sample = "# Editor notes\n\nThis **WYSIWYG** surface keeps `Markdown` as the saved value.\n\n## Today\n- Type into the formatted page\n- Use shortcuts or contextual controls\n- Open source only when needed\n\n> Unsupported syntax stays editable as plain text.\n\n```\nlet saved = markdown\n```\n\n---"
   let app = MarkdownEditorApp::new()

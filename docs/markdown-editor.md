@@ -353,9 +353,48 @@ The editor supports formatted editing for common block and inline structures:
   shortcuts for the current line or selection, inline marker pairing/skip, and
   marker-aware Backspace/Delete from block, inline, autolink, footnote, and
   reference-style marker edges.
-- Blank Markdown source lines are preserved as visible editable paragraph lines,
-  so pressing Enter after a heading or paragraph immediately creates a blank
-  line for the caret before any further text is typed.
+- Enter after a heading or paragraph immediately creates a blank writing line
+  for the caret (paragraph split), before any further text is typed. Blank
+  source lines stay in the canonical source as their own gap blocks, and a run
+  alternates between the paragraph separator and the empty line it renders:
+  the separator has no line box, so nothing is drawn for it and no caret can
+  reach it, while the empty line is a full writing line the arrow keys stop on
+  and a pointer can park the caret in. Typing inside the caret's writing line
+  splits it, and Backspace/Delete remove one boundary newline at a time.
+- The blank-line rhythm follows Typora's rendered metrics. Its stock Github
+  theme collapses `p { margin: 0.8em 0 }` between sibling paragraphs (12.8px
+  at its 16px root) and gives the empty paragraph Enter creates one full line
+  box via `#write .md-p:empty:after`. MoMark reproduces both: a paragraph
+  contributes 0.4em through its block inset and the run's leading blank line
+  the other 0.4em, so one blank line between paragraphs reads as Typora's
+  0.8em, while the caret's own blank line stays a full 1.55em writing line
+  plus the 0.4em paragraph spacing. The caret's line stands in for the blank
+  line it occupies, so it takes that line box *instead of* the blank line's
+  own increment — carrying both would leave the caret one increment (1.2em)
+  too low, and the line would jump up as soon as the first character is
+  typed.
+- A run of blank lines alternates as Typora's paragraph model does: it spends
+  one blank line on the paragraph break and one more on each empty line it
+  keeps, so the first blank line is a bare break (0.4em on top of the
+  paragraph's own 0.4em inset — Typora's collapsed `p { margin: 0.8em 0 }`), the
+  second is a full empty line box plus the spacing that follows it, the third a
+  break again, and so on. One blank line between paragraphs therefore measures
+  2.35em from text top to text top and three measure 4.70em, against Typora's
+  measured 2.34em and 4.72em; two or ten blank lines never show more empty
+  lines than half their count. Because each pair of blank lines is one visible
+  line, pressing Enter repeatedly walks the writing line down one line at a
+  time. Measured against
+  the same reference document in both editors, paragraph-to-paragraph spacing
+  is 2.34em (Typora) vs 2.35em (MoMark) for one blank line and 4.72em vs
+  4.75em for three, i.e. within 1% of the reference.
+- The parse-time height estimate uses the separator margin for every blank
+  line and deliberately does not model the alternation: it only has to keep the
+  scroll geometry close, and every estimate stays strictly positive because the
+  visible-block window is derived from those units and a block whose bottom is
+  flush with the block before it can never be selected by that search — a
+  zero-height block at the end of the document would drop out of the window and
+  take the caret's line with it. Measured paint heights replace the estimate
+  once a block has been rendered.
 - Plain `Shift+Enter` inserts a Markdown hard line break inside the current
   paragraph, quote, or list item by writing the canonical two-space line break
   marker and carrying the appropriate quote or list continuation prefix to the

@@ -192,7 +192,8 @@ test "markdown editor runtime typing updates document" {
   runtime.dispatch_event(
     @core.AppEvent::TextInput(@core.TextInputEvent::InsertText("- item")),
   )
-  inspect(app.document(), content="# Hi\n- item")
+  // Enter after a heading splits with a blank writing line.
+  inspect(app.document(), content="# Hi\n\n- item")
 }
 
 ///|
