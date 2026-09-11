@@ -395,6 +395,14 @@ The editor supports formatted editing for common block and inline structures:
   zero-height block at the end of the document would drop out of the window and
   take the caret's line with it. Measured paint heights replace the estimate
   once a block has been rendered.
+- Every rendered line box covers the font it draws. The painter clips each run
+  to its line box, so a box shorter than the font's own ascent plus descent
+  slices the glyph bottoms: heading line boxes are therefore a 1.4x leading over
+  the heading's own scaled font (the earlier base-relative factors left a
+  level-2 heading box at 1.1x its font and cut the descender of "Today"), and
+  monospace code uses 1.3x the base font, i.e. 1.4x the 0.92 code font. Body
+  text, list items, and quotes already use 1.55x the base font. A white-box
+  test walks a document of every block kind and asserts the invariant.
 - Plain `Shift+Enter` inserts a Markdown hard line break inside the current
   paragraph, quote, or list item by writing the canonical two-space line break
   marker and carrying the appropriate quote or list continuation prefix to the
