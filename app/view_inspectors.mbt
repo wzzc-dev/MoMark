@@ -221,7 +221,34 @@ fn files_inspector(
   } else {
     0.0
   }
+  // Folder actions belong at the top of the panel: they refresh or repoint the
+  // folder tree directly below them, and the footer they used to sit in was
+  // cramped against the window edge.
+  let folder_actions : Array[@moui.View[MarkdownEditorMsg]] = []
+  if working_directory != "" {
+    folder_actions.push(
+      editor_button(
+        "Refresh",
+        RefreshFileTree,
+        @views.ButtonVariant::Ghost,
+        theme,
+      ),
+    )
+  }
+  folder_actions.push(
+    editor_button(
+      if working_directory == "" {
+        "Pick folder"
+      } else {
+        "Change"
+      },
+      PickWorkingDirectory,
+      @views.ButtonVariant::Ghost,
+      theme,
+    ),
+  )
   let file_rows : Array[@moui.View[MarkdownEditorMsg]] = [
+    row(folder_actions, spacing=row_gap, align=@views.CrossAlign::Center),
     row(
       [
         text("Files", width=44.0, height=32.0)
@@ -332,32 +359,6 @@ fn files_inspector(
     )
     .font(theme.typography.caption)
     .foreground(theme.palette.foreground),
-  )
-  let footer_actions : Array[@moui.View[MarkdownEditorMsg]] = []
-  if working_directory != "" {
-    footer_actions.push(
-      editor_button(
-        "Refresh folder",
-        RefreshFileTree,
-        @views.ButtonVariant::Ghost,
-        theme,
-      ),
-    )
-  }
-  footer_actions.push(
-    editor_button(
-      if working_directory == "" {
-        "Pick folder"
-      } else {
-        "Change folder"
-      },
-      PickWorkingDirectory,
-      @views.ButtonVariant::Ghost,
-      theme,
-    ),
-  )
-  file_rows.push(
-    row(footer_actions, spacing=row_gap, align=@views.CrossAlign::Center),
   )
   let pinned_content = frame(
     padding_edges(
