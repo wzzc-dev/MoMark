@@ -11,10 +11,14 @@ test "markdown editor enter completes pipe table header" {
   ).unwrap()
   inspect(placeholder.text, content="| Name | |\n| --- | --- |\n|  |  |")
   inspect(placeholder.caret, content="27")
-  inspect(
-    markdown_editor_transform_input("Name | ", 7, None, "\n") is None,
-    content="true",
-  )
+  let incomplete = markdown_editor_transform_input(
+    "Name | ",
+    7,
+    None,
+    "\n",
+  ).unwrap()
+  inspect(incomplete.text, content="Name | \n\n")
+  inspect(incomplete.caret, content="9")
 }
 
 ///|

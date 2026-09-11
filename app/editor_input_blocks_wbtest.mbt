@@ -184,10 +184,14 @@ test "markdown editor enter completes horizontal rule lines" {
   let star_rule = markdown_editor_transform_input("***", 3, None, "\n").unwrap()
   inspect(star_rule.text, content="***\n")
   inspect(star_rule.caret, content="4")
-  inspect(
-    markdown_editor_transform_input("--- title", 9, None, "\n") is None,
-    content="true",
-  )
+  let stray = markdown_editor_transform_input(
+    "--- title",
+    9,
+    None,
+    "\n",
+  ).unwrap()
+  inspect(stray.text, content="--- title\n\n")
+  inspect(stray.caret, content="11")
 }
 
 ///|
@@ -201,14 +205,22 @@ test "markdown editor completes setext heading underlines" {
   let h2_space = markdown_editor_transform_input("Section\n----", 12, None, " ").unwrap()
   inspect(h2_space.text, content="Section\n----\n")
   inspect(h2_space.caret, content="13")
-  inspect(
-    markdown_editor_transform_input("# Title\n===", 11, None, "\n") is None,
-    content="true",
-  )
-  inspect(
-    markdown_editor_transform_input("\n===", 4, None, "\n") is None,
-    content="true",
-  )
+  let heading_underline = markdown_editor_transform_input(
+    "# Title\n===",
+    11,
+    None,
+    "\n",
+  ).unwrap()
+  inspect(heading_underline.text, content="# Title\n===\n\n")
+  inspect(heading_underline.caret, content="13")
+  let empty_above = markdown_editor_transform_input(
+    "\n===",
+    4,
+    None,
+    "\n",
+  ).unwrap()
+  inspect(empty_above.text, content="\n===\n\n")
+  inspect(empty_above.caret, content="6")
   let rule = markdown_editor_transform_input("---", 3, None, " ").unwrap()
   inspect(rule.text, content="---\n")
   inspect(rule.caret, content="4")
@@ -256,10 +268,14 @@ test "markdown editor enter completes table header" {
   let compact = markdown_editor_transform_input("A | B", 5, None, "\n").unwrap()
   inspect(compact.text, content="A | B\n| --- | --- |\n|  |  |")
   inspect(compact.caret, content="22")
-  inspect(
-    markdown_editor_transform_input("| --- | --- |", 13, None, "\n") is None,
-    content="true",
-  )
+  let lone_separator = markdown_editor_transform_input(
+    "| --- | --- |",
+    13,
+    None,
+    "\n",
+  ).unwrap()
+  inspect(lone_separator.text, content="| --- | --- |\n\n")
+  inspect(lone_separator.caret, content="15")
 }
 
 ///|

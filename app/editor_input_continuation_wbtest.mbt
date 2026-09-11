@@ -211,23 +211,72 @@ test "markdown editor enter exits empty heading markers" {
   let nested_quoted = markdown_editor_transform_input("> > ### ", 8, None, "\n").unwrap()
   inspect(nested_quoted.text, content="> > ")
   inspect(nested_quoted.caret, content="4")
-  inspect(
-    markdown_editor_transform_input("# Title", 7, None, "\n") is None,
-    content="true",
-  )
+  let heading_text = markdown_editor_transform_input(
+    "# Title",
+    7,
+    None,
+    "\n",
+  ).unwrap()
+  inspect(heading_text.text, content="# Title\n\n")
+  inspect(heading_text.caret, content="9")
   let quoted_title = markdown_editor_transform_input("> # Title", 9, None, "\n").unwrap()
   inspect(quoted_title.text, content="> # Title\n> ")
   inspect(quoted_title.caret, content="12")
-  inspect(
-    markdown_editor_transform_input("###", 3, None, "\n") is None,
-    content="true",
-  )
+  let bare_markers = markdown_editor_transform_input(
+    "###",
+    3,
+    None,
+    "\n",
+  ).unwrap()
+  inspect(bare_markers.text, content="###\n\n")
+  inspect(bare_markers.caret, content="5")
 }
 
 ///|
-test "markdown editor enter falls back for plain paragraph" {
-  inspect(
-    markdown_editor_transform_input("paragraph", 9, None, "\n") is None,
-    content="true",
+test "markdown editor enter splits plain paragraph with a blank line" {
+  // Mid-paragraph: the caret lands on the new blank writing line and the
+  // tail becomes its own paragraph.
+  let split = markdown_editor_transform_input(
+    "123This WYSIWYG surface",
+    3,
+    None,
+    "\n",
+  ).unwrap()
+  inspect(split.text, content="123\n\nThis WYSIWYG surface")
+  inspect(split.caret, content="5")
+  // End of paragraph: a blank writing line appears below.
+  let trailing = markdown_editor_transform_input(
+    "Alpha paragraph here.",
+    21,
+    None,
+    "\n",
+  ).unwrap()
+  inspect(trailing.text, content="Alpha paragraph here.\n\n")
+  inspect(trailing.caret, content="23")
+  // End of a non-empty heading: the blank line follows the heading.
+  let heading = markdown_editor_transform_input(
+    "# 标题",
+    7,
+    None,
+    "\n",
+  ).unwrap()
+  inspect(heading.text, content="# 标题\n\n")
+  inspect(heading.caret, content="6")
+  // Raw HTML blocks are verbatim: Enter keeps the plain newline.
+  let html = markdown_editor_transform_input(
+    "<section>Note</section>",
+    22,
+    None,
+    "\n",
   )
+  inspect(html is None, content="true")
+  // The raw source-mode editor keeps the plain newline too.
+  let source_mode = markdown_editor_transform_input(
+    "Alpha paragraph here.",
+    21,
+    None,
+    "\n",
+    split_paragraph_on_enter=false,
+  )
+  inspect(source_mode is None, content="true")
 }
