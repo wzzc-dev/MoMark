@@ -1,6 +1,7 @@
 import {
   "moonbitlang/x/fs",
   "wzzc-dev/moui_richtext" @richtext,
+  "wzzc-dev/moui_sun_renderer" @svg_text,
 }
 
 supported_targets = "native"

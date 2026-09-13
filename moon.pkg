@@ -3,9 +3,10 @@ import {
   "wzzc-dev/moui/runtime",
   "wzzc-dev/moui/services",
   "wzzc-dev/momark/app",
+  "wzzc-dev/momark/native_metrics" @native_metrics,
 }
 
-supported_targets = "+native+wasm-gc"
+supported_targets = "native"
 
 options(
   targets: { },

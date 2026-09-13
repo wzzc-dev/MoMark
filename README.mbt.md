@@ -19,7 +19,7 @@ former `examples/markdown_editor` app and the primary proof of the `@moui_richte
   `editor_*.mbt` (commands, navigation, settings, snapshot, target-sync),
   `view_*.mbt` (chrome, editor surface, folding, format bubble, inspectors,
   toolbar, toasts), and a large `*_wbtest.mbt` runtime suite.
-- `web_wasm/`, `macos_skia/`, `macos_wgpu/`, `windows_skia/`, `windows_wgpu/`,
+- `macos_skia/`, `macos_wgpu/`, `windows_skia/`, `windows_wgpu/`,
   `linux_skia/`, `linux_wgpu/` — thin platform entrypoints that run the same
   app. Each native entrypoint takes an optional `<document.md>` argument and
   opens it through the same recent-file open path as the menu.
@@ -33,7 +33,6 @@ import {
   "wzzc-dev/moui_richtext@0.1.10",
   "wzzc-dev/window@0.5.4-0.1.7",
   "wzzc-dev/moui_skia_renderer@0.1.11",
-  "wzzc-dev/moui_web_renderer@0.1.10",
   "wzzc-dev/moui_wgpu_renderer@0.1.10",
 }
 ```
@@ -47,9 +46,6 @@ and use its `scripts/window-dev-mode.sh` there.
 ### Commands
 
 ```sh
-# Web (wasm-gc)
-moon build web_wasm --target wasm-gc
-
 # macOS Skia
 moon run macos_skia --target native
 
@@ -84,7 +80,6 @@ file sidebar, contextual bubbles, command-click, and snapshot formatting.
 
 | Target               | Entrypoint            | Status |
 | -------------------- | --------------------- | ------ |
-| Web wasm-gc          | `web_wasm`            | Wired  |
 | macOS Skia           | `macos_skia`          | Wired  |
 | macOS WGPU           | `macos_wgpu`          | Wired  |
 | Windows Skia         | `windows_skia`        | Wired  |

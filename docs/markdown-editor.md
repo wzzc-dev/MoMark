@@ -12,11 +12,10 @@ mapping, keyboard and contextual commands, and editing workflows.
 - `app/`: shared app state plus package-local editor
   model, source/visual mapping, command behavior, input transforms, Markdown
   parsing adapter, rich text document mapping, and focused white-box tests.
-- `web_wasm/`: Web wasm-gc entrypoint.
 - `macos_skia/`: macOS native entrypoint using the
   Skia renderer provider.
 - `runtime.mbt`: module-root environment/runtime wiring
-  shared by the two retained entrypoints.
+  shared by the entrypoints.
 - `moui_richtext/facade.mbt`: public rich text editor wrappers (`markdown_editor`,
   `controlled_markdown_session_editor`) used by the example.
 - `moui_richtext/rich_text_document.mbt` plus `moui_richtext/rich_text_editor.mbt`:
@@ -321,15 +320,10 @@ The editor supports formatted editing for common block and inline structures:
   images, raw HTML blocks/inlines, footnotes, and escaped text/attributes.
   The app exposes `MarkdownEditorApp::program(environment)` and captures
   `AppServices` in the Program closure. The macOS composition root supplies its
-  platform `AppEnvironment`; the Web wasm-gc root supplies the Web environment,
-  whose typed tasks adapt the backend-owned async host queue. Open target commands
+  platform `AppEnvironment`. Open target commands
   use the edited link or image target field when it is active, otherwise they
   resolve the link or image under the current selection or caret before asking
-  the host to open it. Web `Open` imports the selected Markdown file's
-  browser-provided `File.text()` content through the shared text-file read
-  contract. When the browser exposes File System
-  Access handles, Web `Save As` and subsequent `Save` write through the same
-  text-file service; Linux text-file content access currently reports
+  the host to open it. Linux text-file content access currently reports
   unavailable.
 - The formatted surface keeps Markdown markers hidden in inactive spans, then
   temporarily reveals the active inline span's markers while the caret or
@@ -525,36 +519,18 @@ full-height side inspector so the default screen stays focused on formatted
 writing.
 
 Full file-system content import/export is implemented for the macOS and Windows
-native service bridges through the shared host text-file service. Web supports
-Open by reading the selected browser `File.text()` into the same text-file read
-flow. Browsers with the File System Access API keep handles from
-`showOpenFilePicker` or `showSaveFilePicker`, so `Save As` writes the selected
-file and later `Save` can write the current document path again; browsers
-without a writable handle still report Web text-file writes unavailable. Linux
+native service bridges through the shared host text-file service. Linux
 remains an explicit service gap. Clipboard transfer remains the fallback
 content path when a host cannot provide file content.
 
-Native and Web entrypoints share the same session viewport model: the editor
+Native entrypoints share the same session viewport model: the editor
 page stays viewport-sized, wheel input updates the app-owned `ScrollState`, and
 paint builds only the visible block window plus overscan. Platform-specific
-runtime smoke is still required before claiming a real renderer/browser
+runtime smoke is still required before claiming a real renderer
 scrolling experience, but package tests assert that ordinary Markdown Editor
 scrolling no longer reparses the session or marks layout dirty.
 
 ## Platform Commands
-
-Web wasm-gc:
-
-```sh
-moon build web_wasm --target wasm-gc
-python3 -m http.server 8080 --bind 127.0.0.1
-```
-
-Open:
-
-```text
-http://127.0.0.1:8080/ web_wasm/index.html
-```
 
 macOS native Skia mainline:
 
@@ -588,7 +564,6 @@ Focused checks:
 
 ```sh
 moon test app --target native
-moon build web_wasm --target wasm-gc
 moon build macos_skia --target native
 ```
 
