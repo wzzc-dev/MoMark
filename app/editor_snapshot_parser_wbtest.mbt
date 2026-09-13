@@ -32,11 +32,14 @@ test "markdown parser recognizes supported block and inline subset" {
   let highlighted = parse_markdown("Note ==important== point")
   guard highlighted[0].kind is Paragraph else { fail("expected paragraph") }
   assert_true(
-    highlighted[0].inlines.any(span => span.kind == MarkdownInlineKind::Highlight),
+    highlighted[0].inlines.any(span => {
+      span.kind == MarkdownInlineKind::Highlight
+    }),
   )
   assert_true(
-    highlighted[0].inlines.any(span =>
-      span.kind == MarkdownInlineKind::Highlight && span.text == "important"),
+    highlighted[0].inlines.any(span => {
+      span.kind == MarkdownInlineKind::Highlight && span.text == "important"
+    }),
   )
   guard blocks[7].kind is UnorderedListItem else {
     fail("expected unordered list")
@@ -290,7 +293,11 @@ test "markdown formatter produces rich text blocks and styled runs" {
   inspect(document.blocks[0].runs[0].text, content="Title")
   inspect(document.blocks[0].runs[0].font.unwrap().weight, content="700")
   inspect(document.blocks[1].prefix, content="• ")
-  inspect(document.blocks[2].prefix, content="☑ ")
+  // Task items carry a vector checkbox marker instead of a `☑` glyph.
+  assert_true(
+    document.blocks[2].marker
+    is Some(@moui_richtext.RichTextMarker::TaskCheckbox(true)),
+  )
   assert_true(document.blocks[3].border_left is Some(_))
   assert_true(document.blocks[4].background is Some(_))
   inspect(document.blocks[4].runs[0].text, content="moonbit")

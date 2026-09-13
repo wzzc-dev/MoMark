@@ -59,11 +59,11 @@ test "markdown editor actions update canonical markdown" {
 test "markdown editor actions seed every supported action from empty document" {
   for
     expected in [
-      "**bold text**", "*italic text*", "`code`", "~~old text~~", "==highlighted text==", "[link text](https://example.com)",
-      "[link text](https://wzzc-dev.github.io/MoUI)", "![image alt](image.png)",
-      "![image alt](assets/image.png)", "Paragraph", "# Heading", "## Section", "### Detail",
-      "#### Subdetail", "##### Note", "###### Caption", "- List item", "- [ ] Task item",
-      "1. List item", "> Quote", "---", "| Header 1 | Header 2 |\n| --- | --- |\n| Cell 1 | Cell 2 |",
+      "**bold text**", "*italic text*", "`code`", "~~old text~~", "==highlighted text==",
+      "[link text](https://example.com)", "[link text](https://wzzc-dev.github.io/MoUI)",
+      "![image alt](image.png)", "![image alt](assets/image.png)", "Paragraph", "# Heading",
+      "## Section", "### Detail", "#### Subdetail", "##### Note", "###### Caption",
+      "- List item", "- [ ] Task item", "1. List item", "> Quote", "---", "| Header 1 | Header 2 |\n| --- | --- |\n| Cell 1 | Cell 2 |",
       "```\ncode block\n```",
     ] {
     let app = MarkdownEditorApp::new()

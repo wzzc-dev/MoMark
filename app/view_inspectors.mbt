@@ -192,7 +192,10 @@ fn files_inspector(
     total_rows = total_rows + 1
   }
   let total_gaps = (total_rows - 1).to_double() * row_gap
-  let usable = markdown_editor_max_double(0.0, height - fixed_height - total_gaps)
+  let usable = markdown_editor_max_double(
+    0.0,
+    height - fixed_height - total_gaps,
+  )
   // Cap the tree at its real content height so a short tree leaves the slack
   // to the recent list instead of rendering an empty gap.
   let tree_scroll_height = if tree_scroll_present {
@@ -362,11 +365,7 @@ fn files_inspector(
   )
   let pinned_content = frame(
     padding_edges(
-      column(
-        file_rows,
-        spacing=row_gap,
-        align=@views.CrossAlign::Start,
-      ),
+      column(file_rows, spacing=row_gap, align=@views.CrossAlign::Start),
       top=theme.spacing_scale.md,
       right=theme.spacing_scale.sm,
       bottom=theme.spacing_scale.md,

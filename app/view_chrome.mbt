@@ -278,18 +278,18 @@ fn MarkdownEditorApp::bottom_status_bar(
   // Sidebar toggle as a clickable sphere dot (replaces the old 26x20 icon
   // button). Inset 10px from the left so it clears the window's rounded
   // corner; gray when closed, medium gray when the file sidebar is open.
-  let sphere =
-    if show_files {
-      sphere_dot(
-        size=15.0,
-        fill=@graphics.Color::rgba(r=0.80, g=0.80, b=0.80),
-        ring=@graphics.Color::rgba(r=0.55, g=0.55, b=0.55),
-      )
-    } else {
-      sphere_dot(size=15.0)
-    }
-  let tree_button = padding_edges(sphere, left=8.0, bottom=8.0)
-    .on_tap(ToggleFileSidebar)
+  let sphere = if show_files {
+    sphere_dot(
+      size=15.0,
+      fill=@graphics.Color::rgba(r=0.80, g=0.80, b=0.80),
+      ring=@graphics.Color::rgba(r=0.55, g=0.55, b=0.55),
+    )
+  } else {
+    sphere_dot(size=15.0)
+  }
+  let tree_button = padding_edges(sphere, left=8.0, bottom=8.0).on_tap(
+    ToggleFileSidebar,
+  )
 
   let save_state = if self.is_dirty() { "Unsaved" } else { "Saved" }
   let transfer = markdown_editor_transfer_status_label(self.transfer_status)

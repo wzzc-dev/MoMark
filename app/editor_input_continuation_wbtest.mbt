@@ -211,23 +211,13 @@ test "markdown editor enter exits empty heading markers" {
   let nested_quoted = markdown_editor_transform_input("> > ### ", 8, None, "\n").unwrap()
   inspect(nested_quoted.text, content="> > ")
   inspect(nested_quoted.caret, content="4")
-  let heading_text = markdown_editor_transform_input(
-    "# Title",
-    7,
-    None,
-    "\n",
-  ).unwrap()
+  let heading_text = markdown_editor_transform_input("# Title", 7, None, "\n").unwrap()
   inspect(heading_text.text, content="# Title\n\n")
   inspect(heading_text.caret, content="9")
   let quoted_title = markdown_editor_transform_input("> # Title", 9, None, "\n").unwrap()
   inspect(quoted_title.text, content="> # Title\n> ")
   inspect(quoted_title.caret, content="12")
-  let bare_markers = markdown_editor_transform_input(
-    "###",
-    3,
-    None,
-    "\n",
-  ).unwrap()
+  let bare_markers = markdown_editor_transform_input("###", 3, None, "\n").unwrap()
   inspect(bare_markers.text, content="###\n\n")
   inspect(bare_markers.caret, content="5")
 }
@@ -254,12 +244,7 @@ test "markdown editor enter splits plain paragraph with a blank line" {
   inspect(trailing.text, content="Alpha paragraph here.\n\n")
   inspect(trailing.caret, content="23")
   // End of a non-empty heading: the blank line follows the heading.
-  let heading = markdown_editor_transform_input(
-    "# 标题",
-    7,
-    None,
-    "\n",
-  ).unwrap()
+  let heading = markdown_editor_transform_input("# 标题", 7, None, "\n").unwrap()
   inspect(heading.text, content="# 标题\n\n")
   inspect(heading.caret, content="6")
   // Raw HTML blocks are verbatim: Enter keeps the plain newline.
