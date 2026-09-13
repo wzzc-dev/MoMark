@@ -37,7 +37,7 @@ async fn main {
   let menus = @momark.application_menus()
   let window_task : async () -> Unit = async fn() {
     @runtime
-    .run_app("MoUI Markdown Editor", runtime)
+    .run_app("MoMark", runtime)
     .render_all(
       @render_skia.from_env(platform=@render_skia.NativeGpuPlatform::MacOS),
     )
