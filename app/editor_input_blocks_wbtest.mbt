@@ -184,12 +184,7 @@ test "markdown editor enter completes horizontal rule lines" {
   let star_rule = markdown_editor_transform_input("***", 3, None, "\n").unwrap()
   inspect(star_rule.text, content="***\n")
   inspect(star_rule.caret, content="4")
-  let stray = markdown_editor_transform_input(
-    "--- title",
-    9,
-    None,
-    "\n",
-  ).unwrap()
+  let stray = markdown_editor_transform_input("--- title", 9, None, "\n").unwrap()
   inspect(stray.text, content="--- title\n\n")
   inspect(stray.caret, content="11")
 }
@@ -213,12 +208,7 @@ test "markdown editor completes setext heading underlines" {
   ).unwrap()
   inspect(heading_underline.text, content="# Title\n===\n\n")
   inspect(heading_underline.caret, content="13")
-  let empty_above = markdown_editor_transform_input(
-    "\n===",
-    4,
-    None,
-    "\n",
-  ).unwrap()
+  let empty_above = markdown_editor_transform_input("\n===", 4, None, "\n").unwrap()
   inspect(empty_above.text, content="\n===\n\n")
   inspect(empty_above.caret, content="6")
   let rule = markdown_editor_transform_input("---", 3, None, " ").unwrap()

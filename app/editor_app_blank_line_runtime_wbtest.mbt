@@ -53,7 +53,9 @@ fn blank_line_height_matches(height : Double?, em : Double) -> Bool {
 
 ///|
 /// Total rendered height of the blank gap blocks in a window.
-fn blank_line_gap_run_height(gaps : Array[@moui_richtext.RichTextBlock]) -> Double {
+fn blank_line_gap_run_height(
+  gaps : Array[@moui_richtext.RichTextBlock],
+) -> Double {
   let mut height = 0.0
   for gap in gaps {
     height = height + gap.inset.top + gap.inset.bottom
@@ -77,7 +79,10 @@ test "markdown editor blank line keeps the typora paragraph rhythm" {
   assert_true(blank_line_height_matches(gaps[0].line_height, 0.0))
   assert_true(blank_line_height_matches(Some(gaps[0].inset.top), 0.4))
   inspect(gaps[0].inset.bottom, content="0")
-  inspect(app.document(), content="Alpha paragraph here.\n\nBeta paragraph here.")
+  inspect(
+    app.document(),
+    content="Alpha paragraph here.\n\nBeta paragraph here.",
+  )
 }
 
 ///|
@@ -96,7 +101,9 @@ test "markdown editor blank lines alternate separator and empty line" {
   assert_true(blank_line_height_matches(gaps[2].line_height, 0.0))
   assert_true(blank_line_height_matches(Some(gaps[2].inset.top), 0.4))
   // The run is separator + writing line + separator, 2.75em in total.
-  assert_true(blank_line_height_matches(Some(blank_line_gap_run_height(gaps)), 2.75))
+  assert_true(
+    blank_line_height_matches(Some(blank_line_gap_run_height(gaps)), 2.75),
+  )
 }
 
 ///|
@@ -222,11 +229,17 @@ test "markdown editor one blank line is no caret target, three show one line" {
   let app = MarkdownEditorApp::new()
   app.set_document("Alpha paragraph here.\n\nBeta paragraph here.")
   let runtime = app.runtime(width=980.0, height=640.0)
-  guard markdown_editor_text_frame(runtime.draw_commands(), "Alpha paragraph here.")
+  guard markdown_editor_text_frame(
+      runtime.draw_commands(),
+      "Alpha paragraph here.",
+    )
     is Some(frame) else {
     fail("expected the first paragraph to render")
   }
-  guard markdown_editor_text_frame(runtime.draw_commands(), "Beta paragraph here.")
+  guard markdown_editor_text_frame(
+      runtime.draw_commands(),
+      "Beta paragraph here.",
+    )
     is Some(next_frame) else {
     fail("expected the second paragraph to render")
   }
@@ -255,8 +268,10 @@ test "markdown editor one blank line is no caret target, three show one line" {
   let three = MarkdownEditorApp::new()
   three.set_document("Alpha paragraph here.\n\n\n\nBeta paragraph here.")
   let runtime3 = three.runtime(width=980.0, height=640.0)
-  guard
-    markdown_editor_text_frame(runtime3.draw_commands(), "Beta paragraph here.")
+  guard markdown_editor_text_frame(
+      runtime3.draw_commands(),
+      "Beta paragraph here.",
+    )
     is Some(beta_frame) else {
     fail("expected the second paragraph to render")
   }
@@ -350,7 +365,9 @@ test "markdown editor enter leaves the caret where the typed line lands" {
   )
   let typed_line_top = blank_line_caret_block_top(app, app.selection_caret())
   assert_true(blank_line_height_matches(Some(typed_line_top), 2.35))
-  assert_true(blank_line_height_matches(Some(caret_line_top - typed_line_top), 0.0))
+  assert_true(
+    blank_line_height_matches(Some(caret_line_top - typed_line_top), 0.0),
+  )
 }
 
 ///|

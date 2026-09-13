@@ -336,6 +336,7 @@ priv struct MarkdownEditorHistoryGroup {
   mut expected_stack_length : Int
 }
 
+///|
 let markdown_editor_history_group : Ref[MarkdownEditorHistoryGroup] = Ref({
   kind: 0,
   start: -1,
@@ -344,6 +345,7 @@ let markdown_editor_history_group : Ref[MarkdownEditorHistoryGroup] = Ref({
   expected_stack_length: -1,
 })
 
+///|
 let markdown_editor_history_merge_window_ms : Int = 500
 
 ///|
@@ -370,7 +372,6 @@ fn markdown_editor_history_single_edit_shape(
   start~ : Int,
   deleted~ : String,
   replacement~ : String,
-  caret~ : Int,
   caret_before~ : Int,
 ) -> (Int, Int, Char)? {
   let deleted_chars = deleted.to_array()
@@ -464,7 +465,6 @@ fn MarkdownEditorApp::record_edit_history_from_transaction(
       start=transaction.edit_range.start,
       deleted=transaction.deleted,
       replacement=transaction.replacement,
-      caret=transaction.caret,
       caret_before=before.selection.caret,
     )
   } else {
@@ -478,7 +478,8 @@ fn MarkdownEditorApp::record_edit_history_from_transaction(
     Some((kind, start, _)) =>
       group.kind == kind &&
       stack_length == group.expected_stack_length &&
-      markdown_editor_text_length(transaction.previous_source) == group.after_length &&
+      markdown_editor_text_length(transaction.previous_source) ==
+      group.after_length &&
       group.last_push_ms >= 0 &&
       group.last_push_ms <= now &&
       now - group.last_push_ms <= markdown_editor_history_merge_window_ms &&
@@ -494,7 +495,8 @@ fn MarkdownEditorApp::record_edit_history_from_transaction(
         self.undo_stack[top_index] = if kind == 1 {
           { ..top, delta: { ..top.delta, after: top.delta.after + character } }
         } else if kind == 2 {
-          { ..top,
+          {
+            ..top,
             delta: {
               ..top.delta,
               start: top.delta.start - 1,
@@ -502,7 +504,10 @@ fn MarkdownEditorApp::record_edit_history_from_transaction(
             },
           }
         } else {
-          { ..top, delta: { ..top.delta, before: top.delta.before + character } }
+          {
+            ..top,
+            delta: { ..top.delta, before: top.delta.before + character },
+          }
         }
         group.last_push_ms = now
         match shape {

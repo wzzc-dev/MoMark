@@ -124,8 +124,8 @@ test "markdown editor file sidebar pins empty folder prompt to top" {
   let app = MarkdownEditorApp::new()
   app.set_file_sidebar_visible(true)
   let commands = app.runtime(width=1120.0, height=640.0).draw_commands()
-  guard markdown_editor_text_frame(commands, "Pick folder") is Some(actions_frame)
-    else {
+  guard markdown_editor_text_frame(commands, "Pick folder")
+    is Some(actions_frame) else {
     fail("expected the empty folder prompt")
   }
   guard markdown_editor_text_frame(commands, "Files") is Some(files_frame) else {

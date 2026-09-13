@@ -413,7 +413,6 @@ test "markdown editor target palette engages only after caret placement" {
   assert_true(app.selection_engaged)
 }
 
-
 ///|
 test "markdown editor gives an html block ownership of its image subtree" {
   let app = MarkdownEditorApp::new()
