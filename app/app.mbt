@@ -721,5 +721,25 @@ pub fn MarkdownEditorApp::program(
 
 ///|
 fn sample_markdown() -> String {
-  "# Editor notes\n\nThis **WYSIWYG** surface keeps `Markdown` as the saved value.\n\n## Today\n- Type into the formatted page\n- Use shortcuts or contextual controls\n- Open source only when needed\n\n> Unsupported syntax stays editable as plain text.\n\n```\nlet saved = markdown\n```\n\n---"
+  "# MoMark 编辑器演示\n" +
+  "\n这是 **MoUI** 的 *Markdown* WYSIWYG 编辑器。\n" +
+  "直接键入编辑，Cmd+Z 撤销，点击任意文字处定位光标。\n" +
+  "\n## 列表与任务\n" +
+  "- 无序项 alpha\n" +
+  "  - 嵌套子项\n" +
+  "1. 有序一\n" +
+  "2. 有序二\n" +
+  "- [x] 已完成任务\n" +
+  "- [ ] 待办任务\n" +
+  "\n> 引用块：**粗体**、`代码`、[链接](https://moonbitlang.com) 都在同一段里。\n" +
+  "\n```moonbit\nfn greet(name : String) -> String {\n  \"hello \" + name\n}\n```\n" +
+  "\n## 表格\n" +
+  "| 层 | 角色 | 说明 |\n" +
+  "| --- | --- | --- |\n" +
+  "|  MoUI | GUI 框架 | Moonbit GUI 框架 |\n" +
+  "|  moui_richtext | 富文本库 | Markdown WYSIWYG 库  |\n" +
+  "|  MoMark | 编辑器应用 | 视图组装 |\n" +
+  "\n![moui](https://raw.githubusercontent.com/wzzc-dev/MoUI/main/resource/branding/moonbud-mascot-100.png)\n" +
+  "\n---\n" +
+  "\n<div class=\"raw-block\">支持 html 块。</div>\n"
 }

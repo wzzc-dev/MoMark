@@ -18,7 +18,7 @@ fn main {
     environment=@linux_backend.app_environment(),
     initial_document_path=initial_document_from_args(),
   )
-  @runtime.run_app("MoUI Markdown Editor", runtime)
+  @runtime.run_app("MoMark", runtime)
   .render_all(
     @render_skia.from_env(platform=@render_skia.NativeGpuPlatform::Linux),
   )

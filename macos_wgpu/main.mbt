@@ -19,7 +19,7 @@ fn main {
     initial_document_path=initial_document_from_args(),
   )
   let menus = @momark.application_menus()
-  @runtime.run_app("MoUI Markdown Editor (WGPU)", runtime)
+  @runtime.run_app("MoMark (WGPU)", runtime)
   .render(
     @render_wgpu.native(
       platform=@render_wgpu.WgpuNativePlatform::MacOS,
