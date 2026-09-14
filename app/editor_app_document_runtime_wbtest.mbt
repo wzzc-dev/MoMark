@@ -3,7 +3,9 @@ test "markdown editor tracks document clean dirty and saved baseline" {
   let app = MarkdownEditorApp::new()
   assert_false(app.dirty())
   assert_true(
-    app.document_status_label_for_test().contains("Editor notes / Saved"),
+    app
+    .document_status_label_for_test()
+    .contains("MoMark 编辑器演示 / Saved"),
   )
 
   app.edit_document("# Draft\n\nBody")

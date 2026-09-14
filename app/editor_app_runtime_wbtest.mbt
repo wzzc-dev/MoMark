@@ -4,14 +4,15 @@ test "markdown editor app emits primary wysiwyg commands" {
   let commands = app.runtime(width=980.0, height=640.0).draw_commands()
   assert_true(
     commands.any(command => {
-      command is @core.DrawCommand::DrawText({ text: "Editor notes", .. })
+      command
+      is @core.DrawCommand::DrawText({ text: "MoMark 编辑器演示", .. })
     }),
   )
   assert_true(
     commands.any(command => {
       command
       is @core.DrawCommand::DrawText(
-        { text: "Editor notes", font: { weight: 700, .. }, .. }
+        { text: "MoMark 编辑器演示", font: { weight: 700, .. }, .. }
       )
     }),
   )
