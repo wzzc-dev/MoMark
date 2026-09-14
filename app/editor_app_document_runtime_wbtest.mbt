@@ -349,8 +349,8 @@ test "markdown editor chrome renders document workflow state" {
   app.load_document_for_test("# Plan", path="/tmp/plan.md")
   app.edit_document("# Plan\n\nNext")
   let commands = app.runtime(width=980.0, height=640.0).draw_commands()
-  // Chrome renders the document title (filename) and save state as separate
-  // text elements after the status bar redesign (e337e41d).
+  // Chrome renders the document title (filename) in the title bar; the status
+  // bar keeps only document context (save state lives in the sidebar footer).
   assert_true(
     commands.any(command => {
       match command {
@@ -359,10 +359,23 @@ test "markdown editor chrome renders document workflow state" {
       }
     }),
   )
-  assert_true(
+  assert_false(
     commands.any(command => {
       match command {
         @core.DrawCommand::DrawText({ text, .. }) => text.contains("Unsaved")
+        _ => false
+      }
+    }),
+  )
+  // Opening the file sidebar pins the current-document footer, which carries
+  // the save state next to the status bar's sphere toggle.
+  app.toggle_file_sidebar()
+  let sidebar_commands = app.runtime(width=980.0, height=640.0).draw_commands()
+  assert_true(
+    sidebar_commands.any(command => {
+      match command {
+        @core.DrawCommand::DrawText({ text, .. }) =>
+          text.contains("plan.md / Unsaved")
         _ => false
       }
     }),

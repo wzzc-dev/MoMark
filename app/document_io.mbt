@@ -863,6 +863,10 @@ fn MarkdownEditorApp::apply_service_completion(
 }
 
 ///|
+/// Status-bar copy for transfer completions. The bar no longer renders it
+/// (toasts and the sidebar footer carry this state now), but the vocabulary
+/// stays available for tests and future surfaces.
+#warnings("-unused_value")
 fn markdown_editor_transfer_status_label(
   status : MarkdownEditorTransferStatus,
 ) -> String {

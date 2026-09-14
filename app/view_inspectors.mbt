@@ -192,9 +192,15 @@ fn files_inspector(
     total_rows = total_rows + 1
   }
   let total_gaps = (total_rows - 1).to_double() * row_gap
+  // The panel spans the full window height, so its footer (divider + current-
+  // document label) bleeds into the status-bar band where the sphere toggle
+  // lives. Reserving this clearance raises the label just enough that its
+  // text shares the sphere's center line instead of clipping at the window
+  // edge.
+  let footer_sphere_clearance = 4.0
   let usable = markdown_editor_max_double(
     0.0,
-    height - fixed_height - total_gaps,
+    height - fixed_height - total_gaps - footer_sphere_clearance,
   )
   // Cap the tree at its real content height so a short tree leaves the slack
   // to the recent list instead of rendering an empty gap.

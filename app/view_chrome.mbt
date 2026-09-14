@@ -291,13 +291,9 @@ fn MarkdownEditorApp::bottom_status_bar(
     ToggleFileSidebar,
   )
 
-  let save_state = if self.is_dirty() { "Unsaved" } else { "Saved" }
-  let transfer = markdown_editor_transfer_status_label(self.transfer_status)
-  let transfer_suffix = if transfer == "" { "" } else { " / " + transfer }
-  let status = save_state +
-    " / " +
-    markdown_editor_session_status_label(block_label, session, selection) +
-    transfer_suffix
+  // Save state lives in the sidebar's current-document footer; transfer
+  // completions surface as toasts, so the bar keeps only document context.
+  let status = markdown_editor_session_status_label(block_label, session, selection)
 
   // 状态文字宽度自适应：最小 160px，最大撑满窗口宽度（减去 sphere 区域 24px），
   // 不再限制 500px 上限，长状态也能完整显示。

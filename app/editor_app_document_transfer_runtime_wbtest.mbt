@@ -476,10 +476,17 @@ test "markdown editor runtime receives async save as completion" {
       }
     }),
   )
+  // The status bar no longer renders the transfer label; the save state is
+  // carried by the file sidebar's current-document footer.
+  app.toggle_file_sidebar()
+  let sidebar_commands = app
+    .runtime_with_services(services, width=980.0, height=640.0)
+    .draw_commands()
   assert_true(
-    commands.any(command => {
+    sidebar_commands.any(command => {
       match command {
-        @core.DrawCommand::DrawText({ text, .. }) => text.contains("Saved")
+        @core.DrawCommand::DrawText({ text, .. }) =>
+          text.contains("async-save.md / Saved")
         _ => false
       }
     }),
