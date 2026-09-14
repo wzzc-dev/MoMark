@@ -30,8 +30,7 @@ async fn main {
   )
   let menus = @momark.application_menus()
   let window_task : async () -> Unit = async fn() {
-    @runtime
-    .run_app("MoMark", runtime)
+    @runtime.run_app("MoMark", runtime)
     .render_all(
       @render_skia.from_env(platform=@render_skia.NativeGpuPlatform::MacOS),
     )
@@ -54,11 +53,9 @@ async fn main {
     )
     .run_async_pump()
   }
-  try {
-    // The worker is a cancellable child of the window task, so quitting the
-    // window tears it down instead of leaving it parked on an empty queue.
-    @image_remote.with_remote_images(remote_images, window=window_task)
-  } catch {
+  // The worker is a cancellable child of the window task, so quitting the
+  // window tears it down instead of leaving it parked on an empty queue.
+  @image_remote.with_remote_images(remote_images, window=window_task) catch {
     err => println("MoMark exited with error: \{err}")
   }
 }
