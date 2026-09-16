@@ -210,6 +210,18 @@ jobs:
       - name: List packages
         run: ls -l release
 
+      # 滚动快照与重跑都是整体重发：旧 release 里的同名资产（GitHub 资产名
+      # 不区分大小写，momark_* 与 MoMark_* 视为同名）会让上传报 already_exists。
+      # 先删掉同 tag 的旧 release（连同 tag ref），再由 publish 步骤重建。
+      - name: Drop stale release with the same tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event_name == 'workflow_dispatch' && 'dev-snapshot' || github.ref_name }}
+        run: |
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release delete "$TAG" --yes --cleanup-tag
+          fi
+
       - name: Publish
         uses: softprops/action-gh-release@v2
         with:
