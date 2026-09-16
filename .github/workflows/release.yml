@@ -77,14 +77,34 @@ jobs:
             "./MoUI/moui_wgpu_renderer",
             "./MoUI/moui_sun",
             "./MoUI/moui_sun_renderer",
+            "./MoUI/window/modules/window",
+            "./MoUI/window/modules/windowing",
             "./momark",
           ]
           EOF
 
-      - name: Set up MoonBit
-        uses: hustcer/setup-moonbit@v1
-        with:
-          version: latest
+      # MoUI main 按它自己的 .moonbit-toolchain 开发与验证（三平台 CI 全绿），
+      # 构建它的下游必须用同一版本：latest 工具链会在 Windows MSVC 的 C stub
+      # 编译里引入 /std:c11，与 moui_skia 的 /std:c++20 stub 旗标冲突（D8016）。
+      - name: Install MoonBit (pinned by MoUI toolchain)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          version="$(node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).moonc)' MoUI/.moonbit-toolchain)"
+          echo "Installing MoonBit toolchain $version (pinned by MoUI)"
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s "$version"
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+
+      - name: Install MoonBit (pinned by MoUI toolchain, Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $toolchain = Get-Content -LiteralPath "MoUI/.moonbit-toolchain" -Raw | ConvertFrom-Json
+          if ([string]::IsNullOrWhiteSpace($toolchain.moonc)) { throw "MoUI .moonbit-toolchain is missing a moonc version" }
+          Write-Host "Installing MoonBit toolchain $($toolchain.moonc) (pinned by MoUI)"
+          $env:MOONBIT_INSTALL_VERSION = $toolchain.moonc
+          Invoke-RestMethod https://cli.moonbitlang.com/install/powershell.ps1 | Invoke-Expression
+          "$env:USERPROFILE\.moon\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       # window/linux 后端在链接期需要 wayland（pkg-config + wayland-scanner
       # 协议生成）、glib/gio、zlib；moui_skia 的静态 Skia provider 归档还要
