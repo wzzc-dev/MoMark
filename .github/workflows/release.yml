@@ -213,14 +213,21 @@ jobs:
       # 滚动快照与重跑都是整体重发：旧 release 里的同名资产（GitHub 资产名
       # 不区分大小写，momark_* 与 MoMark_* 视为同名）会让上传报 already_exists。
       # 先删掉同 tag 的旧 release（连同 tag ref），再由 publish 步骤重建。
+      # 该 job 不 checkout（gh release view/delete 会因缺 git 仓库上下文失败），
+      # 全部走 REST API：删 release、删 tag ref，让 publish 步骤从零重建。
       - name: Drop stale release with the same tag
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.event_name == 'workflow_dispatch' && 'dev-snapshot' || github.ref_name }}
         run: |
-          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
-            gh release delete "$TAG" --yes --cleanup-tag
+          set -euo pipefail
+          release_id="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" --jq '.id' 2>/dev/null || true)"
+          if [ -n "$release_id" ]; then
+            echo "Deleting stale release $release_id (tag $TAG)"
+            gh api -X DELETE "repos/$GITHUB_REPOSITORY/releases/$release_id"
           fi
+          # release 删除后 tag ref 会残留；一并清掉（ref 不存在时视为成功）。
+          gh api -X DELETE "repos/$GITHUB_REPOSITORY/git/refs/tags/$TAG" 2>/dev/null || true
 
       - name: Publish
         uses: softprops/action-gh-release@v2
