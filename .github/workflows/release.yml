@@ -1,16 +1,28 @@
 name: Release
 
-# 发布 MoMark（Markdown 编辑器）macOS arm64 应用包。
+# 发布 MoMark（Markdown 编辑器）三平台二进制。
 # 触发：打 `v*` tag（正式发布）或手动 workflow_dispatch（滚动 prerelease 快照）。
 #
 # MoMark 的应用代码跟随 MoUI main 演进，快于 mooncakes 已发布版本，
 # 单独仓库构建会因注册表版本过旧而编译失败。与本地开发（md_editor 根
-# workspace 用 vendor/MoUI 成员覆盖发布版）一致，CI 把 MoUI 与 MoMark 放
-# 进同一个合成 workspace 从源码构建。MOUI_SHA 需要随 app 侧使用的 MoUI
-# 新 API 一起 bump（与 MoUI main 上的提交对应）。
+# workspace 用 vendor/MoUI 成员覆盖发布版）一致，CI 把 MoUI（main 分支）
+# 与 MoMark 放进同一个合成 workspace 从源码构建。MoUI main 的破坏性变更
+# 会直接反映到发布构建，与本地开发行为相同。
 #
-# 发行 .app 而不是裸可执行文件：macOS 只向前台 bundle 投递键盘事件，裸
-# Mach-O 里编辑器收不到任何键入（同样的记录见 gpmark/bundle.sh）。
+# 平台构建差异：
+# - macOS arm64：build 后用 bundle.sh 把可执行文件包进带 Info.plist 的
+#   .app（裸 Mach-O 收不到键盘事件，同样的记录见 gpmark/bundle.sh）。
+# - Linux x86_64 / Windows x64：GPUI/Skia 窗口不需要 bundle，直接发行
+#   可执行文件。Skia 原生库由 moui_skia 的 prebuild 自动解析锁定版本的
+#   预编译 provider 并注入链接参数；Linux 需要安装 wayland/glib 等
+#   window 后端的链接期开发包；Windows 需要 MSVC 环境（moui_skia 的
+#   C++ stub 用 /std:c++20 旗标，cl/link 必须先进环境，与 MoUI 的
+#   windows platform evidence 同一路径）。
+#
+# 构建与发布分成两个 job：三个平台并行构建并各自上传 artifact，再由单个
+# publish job 下载全部产物、一次性创建 release。让三个 job 各自调用
+# action-gh-release 会并发创建同一个 tag 的 release，先到的建好、后到的
+# 可能报 already_exists 或互相覆盖附件（与 gpmark/release.yml 相同的教训）。
 
 on:
   push:
@@ -20,14 +32,24 @@ on:
 permissions:
   contents: write
 
-env:
-  MOUI_SHA: 1709b311b53c6855d66cdfe8abd878621a0b2f0f
-
 jobs:
-  macos-arm64:
-    name: macOS arm64
-    runs-on: macos-14
-    timeout-minutes: 60
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS arm64
+            os: macos-14
+            slug: macos-arm64
+          - name: Linux x86_64
+            os: ubuntu-24.04
+            slug: linux-x86_64
+          - name: Windows x64
+            os: windows-2022
+            slug: windows-x64
     defaults:
       run:
         shell: bash
@@ -37,11 +59,11 @@ jobs:
         with:
           path: momark
 
-      - name: Checkout MoUI (pinned)
+      - name: Checkout MoUI (main)
         uses: actions/checkout@v4
         with:
           repository: wzzc-dev/MoUI
-          ref: ${{ env.MOUI_SHA }}
+          ref: main
           path: MoUI
 
       - name: Compose build workspace
@@ -64,14 +86,43 @@ jobs:
         with:
           version: latest
 
+      # window/linux 后端在链接期需要 wayland（pkg-config + wayland-scanner
+      # 协议生成）、glib/gio、zlib；moui_skia 的静态 Skia provider 归档还要
+      # fontconfig/freetype/harfbuzz。unzip 供 provider 解压使用。
+      - name: Install native development libraries (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwayland-dev libwayland-bin wayland-protocols \
+            libglib2.0-dev zlib1g-dev pkg-config unzip \
+            libfontconfig1-dev libfreetype-dev libharfbuzz-dev
+
       - name: Toolchain versions
         run: moon version --all
 
       - name: Resolve MoonBit dependencies
         run: moon update
 
-      - name: Build (native release)
+      - name: Build (native release, macOS)
+        if: runner.os == 'macOS'
         run: moon build momark/macos_skia --target native --release
+
+      - name: Build (native release, Linux)
+        if: runner.os == 'Linux'
+        run: moon build momark/linux_skia --target native --release
+
+      # vcvarsall 提供 cl/link；moon build 必须与 vcvars 在同一个 cmd 进程里
+      # 执行，导入的环境变量才能被 moon 驱动的编译器看见。
+      - name: Build (native release, Windows MSVC)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $vsPath = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          if (-not $vsPath) { throw "Visual Studio C++ build tools were not found" }
+          $vcvars = Join-Path $vsPath "VC\Auxiliary\Build\vcvarsall.bat"
+          cmd /c "call `"$vcvars`" x64 && moon build momark/windows_skia --target native --release"
 
       - name: Resolve release tag
         run: |
@@ -79,9 +130,10 @@ jobs:
           [ "${{ github.event_name }}" = "workflow_dispatch" ] && tag="dev-snapshot"
           echo "TAG=$tag" >> "$GITHUB_ENV"
 
-      # bundle.sh 把 .app 放在 momark 仓库自己的 dist/ 下；zip 落在 workspace
-      # 根，upload-artifact 的相对路径才是稳定的。
-      - name: Package app bundle
+      # 一次构建、两条发行路径：macOS 用 .app（GUI 键盘投递的前提），其余平台
+      # 直接发行可执行文件。都把二进制改名成产品名 MoMark。
+      - name: Package app bundle (macOS)
+        if: runner.os == 'macOS'
         run: |
           ./momark/bundle.sh
           app="momark/dist/MoMark.app"
@@ -93,28 +145,62 @@ jobs:
           mkdir -p release
           ditto -c -k --keepParent "$app" "release/MoMark_${TAG}_macos-arm64.zip"
 
+      - name: Package (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          mkdir -p release
+          install -m 0755 _build/native/release/build/wzzc-dev/momark/linux_skia/linux_skia.exe release/MoMark
+          tar -czf "release/MoMark_${TAG}_linux-x86_64.tar.gz" -C release MoMark
+          rm release/MoMark
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          mkdir -p release
+          cp _build/native/release/build/wzzc-dev/momark/windows_skia/windows_skia.exe release/MoMark.exe
+          powershell -NoProfile -Command \
+            "Compress-Archive -Path release/MoMark.exe -DestinationPath 'release/MoMark_${TAG}_windows-x64.zip' -Force"
+          rm release/MoMark.exe
+
       - name: Upload package
         uses: actions/upload-artifact@v4
         with:
-          name: MoMark-macos-arm64
-          path: release/MoMark_*
+          name: MoMark-${{ matrix.slug }}
+          path: release/*
           if-no-files-found: error
           retention-days: 7
 
-      - name: Publish GitHub Release
+  publish:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download packages
+        uses: actions/download-artifact@v4
+        with:
+          pattern: MoMark-*
+          path: release
+          merge-multiple: true
+
+      - name: List packages
+        run: ls -l release
+
+      - name: Publish
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ env.TAG }}
+          tag_name: ${{ github.event_name == 'workflow_dispatch' && 'dev-snapshot' || github.ref_name }}
           prerelease: ${{ github.event_name == 'workflow_dispatch' }}
           generate_release_notes: ${{ github.event_name == 'push' }}
-          files: release/MoMark_${{ env.TAG }}_macos-arm64.zip
+          files: release/*
           body: |
-            MoMark（Markdown 编辑器）macOS arm64 应用包，未签名。
+            MoMark（Markdown 编辑器，MoonBit + MoUI/Skia）三平台发行包，均未签名。
 
-            解压得到 `MoMark.app`。首次运行如被 Gatekeeper 拦截，执行
-            `xattr -dr com.apple.quarantine MoMark.app` 再打开。
-
-            带终端输出运行（也可直接用命令行传文档路径）：
-            `./MoMark.app/Contents/MacOS/MoMark [document.md]`
+            - macOS arm64：解压得到 `MoMark.app`。如遇 Gatekeeper 拦截，执行
+              `xattr -dr com.apple.quarantine MoMark.app` 再打开。
+              带终端输出运行（也可直接用命令行传文档路径）：
+              `./MoMark.app/Contents/MacOS/MoMark [document.md]`
+            - Linux x86_64：解压后 `chmod +x MoMark && ./MoMark [document.md]`
+              （Wayland 会话；需要 libwayland / glib / fontconfig 等系统库）。
+            - Windows x64：解压后直接运行 `MoMark.exe [document.md]`。
 
             无参数时打开内置示例文档。
