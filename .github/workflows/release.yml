@@ -65,6 +65,9 @@ jobs:
           repository: wzzc-dev/MoUI
           ref: main
           path: MoUI
+          # window 模块以 submodule 引入（公开仓库，匿名可拉）；合成
+          # workspace 引用 window/windowing 成员，必须先递归初始化。
+          submodules: recursive
 
       - name: Compose build workspace
         run: |
@@ -115,6 +118,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             libwayland-dev libwayland-bin wayland-protocols \
+            libx11-dev libxext-dev libxrandr-dev \
             libglib2.0-dev zlib1g-dev pkg-config unzip \
             libfontconfig1-dev libfreetype-dev libharfbuzz-dev
 
