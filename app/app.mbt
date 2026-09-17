@@ -68,6 +68,16 @@ pub struct MarkdownEditorApp {
   mut undo_stack : Array[MarkdownEditorHistoryEntry]
   mut redo_stack : Array[MarkdownEditorHistoryEntry]
   mut editor_scroll : @geometry.Point
+  // Wheel-driven smooth scrolling: the wheel only moves `editor_scroll_target`
+  // (plus an immediate first step so the page answers the flick at once); a
+  // frame-rate timer closes the remaining distance with an exponential ease
+  // (EditorScrollAnimationTick). Snapping each tick to whole logical pixels
+  // keeps text crisp while moving, like VS Code's pixel-perfect scroll.
+  mut editor_scroll_target : Double
+  mut editor_scroll_animating : Bool
+  // Hosts without a timer source cannot drive the animation ticks, so their
+  // wheel events must jump straight to the target offset.
+  priv mut editor_scroll_smooth_supported : Bool
   priv mut file_filter_query : String
   priv mut working_directory : String
   priv mut expanded_tree_paths : Array[String]
@@ -283,6 +293,7 @@ pub enum MarkdownEditorMsg {
   CommandClickAt(Int)
   SetSelection(Int, @text.TextRange?)
   EditorScrollChanged(@geometry.Point)
+  EditorScrollAnimationTick
   RemoteImageMetricsChanged
   OpenRecentDocument(String)
   JumpToOutline(Int)
@@ -352,6 +363,9 @@ pub fn MarkdownEditorApp::new() -> MarkdownEditorApp {
     undo_stack: [],
     redo_stack: [],
     editor_scroll: @geometry.Point::new(x=0.0, y=0.0),
+    editor_scroll_target: 0.0,
+    editor_scroll_animating: false,
+    editor_scroll_smooth_supported: true,
     file_filter_query: "",
     file_tree_expanded: true,
     image_centered: false,
@@ -488,7 +502,24 @@ fn MarkdownEditorApp::update_in_place(
     ToggleHeadingFold(source_start) => self.toggle_heading_fold(source_start)
     CommandClickAt(offset) => self.handle_command_click(offset)
     SetSelection(caret, selection) => self.set_selection(caret, selection)
-    EditorScrollChanged(offset) => self.editor_scroll = offset
+    EditorScrollChanged(offset) => {
+      // The control reports the offset after applying its wheel clamp; the
+      // pixel delta is that offset minus the offset we last handed it.
+      let delta_y = offset.y - self.editor_scroll.y
+      if self.editor_scroll_smooth_supported {
+        self.editor_scroll_wheel(delta_y, markdown_editor_viewport_height())
+      } else {
+        self.editor_scroll = offset
+        self.editor_scroll_target = offset.y
+        self.editor_scroll_animating = false
+      }
+    }
+    // One eased step toward the pending scroll target; the subscription that
+    // dispatches this goes away once the step reports the motion settled.
+    EditorScrollAnimationTick =>
+      ignore(
+        self.editor_scroll_animation_step(markdown_editor_viewport_height()),
+      )
     // A remote image's intrinsic size arrived after layout; re-rendering with
     // the cleared rich-text conversion cache re-projects the affected blocks
     // at their real aspect ratio.
@@ -642,6 +673,16 @@ fn MarkdownEditorApp::subscriptions(
   let subscriptions : Array[@moui.Subscription[MarkdownEditorMsg]] = []
   match timer_source {
     Some(source) => {
+      if self.editor_scroll_animating {
+        subscriptions.push(
+          source.subscription(
+            interval_ms=markdown_editor_scroll_tick_interval_ms(),
+            key="markdown-editor:scroll-animation",
+            label="Markdown editor smooth scroll tick",
+            map=_frame => EditorScrollAnimationTick,
+          ),
+        )
+      }
       if self.toasts.items.length() > 0 {
         subscriptions.push(
           source.subscription(
@@ -699,6 +740,7 @@ pub fn MarkdownEditorApp::program(
 ) -> @moui.Program[MarkdownEditorApp, MarkdownEditorMsg] {
   let services = environment.services()
   let timer_source = environment.timer()
+  self.editor_scroll_smooth_supported = timer_source is Some(_)
   @moui.Program::new_with_environment(
     init=() => {
       (

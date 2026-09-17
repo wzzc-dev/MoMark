@@ -35,6 +35,10 @@ fn MarkdownEditorApp::apply_editor_transaction(
     selection: transaction.selection,
   }
   self.editor_scroll = anchor
+  // An edit re-anchors the document under the viewport; a wheel animation
+  // still gliding toward a pre-edit target would drift away from the caret.
+  self.editor_scroll_target = anchor.y
+  self.editor_scroll_animating = false
   self.sync_target_inputs()
   self.maybe_center_typewriter_selection()
 }

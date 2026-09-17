@@ -295,19 +295,6 @@ fn MarkdownEditorApp::scroll_to_source_with_anchor(
     appearance,
   )
   let viewport_height = markdown_editor_viewport_height()
-  let content_height = markdown_editor_max_double(
-    viewport_height,
-    session.estimated_content_height(
-      base=editor_font,
-      source_mode~,
-      content_width=markdown_editor_max_double(0.0, editor_width - 28.0),
-    ) +
-    96.0,
-  )
-  let max_scroll = markdown_editor_max_double(
-    0.0,
-    content_height - viewport_height,
-  )
   let y = session.source_offset_y(
     source_start,
     base=editor_font,
@@ -320,13 +307,10 @@ fn MarkdownEditorApp::scroll_to_source_with_anchor(
     width=editor_width,
     height=editor_font.size * 1.55,
   )
-  self.editor_scroll = @geometry.Point::new(
-    x=0.0,
-    y=markdown_editor_clamp_double(
-      markdown_editor_scroll_anchor_y(rect, viewport_height, center~),
-      0.0,
-      max_scroll,
-    ),
+  // Anchor jumps replace any in-flight wheel animation outright.
+  self.editor_scroll_jump_to(
+    markdown_editor_scroll_anchor_y(rect, viewport_height, center~),
+    viewport_height,
   )
 }
 
