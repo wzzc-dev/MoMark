@@ -39,6 +39,7 @@ fn MarkdownEditorApp::apply_editor_transaction(
   // still gliding toward a pre-edit target would drift away from the caret.
   self.editor_scroll_target = anchor.y
   self.editor_scroll_animating = false
+  self.editor_scroll_ticks_since_wheel = 0
   self.sync_target_inputs()
   self.maybe_center_typewriter_selection()
 }

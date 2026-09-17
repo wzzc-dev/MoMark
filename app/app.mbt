@@ -68,13 +68,17 @@ pub struct MarkdownEditorApp {
   mut undo_stack : Array[MarkdownEditorHistoryEntry]
   mut redo_stack : Array[MarkdownEditorHistoryEntry]
   mut editor_scroll : @geometry.Point
-  // Wheel-driven smooth scrolling: the wheel only moves `editor_scroll_target`
-  // (plus an immediate first step so the page answers the flick at once); a
-  // frame-rate timer closes the remaining distance with an exponential ease
-  // (EditorScrollAnimationTick). Snapping each tick to whole logical pixels
-  // keeps text crisp while moving, like VS Code's pixel-perfect scroll.
+  // Wheel-driven smooth scrolling: discrete wheel notches move a target
+  // offset (`editor_scroll_target`) and a frame-rate timer closes the
+  // remaining distance with a time-based exponential ease
+  // (EditorScrollAnimationTick); continuous trackpad/momentum streams pass
+  // straight through (the OS already animates them). Ticks snap to whole
+  // logical pixels so text stays crisp while moving.
   mut editor_scroll_target : Double
   mut editor_scroll_animating : Bool
+  // Animation ticks observed since the last wheel event. A wheel event that
+  // lands with zero intervening ticks belongs to a continuous stream.
+  priv mut editor_scroll_ticks_since_wheel : Int
   // Hosts without a timer source cannot drive the animation ticks, so their
   // wheel events must jump straight to the target offset.
   priv mut editor_scroll_smooth_supported : Bool
@@ -293,7 +297,7 @@ pub enum MarkdownEditorMsg {
   CommandClickAt(Int)
   SetSelection(Int, @text.TextRange?)
   EditorScrollChanged(@geometry.Point)
-  EditorScrollAnimationTick
+  EditorScrollAnimationTick(Double)
   RemoteImageMetricsChanged
   OpenRecentDocument(String)
   JumpToOutline(Int)
@@ -365,6 +369,7 @@ pub fn MarkdownEditorApp::new() -> MarkdownEditorApp {
     editor_scroll: @geometry.Point::new(x=0.0, y=0.0),
     editor_scroll_target: 0.0,
     editor_scroll_animating: false,
+    editor_scroll_ticks_since_wheel: 0,
     editor_scroll_smooth_supported: true,
     file_filter_query: "",
     file_tree_expanded: true,
@@ -514,11 +519,15 @@ fn MarkdownEditorApp::update_in_place(
         self.editor_scroll_animating = false
       }
     }
-    // One eased step toward the pending scroll target; the subscription that
-    // dispatches this goes away once the step reports the motion settled.
-    EditorScrollAnimationTick =>
+    // One eased step toward the pending scroll target, covering the elapsed
+    // time the frame reports; the subscription that dispatches this goes
+    // away once the step reports the motion settled.
+    EditorScrollAnimationTick(delta_ms) =>
       ignore(
-        self.editor_scroll_animation_step(markdown_editor_viewport_height()),
+        self.editor_scroll_animation_step(
+          delta_ms,
+          markdown_editor_viewport_height(),
+        ),
       )
     // A remote image's intrinsic size arrived after layout; re-rendering with
     // the cleared rich-text conversion cache re-projects the affected blocks
@@ -679,7 +688,7 @@ fn MarkdownEditorApp::subscriptions(
             interval_ms=markdown_editor_scroll_tick_interval_ms(),
             key="markdown-editor:scroll-animation",
             label="Markdown editor smooth scroll tick",
-            map=_frame => EditorScrollAnimationTick,
+            map=frame => EditorScrollAnimationTick(frame.delta_ms),
           ),
         )
       }

@@ -1,7 +1,8 @@
 ///|
-/// Smooth-scroll state machine coverage: the wheel moves a target offset and
-/// an animation closes the gap; anchor jumps interrupt the glide; hosts
-/// without a timer fall back to instant jumps.
+/// Smooth-scroll state machine coverage: discrete wheel notches move a
+/// target offset and a time-based animation closes the gap; continuous
+/// trackpad/momentum streams pass straight through; anchor jumps interrupt
+/// the glide; hosts without a timer fall back to instant jumps.
 
 ///|
 fn smooth_scroll_test_app(
@@ -39,30 +40,58 @@ test "markdown editor scroll animation converges on the target" {
   let target = app.editor_scroll_target
   let mut ticks = 0
   while app.editor_scroll_animating && ticks < 200 {
-    ignore(app.editor_scroll_animation_step(viewport_height))
+    // Feed the tick cadence as the elapsed time each step covers.
+    ignore(
+      app.editor_scroll_animation_step(
+        markdown_editor_scroll_tick_interval_ms(),
+        viewport_height,
+      ),
+    )
     ticks = ticks + 1
   }
-  // The glide settles (finite ticks) and lands exactly on the target with
-  // the animation flag cleared so the ticking subscription stops.
+  // The glide settles (finite ticks) and lands on the target with the
+  // animation flag cleared so the ticking subscription stops.
   assert_true(ticks > 1)
   assert_true(!app.editor_scroll_animating)
-  // Whole-pixel snapping may land the last tick a fraction below the target;
-  // the offset must sit on a whole pixel within half a pixel of the target.
-  assert_true((app.editor_scroll.y - target).abs() <= 0.5)
+  // Whole-pixel snapping may land the final offset a fraction below the
+  // target; the offset must sit on a whole pixel within a pixel of it.
+  assert_true((app.editor_scroll.y - target).abs() <= 1.0)
   assert_eq(app.editor_scroll.y, app.editor_scroll.y.floor())
 }
 
 ///|
-test "markdown editor consecutive wheels accumulate into one target" {
+test "markdown editor consecutive discrete wheels accumulate into one target" {
   let app = smooth_scroll_test_app()
   let viewport_height = markdown_editor_viewport_height()
   app.editor_scroll_wheel(60.0, viewport_height)
   let first_target = app.editor_scroll_target
+  // One animation tick ran between the notches, so the second notch is
+  // discrete and extends the glide instead of being treated as a stream.
+  ignore(
+    app.editor_scroll_animation_step(
+      markdown_editor_scroll_tick_interval_ms(),
+      viewport_height,
+    ),
+  )
   app.editor_scroll_wheel(60.0, viewport_height)
-  // The second notch extends the glide instead of restarting it from the
-  // visible offset, so fast scrolling travels the summed distance.
   assert_true(app.editor_scroll_target > first_target)
   assert_true(app.editor_scroll_target <= 120.0 + 1.0)
+}
+
+///|
+test "markdown editor continuous wheel streams pass through without easing" {
+  let app = smooth_scroll_test_app()
+  let viewport_height = markdown_editor_viewport_height()
+  // First event starts the glide.
+  app.editor_scroll_wheel(12.0, viewport_height)
+  assert_true(app.editor_scroll_animating)
+  // A second event with NO animation tick between them is a continuous
+  // stream (trackpad gesture / platform momentum): the OS already animates
+  // it, so the offset follows the raw delta with no eased glide left over.
+  app.editor_scroll_wheel(12.0, viewport_height)
+  assert_true(app.editor_scroll_animating)
+  assert_eq(app.editor_scroll.y, app.editor_scroll_target)
+  assert_eq(app.editor_scroll.y, 24.0)
 }
 
 ///|
@@ -75,11 +104,15 @@ test "markdown editor wheel clamps at the document bottom" {
   assert_true(app.editor_scroll_target <= max_scroll)
   let mut ticks = 0
   while app.editor_scroll_animating && ticks < 200 {
-    ignore(app.editor_scroll_animation_step(viewport_height))
+    ignore(
+      app.editor_scroll_animation_step(
+        markdown_editor_scroll_tick_interval_ms(),
+        viewport_height,
+      ),
+    )
     ticks = ticks + 1
   }
-  // Whole-pixel snapping may land a fraction below the clamp limit.
-  assert_true((app.editor_scroll.y - max_scroll).abs() <= 0.5)
+  assert_true((app.editor_scroll.y - max_scroll).abs() <= 1.0)
 }
 
 ///|
@@ -134,11 +167,30 @@ test "markdown editor animation tick message steps and settles" {
   let target = app.editor_scroll_target
   let mut ticks = 0
   while app.editor_scroll_animating && ticks < 200 {
-    app.update_in_place(EditorScrollAnimationTick)
+    app.update_in_place(
+      EditorScrollAnimationTick(markdown_editor_scroll_tick_interval_ms()),
+    )
     ticks = ticks + 1
   }
   assert_true(ticks > 1)
-  // Whole-pixel snapping may land the final offset a fraction below the
-  // target (the settle check accepts anything within half a pixel).
-  assert_true((app.editor_scroll.y - target).abs() <= 0.5)
+  assert_true((app.editor_scroll.y - target).abs() <= 1.0)
+}
+
+///|
+test "markdown editor eased step is time-based, not tick-count-based" {
+  let app = smooth_scroll_test_app()
+  let viewport_height = markdown_editor_viewport_height()
+  // Two glides over the same total time: one 32ms tick, four 8ms ticks.
+  // The ease must land both at (nearly) the same offset, so a late timer
+  // callback simply covers more time instead of visibly slowing the glide.
+  app.editor_scroll_wheel(300.0, viewport_height)
+  ignore(app.editor_scroll_animation_step(32.0, viewport_height))
+  let coarse = app.editor_scroll.y
+  let app2 = smooth_scroll_test_app()
+  app2.editor_scroll_wheel(300.0, viewport_height)
+  for _ in 0..<4 {
+    ignore(app2.editor_scroll_animation_step(8.0, viewport_height))
+  }
+  let fine = app2.editor_scroll.y
+  assert_true((coarse - fine).abs() <= 2.0)
 }
