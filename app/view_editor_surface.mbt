@@ -197,153 +197,6 @@ fn MarkdownEditorApp::target_bar(
   }
 }
 
-///|
-fn floating_target_palette(
-  editor : @moui.View[MarkdownEditorMsg],
-  target_bar : @moui.View[MarkdownEditorMsg],
-  session : MarkdownDocumentSession,
-  selection : MarkdownEditorSelection,
-  target_kind : MarkdownEditorTargetKind,
-  editor_font : @text.FontSpec,
-  theme : @moui.Theme,
-  scroll_offset : @geometry.Point,
-  width : Double,
-  height : Double,
-) -> @moui.View[MarkdownEditorMsg] {
-  let palette = if target_kind == PlainSelection {
-    empty()
-  } else {
-    container(
-      target_bar,
-      variant=@views.ContainerVariant::Raised,
-      theme~,
-      padding=theme.spacing_scale.xs,
-    )
-  }
-  @views.custom_children_layout(
-    children=[editor, palette],
-    measure=_ => @geometry.Size::new(width~, height~),
-    place=ctx => {
-      let palette_size = if ctx.children.length() > 1 {
-        ctx.children[1].size
-      } else {
-        @geometry.Size::new(width=0.0, height=0.0)
-      }
-      let editor_frame = @geometry.Rect::new(
-        x=ctx.frame.origin.x,
-        y=ctx.frame.origin.y,
-        width=ctx.frame.size.width,
-        height~,
-      )
-      let palette_width = markdown_editor_min_double(palette_size.width, width)
-      let anchor = markdown_editor_palette_anchor(
-        session,
-        selection,
-        target_kind,
-        editor_frame,
-        editor_font,
-        palette_width,
-        palette_size.height,
-        scroll_offset,
-        theme,
-      )
-      let palette_x = ctx.frame.origin.x +
-        markdown_editor_max_double(
-          0.0,
-          markdown_editor_min_double(
-            ctx.frame.size.width - palette_width,
-            anchor.x - ctx.frame.origin.x,
-          ),
-        )
-      let palette_y = ctx.frame.origin.y +
-        markdown_editor_max_double(
-          0.0,
-          markdown_editor_min_double(
-            ctx.frame.size.height - palette_size.height,
-            anchor.y - ctx.frame.origin.y,
-          ),
-        )
-      [
-        editor_frame,
-        @geometry.Rect::new(
-          x=palette_x,
-          y=palette_y,
-          width=palette_width,
-          height=palette_size.height,
-        ),
-      ]
-    },
-    semantics_label="Markdown editor floating target palette",
-    paint=(_ctx, _frame) => (),
-  )
-}
-
-///|
-fn markdown_editor_palette_anchor(
-  session : MarkdownDocumentSession,
-  selection : MarkdownEditorSelection,
-  target_kind : MarkdownEditorTargetKind,
-  editor_frame : @geometry.Rect,
-  editor_font : @text.FontSpec,
-  palette_width : Double,
-  palette_height : Double,
-  scroll_offset : @geometry.Point,
-  theme : @moui.Theme,
-) -> @geometry.Point {
-  if target_kind == PlainSelection {
-    return @geometry.Point::new(
-      x=editor_frame.origin.x + (editor_frame.size.width - palette_width) / 2.0,
-      y=editor_frame.origin.y +
-        markdown_editor_max_double(
-          0.0,
-          editor_frame.size.height - palette_height - theme.spacing_scale.sm,
-        ),
-    )
-  }
-  let caret = match selection.selection {
-    Some(range) => range.normalized().start
-    None => selection.caret
-  }
-  match
-    markdown_editor_session_caret_rect(
-      session,
-      selection,
-      caret,
-      editor_frame,
-      editor_font,
-      scroll_offset,
-      viewport_height=editor_frame.size.height,
-    ) {
-    Some(rect) => {
-      let x = rect.origin.x + rect.size.width / 2.0 - palette_width / 2.0
-      let preferred_above = rect.origin.y -
-        palette_height -
-        theme.spacing_scale.sm
-      let y = if preferred_above >= editor_frame.origin.y {
-        preferred_above
-      } else if target_kind == TableTools {
-        editor_frame.origin.y +
-        markdown_editor_max_double(
-          0.0,
-          editor_frame.size.height - palette_height - theme.spacing_scale.sm,
-        )
-      } else {
-        rect.origin.y + rect.size.height + theme.spacing_scale.sm
-      }
-      @geometry.Point::new(x~, y~)
-    }
-    None =>
-      @geometry.Point::new(
-        x=editor_frame.origin.x +
-          (editor_frame.size.width - palette_width) / 2.0,
-        y=editor_frame.origin.y +
-          markdown_editor_max_double(
-            0.0,
-            editor_frame.size.height - palette_height - theme.spacing_scale.sm,
-          ),
-      )
-  }
-}
 
 ///|
 fn markdown_editor_session_caret_rect(
@@ -690,81 +543,6 @@ fn markdown_editor_source_inspector_width() -> Double {
 }
 
 ///|
-/// A thin scroll bar drawn at the right edge of the window (the indicator is
-/// stacked over the full-width editor row, so its track hugs the window edge
-/// instead of the centered page column).
-/// `content_height` is the same estimated document height the scroll offset is
-/// clamped against in `editor_source_layout`, so the thumb length equals the
-/// visible fraction of the document and its travel maps one-to-one to the
-/// scroll range. It fades in from the top so the page edge stays clean when
-/// unscrolled.
-fn markdown_editor_scroll_indicator(
-  scroll : @geometry.Point,
-  viewport_height~ : Double,
-  content_height~ : Double,
-  theme : @moui.Theme,
-) -> @moui.View[MarkdownEditorMsg] {
-  let offset_y = scroll.y
-  // Hide entirely while at the top (no content scrolled past).
-  if offset_y <= 0.0 {
-    @views.empty()
-  } else {
-    let indicator_alpha = if offset_y > 40.0 {
-      0.65
-    } else {
-      offset_y / 40.0 * 0.65
-    }
-    custom_layout(
-      measure=constraints => {
-        constraints.constrain(
-          @geometry.Size::new(width=0.0, height=viewport_height),
-        )
-      },
-      paint=(ctx, frame) => {
-        // A 3px-wide track pinned to the right edge of the laid-out frame.
-        let track_x = frame.origin.x + frame.size.width - 3.0
-        let track = @geometry.Rect::new(
-          x=track_x,
-          y=frame.origin.y,
-          width=3.0,
-          height=frame.size.height,
-        )
-        // Thumb length = visible fraction of the document, clamped so short
-        // documents still show a grabbable thumb.
-        let viewport = markdown_editor_max_double(1.0, frame.size.height)
-        let content = markdown_editor_max_double(viewport, content_height)
-        let thumb_height = markdown_editor_min_double(
-          viewport * 0.5,
-          markdown_editor_max_double(30.0, viewport * viewport / content),
-        )
-        // Thumb travel maps the scroll offset linearly across the track.
-        let max_scroll = markdown_editor_max_double(1.0, content - viewport)
-        let scroll_fraction = markdown_editor_clamp_double(
-            offset_y, 0.0, max_scroll,
-          ) /
-          max_scroll
-        let thumb_y = track.origin.y +
-          scroll_fraction * (viewport - thumb_height)
-        let track_color = theme.palette.muted.multiply_alpha(0.28)
-        let thumb_color = theme.palette.muted.multiply_alpha(indicator_alpha)
-        fill_rect(ctx, track, track_color)
-        fill_rect(
-          ctx,
-          @geometry.Rect::new(
-            x=track.origin.x,
-            y=thumb_y,
-            width=track.size.width,
-            height=thumb_height,
-          ),
-          thumb_color,
-        )
-      },
-      semantics_label="Editor scroll indicator",
-    )
-  }
-}
-
-///|
 fn markdown_editor_viewport_height() -> Double {
   520.0
 }
@@ -830,7 +608,7 @@ fn editor_source_layout(
   target_bar : @moui.View[MarkdownEditorMsg],
   selection : MarkdownEditorSelection,
   target_kind : MarkdownEditorTargetKind,
-  scroll_offset : @geometry.Point,
+  scroll_glide : MarkdownScrollGlide,
   on_selection_change : (Int, @text.TextRange?) -> MarkdownEditorMsg,
   on_prefix_click : (Int) -> MarkdownEditorMsg,
   viewport_width? : Double = 1120.0,
@@ -853,14 +631,6 @@ fn editor_source_layout(
       content_width=markdown_editor_max_double(0.0, editor_width - 28.0),
     ) +
     96.0,
-  )
-  let max_scroll = markdown_editor_max_double(
-    0.0,
-    content_height - viewport_height,
-  )
-  let normalized_offset = @geometry.Point::new(
-    x=0.0,
-    y=markdown_editor_clamp_double(scroll_offset.y, 0.0, max_scroll),
   )
   let page_brush = @graphics.Brush::solid(appearance.page_background)
   let editor_style : @views.TextFieldStyle = @views.TextFieldStyle::new(
@@ -904,8 +674,10 @@ fn editor_source_layout(
     on_prefix_click=Some(on_prefix_click),
     on_command_click=Some(offset => CommandClickAt(offset)),
     accepts_tab_input=true,
-    visible_scroll_y=normalized_offset.y,
-    on_scroll=Some(y => EditorScrollChanged(@geometry.Point::new(x=0.0, y~))),
+    scroll_glide~,
+    on_scroll=Some((wheel_delta_y, clock_ms) => {
+      EditorScrolled(wheel_delta_y, clock_ms, viewport_width, viewport_height)
+    }),
     visible_viewport_height=viewport_height,
     visible_overscan=markdown_editor_visible_overscan(viewport_height),
   ).key("markdown-editor")
@@ -968,7 +740,7 @@ fn editor_source_layout(
       width=viewport_width,
     ),
     markdown_editor_scroll_indicator(
-      app.editor_scroll,
+      scroll_glide,
       viewport_height~,
       content_height~,
       theme,

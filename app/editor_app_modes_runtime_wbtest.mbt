@@ -263,7 +263,7 @@ test "markdown editor runtime quick format row applies command" {
 test "markdown editor set document from input anchors scroll position" {
   let app = MarkdownEditorApp::new()
   app.edit_document("# Long\n\nParagraph text\n\nMore text\n\nEnd")
-  app.editor_scroll = @geometry.Point::new(x=0.0, y=50.0)
+  app.editor_scroll_glide = MarkdownScrollGlide::settled(50.0)
   let before = app.editor_scroll_y()
   app.set_document_from_input(
     "# Long\n\nParagraph text updated\n\nMore text\n\nEnd",

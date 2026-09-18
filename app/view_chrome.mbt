@@ -4,6 +4,21 @@ fn MarkdownEditorApp::root(
   viewport_width? : Double = 1120.0,
   viewport_height? : Double = 520.0,
 ) -> @moui.View[MarkdownEditorMsg] {
+  let geometry_compensation = @moui_richtext.markdown_scroll_take_geometry_compensation()
+  if geometry_compensation != 0.0 {
+    let now_ms = match self.scroll_clock {
+      Some(clock) => clock()
+      // root has no paint context. Reuse the last frame's runtime time so
+      // an in-flight glide is re-keyed at the position the user just saw;
+      // interpreting it at time zero is a visible backward snap.
+      None => @moui_richtext.markdown_scroll_peek_frame_time()
+    }
+    self.editor_scroll_glide = self.editor_scroll_glide.with_anchor_compensation(
+      geometry_compensation,
+      self.editor_scroll_max_offset(viewport_height, viewport_width~),
+      now_ms~,
+    )
+  }
   let theme = self.chrome_theme()
   let session = self.document_session
   let document = session.source()
@@ -33,7 +48,7 @@ fn MarkdownEditorApp::root(
     PlainSelection
   }
   let block_label = self.block_label
-  let scroll_offset = self.editor_scroll
+  let scroll_glide = self.editor_scroll_glide
   let children : Array[@moui.View[MarkdownEditorMsg]] = []
   if !zen && self.find_visible {
     children.push(self.find_bar(theme, selection, workspace_width))
@@ -55,7 +70,7 @@ fn MarkdownEditorApp::root(
       target_bar,
       selection,
       target_kind,
-      scroll_offset,
+      scroll_glide,
       (caret, selection) => SetSelection(caret, selection),
       offset => ToggleTaskAt(offset),
       viewport_width~,
@@ -293,7 +308,9 @@ fn MarkdownEditorApp::bottom_status_bar(
 
   // Save state lives in the sidebar's current-document footer; transfer
   // completions surface as toasts, so the bar keeps only document context.
-  let status = markdown_editor_session_status_label(block_label, session, selection)
+  let status = markdown_editor_session_status_label(
+    block_label, session, selection,
+  )
 
   // 状态文字宽度自适应：最小 160px，最大撑满窗口宽度（减去 sphere 区域 24px），
   // 不再限制 500px 上限，长状态也能完整显示。

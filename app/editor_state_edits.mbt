@@ -24,7 +24,10 @@ fn MarkdownEditorApp::apply_editor_transaction(
   self : MarkdownEditorApp,
   transaction : MarkdownEditTransaction,
 ) -> Unit {
-  let anchor = self.editor_scroll
+  // An edit re-anchors the document under the viewport, so any glide still in
+  // flight is frozen where it is showing: the scroll must not drift away from
+  // the caret while the content shifts underneath.
+  let anchor_y = self.editor_scroll_displayed_y()
   let session = self.document_session
   let next = session.apply(transaction)
   self.document_session = next
@@ -34,12 +37,9 @@ fn MarkdownEditorApp::apply_editor_transaction(
     caret: transaction.caret,
     selection: transaction.selection,
   }
-  self.editor_scroll = anchor
-  // An edit re-anchors the document under the viewport; a wheel animation
-  // still gliding toward a pre-edit target would drift away from the caret.
-  self.editor_scroll_target = anchor.y
-  self.editor_scroll_animating = false
-  self.editor_scroll_ticks_since_wheel = 0
+  self.editor_scroll_glide = MarkdownScrollGlide::settled(anchor_y)
+  self.last_wheel_ms = 0.0
+  self.last_wheel_stream = false
   self.sync_target_inputs()
   self.maybe_center_typewriter_selection()
 }

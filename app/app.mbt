@@ -21,6 +21,7 @@ using @moui_richtext {
   type MarkdownDocumentSession,
   type MarkdownEditReason,
   type MarkdownEditTransaction,
+  type MarkdownScrollGlide,
   controlled_markdown_session_editor,
 }
 
@@ -67,21 +68,25 @@ pub struct MarkdownEditorApp {
   priv mut transfer_generation : Int
   mut undo_stack : Array[MarkdownEditorHistoryEntry]
   mut redo_stack : Array[MarkdownEditorHistoryEntry]
-  mut editor_scroll : @geometry.Point
-  // Wheel-driven smooth scrolling: discrete wheel notches move a target
-  // offset (`editor_scroll_target`) and a frame-rate timer closes the
-  // remaining distance with a time-based exponential ease
-  // (EditorScrollAnimationTick); continuous trackpad/momentum streams pass
-  // straight through (the OS already animates them). Ticks snap to whole
-  // logical pixels so text stays crisp while moving.
-  mut editor_scroll_target : Double
-  mut editor_scroll_animating : Bool
-  // Animation ticks observed since the last wheel event. A wheel event that
-  // lands with zero intervening ticks belongs to a continuous stream.
-  priv mut editor_scroll_ticks_since_wheel : Int
-  // Hosts without a timer source cannot drive the animation ticks, so their
-  // wheel events must jump straight to the target offset.
-  priv mut editor_scroll_smooth_supported : Bool
+  // Wheel-driven smooth scrolling as a paint-time animation: the glide is
+  // evaluated by the editor view once per frame against the runtime animation
+  // clock, so the displayed position is always sampled for the frame being
+  // drawn (no timer ticks, no per-frame rebuild). Continuous
+  // trackpad/momentum streams pass straight through (the OS already animates
+  // them); only discrete notches ease.
+  mut editor_scroll_glide : MarkdownScrollGlide
+  // Monotonic host time of the last wheel event, used to tell a continuous
+  // momentum stream (events a few ms apart) from discrete notches.
+  priv mut last_wheel_ms : Double
+  // Whether the last wheel event belonged to such a stream. Keeps a decaying
+  // momentum tail in passthrough mode: its events are still dense, but each
+  // one leaves the glide settled, so "still animating" alone would flip the
+  // classification back to discrete and re-introduce the second ease.
+  priv mut last_wheel_stream : Bool
+  // Monotonic host clock from the app environment, when the backend provides
+  // one. It shares the timeline with the runtime's frame clock, so glide
+  // timestamps taken from it compare directly against the animation clock.
+  priv mut scroll_clock : (() -> Double)?
   priv mut file_filter_query : String
   priv mut working_directory : String
   priv mut expanded_tree_paths : Array[String]
@@ -296,8 +301,11 @@ pub enum MarkdownEditorMsg {
   ToggleHeadingFold(Int)
   CommandClickAt(Int)
   SetSelection(Int, @text.TextRange?)
-  EditorScrollChanged(@geometry.Point)
-  EditorScrollAnimationTick(Double)
+  // The editor view supplies its actual viewport dimensions with every wheel
+  // event. Scroll geometry must use the same dimensions as paint; falling
+  // back to the old fixed 520px range makes a target clamp against a
+  // different document window and produces a visible reverse nudge.
+  EditorScrolled(Double, Double, Double, Double)
   RemoteImageMetricsChanged
   OpenRecentDocument(String)
   JumpToOutline(Int)
@@ -366,11 +374,10 @@ pub fn MarkdownEditorApp::new() -> MarkdownEditorApp {
     transfer_generation: 0,
     undo_stack: [],
     redo_stack: [],
-    editor_scroll: @geometry.Point::new(x=0.0, y=0.0),
-    editor_scroll_target: 0.0,
-    editor_scroll_animating: false,
-    editor_scroll_ticks_since_wheel: 0,
-    editor_scroll_smooth_supported: true,
+    editor_scroll_glide: MarkdownScrollGlide::settled(0.0),
+    last_wheel_ms: 0.0,
+    last_wheel_stream: false,
+    scroll_clock: None,
     file_filter_query: "",
     file_tree_expanded: true,
     image_centered: false,
@@ -507,28 +514,54 @@ fn MarkdownEditorApp::update_in_place(
     ToggleHeadingFold(source_start) => self.toggle_heading_fold(source_start)
     CommandClickAt(offset) => self.handle_command_click(offset)
     SetSelection(caret, selection) => self.set_selection(caret, selection)
-    EditorScrollChanged(offset) => {
-      // The control reports the offset after applying its wheel clamp; the
-      // pixel delta is that offset minus the offset we last handed it.
-      let delta_y = offset.y - self.editor_scroll.y
-      if self.editor_scroll_smooth_supported {
-        self.editor_scroll_wheel(delta_y, markdown_editor_viewport_height())
-      } else {
-        self.editor_scroll = offset
-        self.editor_scroll_target = offset.y
-        self.editor_scroll_animating = false
+    EditorScrolled(wheel_delta_y, clock_ms, viewport_width, viewport_height) => {
+      // A paint can measure blocks and publish an anchor compensation after
+      // the last root build. Wheel input may arrive before the next build,
+      // so consume it here before deriving the next target. Otherwise this
+      // event would re-key from the stale app glide and the following frame
+      // would rebound to the old target.
+      let geometry_compensation = @moui_richtext.markdown_scroll_take_geometry_compensation()
+      if geometry_compensation != 0.0 {
+        self.editor_scroll_glide = self.editor_scroll_glide.with_anchor_compensation(
+          geometry_compensation,
+          self.editor_scroll_max_offset(viewport_height, viewport_width~),
+          now_ms=clock_ms,
+        )
       }
-    }
-    // One eased step toward the pending scroll target, covering the elapsed
-    // time the frame reports; the subscription that dispatches this goes
-    // away once the step reports the motion settled.
-    EditorScrollAnimationTick(delta_ms) =>
-      ignore(
-        self.editor_scroll_animation_step(
-          delta_ms,
-          markdown_editor_viewport_height(),
-        ),
+      // Wheel events a few ms apart belong to one continuous stream (a
+      // trackpad gesture or platform momentum), whose deltas the OS already
+      // animates: those get light smoothing, while an isolated notch gets the
+      // full ease. The distinction only picks the time constant — every event
+      // continues from the shown offset, so a stream landing mid-ease, or a
+      // direction reversal, can never teleport the view. The gap is measured on
+      // the real host clock when the backend provides one (dense, and the core
+      // pointer contract carries no event timestamps); otherwise the animation
+      // clock is the only timeline available.
+      let gap_clock = match self.scroll_clock {
+        Some(clock) => clock()
+        None => clock_ms
+      }
+      let gap = gap_clock - self.last_wheel_ms
+      let dense = gap >= 0.0 && gap <= markdown_editor_scroll_stream_gap_ms()
+      // A dense follow-up continues a stream only when there is already motion
+      // to continue — either a glide in flight or a stream already in progress.
+      // An isolated event (and the very first event of a session, whose gap is
+      // 0 against the initial stamp) starts a new ease.
+      let continuous = dense &&
+        (
+          self.editor_scroll_glide.is_animating(clock_ms) ||
+          self.last_wheel_stream
+        )
+      self.last_wheel_ms = gap_clock
+      self.last_wheel_stream = continuous
+      self.editor_scroll_wheel(
+        wheel_delta_y,
+        viewport_height,
+        viewport_width~,
+        continuous~,
+        clock_ms~,
       )
+    }
     // A remote image's intrinsic size arrived after layout; re-rendering with
     // the cleared rich-text conversion cache re-projects the affected blocks
     // at their real aspect ratio.
@@ -682,16 +715,6 @@ fn MarkdownEditorApp::subscriptions(
   let subscriptions : Array[@moui.Subscription[MarkdownEditorMsg]] = []
   match timer_source {
     Some(source) => {
-      if self.editor_scroll_animating {
-        subscriptions.push(
-          source.subscription(
-            interval_ms=markdown_editor_scroll_tick_interval_ms(),
-            key="markdown-editor:scroll-animation",
-            label="Markdown editor smooth scroll tick",
-            map=frame => EditorScrollAnimationTick(frame.delta_ms),
-          ),
-        )
-      }
       if self.toasts.items.length() > 0 {
         subscriptions.push(
           source.subscription(
@@ -749,7 +772,7 @@ pub fn MarkdownEditorApp::program(
 ) -> @moui.Program[MarkdownEditorApp, MarkdownEditorMsg] {
   let services = environment.services()
   let timer_source = environment.timer()
-  self.editor_scroll_smooth_supported = timer_source is Some(_)
+  self.scroll_clock = environment.clock()
   @moui.Program::new_with_environment(
     init=() => {
       (

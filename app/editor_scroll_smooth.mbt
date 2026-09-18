@@ -1,42 +1,47 @@
 ///|
-/// Smooth wheel scrolling for the editor surface.
+/// Scroll-glide helpers for the editor surface.
 ///
-/// The host already delivers precise per-pixel wheel deltas (macOS
-/// `scrollingDeltaY`), but jumping the document straight to the target on
-/// every event reads as jumpy next to VS Code's preview, whose scroller
-/// animates each wheel notch over several frames. Discrete wheel notches
-/// (a classic mouse wheel) move a target offset — with an immediate first
-/// step so the page answers the flick at once — and a frame-rate timer
-/// closes the remaining distance with a time-based exponential ease.
-/// Continuous delta streams (trackpads and their platform momentum) are
-/// passed through untouched: the OS already animates those, layering a
-/// second ease on top would fight it and feel sluggish.
+/// The scroll animation lives in the framework's paint-time animation model:
+/// the app stores a `MarkdownScrollGlide` (from/to/start on the runtime's
+/// animation clock) and the editor view evaluates it once per frame. The
+/// position shown is therefore always sampled for the frame being drawn —
+/// there is no timer tick grid to beat against the display refresh, the
+/// animation runs in real time on 60Hz/120Hz/variable-refresh displays alike,
+/// and no per-frame message or view rebuild is needed.
+///
+/// Continuous trackpad/momentum streams are eased too, just briefly: the OS
+/// already animates their deltas, so they only get enough smoothing to land on
+/// the display's frame grid rather than on the stream's own irregular cadence.
+/// What no input kind ever does is *snap* — a re-keyed glide always starts from
+/// the offset being shown, because starting from the pending target teleports
+/// the view by whatever the ease still had to go (backwards, when the user
+/// reverses direction or the target clamps at the document edge).
 
 ///|
-/// Time constant of the exponential ease, in milliseconds: the fraction of
-/// the remaining distance still ahead after this much time is 1/e ≈ 37%.
-/// 90ms settles a notch with the same crisp glide VS Code's editor uses.
-fn markdown_editor_scroll_ease_time_constant_ms() -> Double {
+/// Wheel events closer together than this belong to one continuous stream
+/// (trackpad gesture or platform momentum): those deltas are already animated
+/// by the OS, so the follow-up gets only light smoothing instead of a full
+/// ease. Covers both 120Hz (8.3ms) and 60Hz (16.7ms) event streams; a spun
+/// mouse wheel's notches land past it and keep the long ease.
+fn markdown_editor_scroll_stream_gap_ms() -> Double {
+  24.0
+}
+
+///|
+/// Time constant for an isolated wheel notch (a mouse wheel click, or the
+/// first event of a gesture, when there is no motion to continue): a visible
+/// ease the user can aim with.
+fn markdown_editor_scroll_notch_tau_ms() -> Double {
   90.0
 }
 
 ///|
-/// Timer cadence for the scroll animation subscription, in milliseconds.
-/// The eased step itself is time-based, so cadence only bounds latency
-/// between ticks; 8ms keeps ticks close to the display frame interval.
-fn markdown_editor_scroll_tick_interval_ms() -> Double {
-  8.0
-}
-
-///|
-/// A wheel event that arrives while an animation is already running, with
-/// no animation tick between the two, belongs to a continuous stream
-/// (trackpad gesture or platform momentum): those deltas are already
-/// animated by the OS and must be passed through, not eased again.
-/// `markdown_editor_scroll_continuous_gap_ticks` is the number of animation
-/// ticks that must intervene for the event to count as discrete again.
-fn markdown_editor_scroll_continuous_gap_ticks() -> Int {
-  1
+/// Time constant for a momentum stream: short enough that the shown position
+/// lands within a frame or two of where the OS put it (no perceptible lag on
+/// top of the platform's own animation), long enough to regularize the
+/// stream's own irregular event cadence, which is what reads as silkiness.
+fn markdown_editor_scroll_stream_tau_ms() -> Double {
+  28.0
 }
 
 ///|
@@ -46,15 +51,17 @@ fn markdown_editor_scroll_continuous_gap_ticks() -> Int {
 fn MarkdownEditorApp::editor_scroll_max_offset(
   self : MarkdownEditorApp,
   viewport_height : Double,
+  viewport_width? : Double = 1120.0,
 ) -> Double {
   let appearance = self.appearance_spec()
   let editor_font = markdown_editor_appearance_font(appearance)
-  let editor_width = markdown_editor_primary_editor_width(
+  let editor_width = markdown_editor_primary_editor_width_for_viewport(
     self.source_preview_visible,
     self.outline_visible,
     self.file_sidebar_visible,
     self.document_info_visible,
     appearance,
+    viewport_width~,
   )
   let content_height = markdown_editor_max_double(
     viewport_height,
@@ -69,150 +76,101 @@ fn MarkdownEditorApp::editor_scroll_max_offset(
 }
 
 ///|
-/// Feed a wheel tick into the smooth-scroll state machine.
+/// Feed a wheel tick into the glide.
 ///
-/// `delta_y` is the host's pixel delta for this event (positive scrolls
-/// down). Discrete notches move the target by the full delta and take an
-/// immediate first eased step, so the document reacts on the very event
-/// the finger produced and the rest of the notch glides in behind it.
-/// Continuous streams pass straight through.
+/// `wheel_delta_y` is the host's raw wheel delta (macOS convention: negative
+/// scrolls down); `clock_ms` is the animation-clock time the event was handled
+/// at, which stamps the new glide so it is evaluated on the same timeline it
+/// was created on.
+///
+/// The delta accumulates onto the pending target for every event, so a rapid
+/// spin or a long momentum flick sums its full intent instead of the shown
+/// offset lagging a frame behind and shedding the remainder. What makes this
+/// *not* a teleport is the `from_y`: the shown offset, never the target. The
+/// original stream path re-keyed with `settled(next_target)` (from = to =
+/// target), so the first frame that drew it leapt from wherever an in-flight
+/// ease had reached straight to `target - delta` — and on a reversal that
+/// point sits behind the shown offset, snapping the view backward (the
+/// reported jump). Continuing from the shown offset keeps the position
+/// continuous; `continuous` then only sets the easing speed.
+///
+/// The stream ease is deliberately short, not a snap. A snap would move the
+/// content on the OS event grid, which is itself irregularly spaced; the short
+/// follower re-times that motion onto the display's frame grid, which is what
+/// makes a trackpad gesture read as smooth rather than steppy. It is short
+/// enough (a couple of frames) that it adds no perceptible lag on top of the
+/// platform's own momentum animation.
 fn MarkdownEditorApp::editor_scroll_wheel(
   self : MarkdownEditorApp,
-  delta_y : Double,
+  wheel_delta_y : Double,
   viewport_height : Double,
+  viewport_width? : Double = 1120.0,
+  continuous~ : Bool,
+  clock_ms~ : Double,
 ) -> Unit {
-  if delta_y == 0.0 {
+  if wheel_delta_y == 0.0 {
     return ()
   }
-  let max_scroll = self.editor_scroll_max_offset(viewport_height)
-  // A wheel event landing on an in-flight animation with no tick in between
-  // marks a continuous stream (trackpad/momentum): the OS already animates
-  // it; interrupting with our own ease would double-smooth the motion.
-  let continuous = self.editor_scroll_animating &&
-    self.editor_scroll_ticks_since_wheel <
-    markdown_editor_scroll_continuous_gap_ticks()
-  if continuous {
-    let next = markdown_editor_clamp_double(
-      self.editor_scroll_target + delta_y,
-      0.0,
-      max_scroll,
-    )
-    self.editor_scroll_target = next
-    self.editor_scroll = @geometry.Point::new(x=0.0, y=next)
-    return ()
-  }
-  let current_target = if self.editor_scroll_animating {
-    self.editor_scroll_target
-  } else {
-    self.editor_scroll.y
-  }
+  let max_scroll = self.editor_scroll_max_offset(
+    viewport_height,
+    viewport_width~,
+  )
+  // Measured block heights can change while a document is being scrolled
+  // (for example after a wrapped block or image is laid out). Keep the
+  // re-key point inside the current range; otherwise a newly smaller range
+  // makes the next wheel event ease backwards from an out-of-range offset,
+  // which reads as a rebound at the bottom.
+  let shown = markdown_editor_clamp_double(
+    self.editor_scroll_glide.exact_offset_at(clock_ms),
+    0.0,
+    max_scroll,
+  )
   let next_target = markdown_editor_clamp_double(
-    current_target + delta_y,
+    self.editor_scroll_glide.to_y - wheel_delta_y,
     0.0,
     max_scroll,
   )
-  // Immediate first step (one tick's worth of the ease) keeps the scroll
-  // responsive to the flick itself instead of waiting for the first tick.
-  let first_step = markdown_editor_scroll_eased_step(
-    self.editor_scroll.y,
-    next_target,
-    markdown_editor_scroll_tick_interval_ms(),
+  self.editor_scroll_glide = MarkdownScrollGlide::new(
+    // Continue from the exact shown offset, not the device-snapped display
+    // value: rounding the hidden state each event would reintroduce the
+    // sub-pixel jitter the paint-time snap exists to remove.
+    from_y=shown,
+    to_y=next_target,
+    start_ms=clock_ms,
+    tau_ms=if continuous {
+      markdown_editor_scroll_stream_tau_ms()
+    } else {
+      markdown_editor_scroll_notch_tau_ms()
+    },
   )
-  self.editor_scroll_target = next_target
-  self.editor_scroll = @geometry.Point::new(
-    x=0.0,
-    y=markdown_editor_scroll_quantize(first_step),
-  )
-  self.editor_scroll_animating = next_target != self.editor_scroll.y
-  self.editor_scroll_ticks_since_wheel = 0
 }
 
 ///|
-/// One eased step toward the target, covering `elapsed_ms` of the ease.
-/// Returns false when the animation has settled and the ticking
-/// subscription may stop.
-fn MarkdownEditorApp::editor_scroll_animation_step(
-  self : MarkdownEditorApp,
-  elapsed_ms : Double,
-  viewport_height : Double,
-) -> Bool {
-  if !self.editor_scroll_animating {
-    return false
-  }
-  let max_scroll = self.editor_scroll_max_offset(viewport_height)
-  let target = markdown_editor_clamp_double(
-    self.editor_scroll_target,
-    0.0,
-    max_scroll,
-  )
-  let next = markdown_editor_scroll_eased_step(
-    self.editor_scroll.y,
-    target,
-    elapsed_ms,
-  )
-  let quantized = markdown_editor_scroll_quantize(next)
-  // Settle when the eased motion rounds to at most one pixel per step:
-  // sub-pixel creep is invisible and, with whole-pixel snapping, can stall
-  // forever just short of the target (floor eats a <1px step). The glide
-  // must always terminate, regardless of floating-point tails.
-  let step_pixels = (next - self.editor_scroll.y).abs()
-  let settled = (target - next).abs() <= 0.75 || step_pixels <= 1.0
-  if settled {
-    self.editor_scroll = @geometry.Point::new(
-      x=0.0,
-      y=markdown_editor_scroll_quantize(target),
-    )
-    self.editor_scroll_animating = false
-  } else {
-    self.editor_scroll = @geometry.Point::new(x=0.0, y=quantized)
-  }
-  if self.editor_scroll_ticks_since_wheel < 1024 {
-    self.editor_scroll_ticks_since_wheel = self.editor_scroll_ticks_since_wheel +
-    1
-  }
-  self.editor_scroll_animating
-}
-
-///|
-/// Interrupt any in-flight animation and park the scroll at `y` (used when
-/// a scroll anchor jump replaces the wheel-driven motion).
+/// Park the scroll at `y` (anchor jumps, typewriter centring, document
+/// switches): a settled glide paints `y` for every clock value.
 fn MarkdownEditorApp::editor_scroll_jump_to(
   self : MarkdownEditorApp,
   y : Double,
   viewport_height : Double,
 ) -> Unit {
   let max_scroll = self.editor_scroll_max_offset(viewport_height)
-  let clamped = markdown_editor_clamp_double(y, 0.0, max_scroll)
-  self.editor_scroll_target = clamped
-  self.editor_scroll = @geometry.Point::new(x=0.0, y=clamped)
-  self.editor_scroll_animating = false
-}
-
-///|
-/// Time-based exponential ease from `current` toward `target` over
-/// `elapsed_ms`: the remaining distance decays as exp(-elapsed / τ), which
-/// composes across steps (two 16ms steps equal one 32ms step), so the glide
-/// speed is independent of the timer cadence — a late tick simply covers
-/// more time instead of visibly slowing the motion.
-fn markdown_editor_scroll_eased_step(
-  current : Double,
-  target : Double,
-  elapsed_ms : Double,
-) -> Double {
-  if elapsed_ms <= 0.0 {
-    return current
-  }
-  let decay = @math.exp(
-    -elapsed_ms / markdown_editor_scroll_ease_time_constant_ms(),
+  self.editor_scroll_glide = MarkdownScrollGlide::settled(
+    markdown_editor_clamp_double(y, 0.0, max_scroll),
   )
-  target - (target - current) * decay
+  self.last_wheel_ms = 0.0
+  self.last_wheel_stream = false
 }
 
 ///|
-/// Snap a scroll offset to a whole logical pixel. Fractional offsets make
-/// glyph rasterization shimmer while scrolling; whole pixels keep text
-/// crisp. Round-to-nearest (not floor) so quantization stays unbiased
-/// across steps — a floored glide drifts visibly slower than its target.
-fn markdown_editor_scroll_quantize(offset : Double) -> Double {
-  offset.round()
+/// The offset currently being shown. Uses the host clock when available so a
+/// caller that is not painting (an edit re-anchoring the document) still sees
+/// the frame-accurate position; without one it falls back to the glide's
+/// destination, which is the closest clock-free answer.
+fn MarkdownEditorApp::editor_scroll_displayed_y(
+  self : MarkdownEditorApp,
+) -> Double {
+  match self.scroll_clock {
+    Some(clock) => self.editor_scroll_glide.exact_offset_at(clock())
+    None => self.editor_scroll_glide.to_y
+  }
 }

@@ -213,7 +213,7 @@ fn MarkdownEditorApp::overwrite_from_for_test(
   self.transfer_generation = latest.transfer_generation
   self.undo_stack = latest.undo_stack
   self.redo_stack = latest.redo_stack
-  self.editor_scroll = latest.editor_scroll
+  self.editor_scroll_glide = latest.editor_scroll_glide
   self.file_filter_query = latest.file_filter_query
   self.working_directory = latest.working_directory
   self.expanded_tree_paths = latest.expanded_tree_paths
@@ -512,8 +512,11 @@ fn MarkdownEditorApp::selection_caret(self : MarkdownEditorApp) -> Int {
 }
 
 ///|
+/// The scroll offset the app is showing. Tests run without a host clock, so
+/// this resolves to the glide's destination; tests that need intermediate
+/// frames evaluate `editor_scroll_glide` directly.
 fn MarkdownEditorApp::editor_scroll_y(self : MarkdownEditorApp) -> Double {
-  self.editor_scroll.y
+  self.editor_scroll_displayed_y()
 }
 
 ///|

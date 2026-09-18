@@ -42,6 +42,11 @@ async fn main {
             @macos_backend.application_menu_on_ready(menus, runtime),
           ),
           min_window_size=Some(@dpi.LogicalSize::LogicalSize(816.0, 480.0)),
+          // The real monotonic clock drives the animation timeline: paint-time
+          // animations (scroll glides, transitions) sample it per frame, so
+          // their duration and sampling are correct on 60Hz, 120Hz ProMotion
+          // and variable-refresh displays alike.
+          frame_clock=Some(@macos_backend.macos_perf_now_ms),
         ),
         // Honors the same first-frame smoke switch as every other MoUI app, so
         // the async-pump entry can be asserted in CI (exit 0 after the first
