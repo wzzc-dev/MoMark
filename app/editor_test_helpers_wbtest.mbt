@@ -220,6 +220,7 @@ fn MarkdownEditorApp::overwrite_from_for_test(
   self.directory_tree_items = latest.directory_tree_items
   self.file_tree_expanded = latest.file_tree_expanded
   self.image_centered = latest.image_centered
+  self.context_menu_target = latest.context_menu_target
 }
 
 ///|
@@ -238,7 +239,7 @@ fn MarkdownEditorApp::tracked_program_for_test(
       self.overwrite_from_for_test(app)
       app.root_with_environment(view_environment)
     },
-  ).with_commands(commands=_ => markdown_editor_program_commands())
+  ).with_commands(commands=app => markdown_editor_program_commands(app))
 }
 
 ///|
@@ -250,6 +251,8 @@ fn MarkdownEditorApp::dispatch_message_for_test(
   let program = self
     .tracked_program_for_test(services)
     .with_commands(commands=_ => {
+      // A single Activate binding so `dispatch_command(Activate)` dispatches
+      // exactly this message.
       [
         @moui.ProgramCommand::new(
           command=@core.ActionCommand::new(intent=@core.CommandIntent::Activate),
@@ -263,6 +266,29 @@ fn MarkdownEditorApp::dispatch_message_for_test(
     height=720.0,
   )
   ignore(runtime.dispatch_command(@core.CommandIntent::Activate))
+}
+
+///|
+/// Context-menu labels the app offers for a target, in the order the menu
+/// presents them.
+fn markdown_editor_menu_labels_for_target(
+  target : MarkdownEditorContextTarget,
+) -> Array[String] {
+  markdown_editor_menu_labels_for_app(
+    MarkdownEditorApp::new().update(ContextMenuTargeted(target)),
+  )
+}
+
+///|
+/// Context-menu labels the app offers for whatever target it already recorded,
+/// in the order the menu presents them.
+fn markdown_editor_menu_labels_for_app(
+  app : MarkdownEditorApp,
+) -> Array[String] {
+  markdown_editor_program_commands(app)
+  .map(command => command.command())
+  .filter(command => command.context_menu)
+  .map(command => command.label)
 }
 
 ///|

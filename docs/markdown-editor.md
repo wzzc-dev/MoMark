@@ -264,6 +264,25 @@ The editor supports formatted editing for common block and inline structures:
   when the file system changes outside the editor. It is still not a full
   project explorer: create, rename, delete, full-content search, and
   file-system watching are intentionally out of scope.
+- Right-click context menus are scoped to the surface under the pointer, the
+  way VS Code scopes a menu per tree or editor region. Host backends dispatch
+  the right-button press into the view tree before building the native menu, so
+  the deepest handler under the pointer records what was pressed: a file row
+  offers `Open` and `Refresh File Tree`, a folder row offers `Open Folder`
+  (adopt that subtree as the working folder) and `Refresh File Tree`, the
+  sidebar background offers the folder picker plus document and panel actions,
+  the document surface offers Markdown formatting and document actions, and
+  the surrounding chrome falls back to a document-and-view menu that stays
+  reachable in Zen mode. A focused text control additionally leads the menu
+  with the host's editing group (`Undo`/`Redo`, `Cut`/`Copy`/`Paste`,
+  `Select All`), with `Cut` and `Copy` disabled while nothing is selected.
+  Entries that cannot act on the current caret are hidden rather than shown
+  disabled, matching the `editorHasSelection`-style context keys mature editors
+  gate on: inline formatting needs a selection, table commands need a table,
+  the task toggle needs a task item, and `Open Target` needs a link or image
+  under the caret. A right press moves the caret to the press point first —
+  keeping the selection when the press lands inside it — so the menu always
+  describes what was clicked, and it never starts a drag or a selection.
 - An optional `Info` document panel is available from the chrome, `Quick
   Format`, or with `Cmd+Alt+D` / `Ctrl+Alt+D`. It keeps Typora-style document
   insight close to the writing surface by showing words, characters, lines,

@@ -394,6 +394,61 @@ fn MarkdownEditorApp::tree_path_needs_load(
 }
 
 ///|
+/// Row activation shared by a primary tap and the explorer menu's Open action:
+/// a directory expands (loading its subtree on first open) and a file opens
+/// through the host text-file service, repointing the working folder when none
+/// is picked yet.
+fn MarkdownEditorApp::open_explorer_path(
+  self : MarkdownEditorApp,
+  path : String,
+  services : @services.AppServices,
+) -> (MarkdownEditorApp, @moui.Effect[MarkdownEditorMsg]) {
+  if path == "" || markdown_editor_tree_path_is_placeholder(path) {
+    return (self, @moui.Effect::none())
+  }
+  if self.tree_path_is_directory(path) {
+    let expanded = self.toggle_tree_path(path)
+    let effect = if expanded && self.tree_path_needs_load(path) {
+      self.request_directory_listing(path, services)
+    } else {
+      @moui.Effect::none()
+    }
+    return (self, effect)
+  }
+  let effects : Array[@moui.Effect[MarkdownEditorMsg]] = [
+    self.request_text_file_read(path, services),
+  ]
+  if self.working_directory == "" {
+    let parent = markdown_editor_parent_directory(path)
+    if parent != "" {
+      self.working_directory = parent
+      effects.push(self.request_directory_listing(parent, services))
+    }
+  }
+  (self, @moui.Effect::batch(effects))
+}
+
+///|
+/// "Open Folder" on an explorer folder row: adopt that subtree as the working
+/// folder, so a folder already visible in the tree can replace the one picked
+/// through the native dialog. Expansion state and the loaded tree belong to
+/// the previous root, so both are dropped before the new listing arrives.
+fn MarkdownEditorApp::open_explorer_folder(
+  self : MarkdownEditorApp,
+  path : String,
+  services : @services.AppServices,
+) -> (MarkdownEditorApp, @moui.Effect[MarkdownEditorMsg]) {
+  if path == "" || markdown_editor_tree_path_is_placeholder(path) {
+    return (self, @moui.Effect::none())
+  }
+  self.working_directory = path
+  self.expanded_tree_paths = []
+  self.directory_tree_items = []
+  self.file_filter_query = ""
+  (self, self.request_directory_listing(path, services))
+}
+
+///|
 fn markdown_editor_find_tree_item(
   items : Array[@views.TreeItem],
   path : String,

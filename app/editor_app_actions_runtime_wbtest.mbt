@@ -94,18 +94,50 @@ test "markdown editor actions apply actions at current caret context" {
 }
 
 ///|
-test "markdown editor document context menu includes app commands" {
-  let commands = markdown_editor_program_commands()
+test "markdown editor scopes context menu commands per surface" {
+  // Each surface contributes its own menu: rows carry row actions, the editor
+  // surface carries document + Markdown formatting, and the chrome keeps a
+  // small document-level menu.
+  let mut app = MarkdownEditorApp::new()
+  let context_labels = (target : MarkdownEditorContextTarget) => {
+    app = app.update(ContextMenuTargeted(target))
+    markdown_editor_program_commands(app)
     .map(command => command.command())
     .filter(command => command.context_menu)
+    .map(command => command.label)
+  }
+  let file_labels = context_labels(
+    MarkdownEditorContextTarget::ExplorerFile("/tmp/project/notes.md"),
+  )
+  assert_true(file_labels.contains("Open"))
+  assert_true(file_labels.contains("Refresh File Tree"))
+  assert_true(!file_labels.contains("New Document"))
+  let editor_labels = context_labels(MarkdownEditorContextTarget::EditorSurface)
   for
     label in [
-      "Toggle Source Mode", "Toggle Quick Format", "Cycle Writing Look", "Insert Table of Contents",
-      "Insert YAML Front Matter", "Toggle Outline", "Toggle Files", "Toggle Document Info",
-      "Toggle Focus Mode", "Next Heading", "Open Target", "Bold", "Italic", "Paragraph",
-      "Heading 1", "Bullet List", "Insert Table Row", "Table Align Center",
+      "Save", "Paragraph", "Heading 1", "Bullet List", "Ordered List", "Task List",
+      "Quote", "Code Block", "Export HTML", "Find/Replace",
     ] {
-    assert_true(commands.any(command => command.display_label() == label))
+    // Block-level commands act at the caret and stay visible without a
+    // selection; inline ones were asserted separately.
+    assert_true(editor_labels.contains(label))
+  }
+  // Inline-only entries are hidden until a selection exists.
+  assert_true(!editor_labels.contains("Bold"))
+  assert_true(!editor_labels.contains("Highlight"))
+  assert_true(!editor_labels.contains("Link"))
+  // Editor menus never offer sidebar-only actions.
+  assert_true(!editor_labels.contains("Refresh File Tree"))
+  let global_labels = context_labels(MarkdownEditorContextTarget::Global)
+  for
+    label in [
+      "New Document", "Open Document", "Save", "Find", "Toggle Files", "Toggle Quick Format",
+    ] {
+    assert_true(global_labels.contains(label))
+  }
+  // Chrome menus never offer explorer rows or Markdown formatting.
+  for label in ["Bold", "Heading 1", "Bullet List", "Refresh File Tree"] {
+    assert_true(!global_labels.contains(label))
   }
 }
 

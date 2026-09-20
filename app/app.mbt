@@ -93,6 +93,9 @@ pub struct MarkdownEditorApp {
   priv mut directory_tree_items : Array[@views.TreeItem]
   priv mut file_tree_expanded : Bool
   priv mut image_centered : Bool
+  // Surface the last context menu was requested over. Left as Global until a
+  // right-press handler records a more specific target.
+  priv mut context_menu_target : MarkdownEditorContextTarget
 }
 
 ///|
@@ -324,6 +327,13 @@ pub enum MarkdownEditorMsg {
   ToggleFileTree
   InsertMediaFromFileDrop(String)
   ToggleImageCenter
+  // Recorded by the right-press handlers before the host shows the context
+  // menu; the menu content is derived from it.
+  ContextMenuTargeted(MarkdownEditorContextTarget)
+  // Explorer row actions resolved from the recorded target. They need host
+  // file services, so the pure update path only records the target.
+  OpenContextMenuTargetPath
+  OpenContextMenuTargetFolder
 }
 
 ///|
@@ -381,6 +391,7 @@ pub fn MarkdownEditorApp::new() -> MarkdownEditorApp {
     file_filter_query: "",
     file_tree_expanded: true,
     image_centered: false,
+    context_menu_target: MarkdownEditorContextTarget::Global,
   }
 }
 
@@ -514,6 +525,10 @@ fn MarkdownEditorApp::update_in_place(
     ToggleHeadingFold(source_start) => self.toggle_heading_fold(source_start)
     CommandClickAt(offset) => self.handle_command_click(offset)
     SetSelection(caret, selection) => self.set_selection(caret, selection)
+    ContextMenuTargeted(target) => self.context_menu_target = target
+    // Resolving an explorer row action needs host file services; the pure
+    // path only records the target.
+    OpenContextMenuTargetPath | OpenContextMenuTargetFolder => ()
     EditorScrolled(wheel_delta_y, clock_ms, viewport_width, viewport_height) => {
       // A paint can measure blocks and publish an anchor compensation after
       // the last root build. Wheel input may arrive before the next build,
@@ -665,33 +680,21 @@ fn MarkdownEditorApp::update_with_services(
       }
       (self, effect)
     }
-    SelectTreePath(path) => {
-      if markdown_editor_tree_path_is_placeholder(path) {
-        return (self, @moui.Effect::none())
-      }
-      if self.tree_path_is_directory(path) {
-        let expanded = self.toggle_tree_path(path)
-        let effect = if expanded && self.tree_path_needs_load(path) {
-          self.request_directory_listing(path, services)
-        } else {
-          @moui.Effect::none()
-        }
-        return (self, effect)
-      }
-      let effects : Array[@moui.Effect[MarkdownEditorMsg]] = [
-        self.request_text_file_read(path, services),
-      ]
-      if self.working_directory == "" {
-        let parent = markdown_editor_parent_directory(path)
-        if parent != "" {
-          self.working_directory = parent
-          effects.push(self.request_directory_listing(parent, services))
-        }
-      }
-      (self, @moui.Effect::batch(effects))
-    }
+    SelectTreePath(path) => self.open_explorer_path(path, services)
     ServiceCompleted(completion) =>
       (self, self.apply_service_completion(completion, services))
+    // "Open" on a file row behaves exactly like selecting that row, so both
+    // entries share one resolver.
+    OpenContextMenuTargetPath =>
+      self.open_explorer_path(
+        markdown_editor_context_target_path(self),
+        services,
+      )
+    OpenContextMenuTargetFolder =>
+      self.open_explorer_folder(
+        markdown_editor_context_target_path(self),
+        services,
+      )
     ToggleOutline
     | ToggleFileSidebar
     | ToggleDocumentInfo
@@ -790,7 +793,7 @@ pub fn MarkdownEditorApp::program(
     update=(app, message) => app.update_with_services(message, services),
     view=(app, view_environment) => app.root_with_environment(view_environment),
     subscriptions=app => app.subscriptions(timer_source),
-  ).with_commands(commands=_app => markdown_editor_program_commands())
+  ).with_commands(commands=app => markdown_editor_program_commands(app))
 }
 
 ///|

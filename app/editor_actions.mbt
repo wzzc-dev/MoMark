@@ -243,6 +243,12 @@ fn markdown_editor_control_alt_shortcut(
 }
 
 ///|
+/// A catalog command: the identity that shortcut dispatch and the native
+/// application menu resolve against. It is deliberately not flagged for the
+/// context menu — that menu gets its own ordered copies instead, because both
+/// dispatch paths match an `ActionCommand` by full equality, so a flagged
+/// catalog entry would stop matching the application menu the moment another
+/// surface's menu left its label out.
 fn markdown_editor_program_command(
   label : String,
   shortcut : @views.KeyboardShortcut,
@@ -253,22 +259,33 @@ fn markdown_editor_program_command(
       intent=@views.CommandIntent::Activate,
       label~,
       shortcut=Some(shortcut),
-      context_menu=true,
+      context_menu=false,
     ),
     message~,
   )
 }
 
 ///|
-pub fn markdown_editor_program_commands() -> Array[
-  @moui.ProgramCommand[MarkdownEditorMsg],
-] {
+pub fn markdown_editor_program_commands(
+  app : MarkdownEditorApp,
+) -> Array[@moui.ProgramCommand[MarkdownEditorMsg]] {
   let commands : Array[@moui.ProgramCommand[MarkdownEditorMsg]] = []
+  // Several actions bind platform-specific shortcut variants. The first
+  // binding of a label is the one the context menu offers and the one the
+  // native application menu is built from, so one label stays one menu row.
+  let bindings : Array[MarkdownEditorMenuBinding] = []
+  let seen_labels : Array[String] = []
   let add = (
     label : String,
     shortcut : @views.KeyboardShortcut,
     message : MarkdownEditorMsg,
-  ) => commands.push(markdown_editor_program_command(label, shortcut, message))
+  ) => {
+    if !seen_labels.any(seen => seen == label) {
+      seen_labels.push(label)
+      bindings.push({ label, shortcut: Some(shortcut), message })
+    }
+    commands.push(markdown_editor_program_command(label, shortcut, message))
+  }
   let both = (
     label : String,
     meta : @views.KeyboardShortcut,
@@ -659,7 +676,17 @@ pub fn markdown_editor_program_commands() -> Array[
   )
   add("Undo Formatting Command", markdown_editor_alt_shortcut("z"), Undo)
   add("Redo Formatting Command", markdown_editor_alt_shift_shortcut("z"), Redo)
-  commands
+  // Menu-only action: the sidebar exposes it as a button, so it carries no
+  // keyboard shortcut, but the explorer context menus need it as a command.
+  bindings.push({
+    label: "Refresh File Tree",
+    shortcut: None,
+    message: RefreshFileTree,
+  })
+  // The catalog stays in declaration order, so shortcut dispatch and the
+  // application menu resolve exactly as they always did; the context menu's
+  // ordered copies follow it.
+  commands + markdown_editor_context_menu_commands(app, bindings)
 }
 
 ///|

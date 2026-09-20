@@ -13,7 +13,7 @@ import {
 // Values
 pub fn markdown_editor_application_menus() -> Array[@services.ApplicationMenu]
 
-pub fn markdown_editor_program_commands() -> Array[@core.ProgramCommand[MarkdownEditorMsg]]
+pub fn markdown_editor_program_commands(MarkdownEditorApp) -> Array[@core.ProgramCommand[MarkdownEditorMsg]]
 
 // Errors
 
@@ -54,7 +54,7 @@ pub struct MarkdownEditorApp {
   mut saved_document : String
   mut undo_stack : Array[MarkdownEditorHistoryEntry]
   mut redo_stack : Array[MarkdownEditorHistoryEntry]
-  mut editor_scroll : @core.Point
+  mut editor_scroll_glide : @moui_richtext.MarkdownScrollGlide
   // private fields
 }
 pub fn MarkdownEditorApp::new() -> Self
@@ -71,6 +71,14 @@ pub enum MarkdownEditorConfirmResolution {
   ConfirmDiscard
   ConfirmCancel
 }
+
+pub enum MarkdownEditorContextTarget {
+  Global
+  ExplorerFile(String)
+  ExplorerFolder(String)
+  ExplorerBackground
+  EditorSurface
+} derive(Eq, @debug.Debug)
 
 pub struct MarkdownEditorFindOptions {
   case_sensitive : Bool
@@ -141,7 +149,8 @@ pub enum MarkdownEditorMsg {
   ToggleHeadingFold(Int)
   CommandClickAt(Int)
   SetSelection(Int, @core.TextRange?)
-  EditorScrollChanged(@core.Point)
+  EditorScrolled(Double, Double, Double, Double)
+  RemoteImageMetricsChanged
   OpenRecentDocument(String)
   JumpToOutline(Int)
   JumpToNextHeading
@@ -159,6 +168,9 @@ pub enum MarkdownEditorMsg {
   ToggleFileTree
   InsertMediaFromFileDrop(String)
   ToggleImageCenter
+  ContextMenuTargeted(MarkdownEditorContextTarget)
+  OpenContextMenuTargetPath
+  OpenContextMenuTargetFolder
 }
 
 pub enum MarkdownEditorServiceCompletion {

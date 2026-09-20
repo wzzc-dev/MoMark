@@ -197,7 +197,6 @@ fn MarkdownEditorApp::target_bar(
   }
 }
 
-
 ///|
 fn markdown_editor_session_caret_rect(
   session : MarkdownDocumentSession,
@@ -654,33 +653,41 @@ fn editor_source_layout(
     font=editor_font,
   )
   let editor_control = controlled_markdown_session_editor(
-    session~,
-    selection~,
-    on_transaction=transaction => ApplyEditorTransaction(transaction),
-    placeholder="Start writing Markdown",
-    size=@geometry.Size::new(width=editor_width, height=viewport_height),
-    font=editor_style.font(),
-    foreground=appearance.foreground,
-    placeholder_color=editor_style.placeholder_color(),
-    background=page_brush,
-    border=None,
-    focused_border=None,
-    cursor_color=editor_style.cursor_color(),
-    corner_radius=theme.radius_scale.md,
-    source_mode~,
-    focus_mode=app.focus_mode_enabled,
-    base_dir=markdown_editor_document_base_dir(app.document_path),
-    on_selection_change=Some(on_selection_change),
-    on_prefix_click=Some(on_prefix_click),
-    on_command_click=Some(offset => CommandClickAt(offset)),
-    accepts_tab_input=true,
-    scroll_glide~,
-    on_scroll=Some((wheel_delta_y, clock_ms) => {
-      EditorScrolled(wheel_delta_y, clock_ms, viewport_width, viewport_height)
-    }),
-    visible_viewport_height=viewport_height,
-    visible_overscan=markdown_editor_visible_overscan(viewport_height),
-  ).key("markdown-editor")
+      session~,
+      selection~,
+      on_transaction=transaction => ApplyEditorTransaction(transaction),
+      placeholder="Start writing Markdown",
+      size=@geometry.Size::new(width=editor_width, height=viewport_height),
+      font=editor_style.font(),
+      foreground=appearance.foreground,
+      placeholder_color=editor_style.placeholder_color(),
+      background=page_brush,
+      border=None,
+      focused_border=None,
+      cursor_color=editor_style.cursor_color(),
+      corner_radius=theme.radius_scale.md,
+      source_mode~,
+      focus_mode=app.focus_mode_enabled,
+      base_dir=markdown_editor_document_base_dir(app.document_path),
+      on_selection_change=Some(on_selection_change),
+      on_prefix_click=Some(on_prefix_click),
+      on_command_click=Some(offset => CommandClickAt(offset)),
+      accepts_tab_input=true,
+      scroll_glide~,
+      on_scroll=Some((wheel_delta_y, clock_ms) => {
+        EditorScrolled(wheel_delta_y, clock_ms, viewport_width, viewport_height)
+      }),
+      visible_viewport_height=viewport_height,
+      visible_overscan=markdown_editor_visible_overscan(viewport_height),
+    )
+    // The document surface owns its own menu (clipboard, formatting, document
+    // actions); the root view keeps a broader menu for the surrounding chrome.
+    // Attached below the key so the keyed identity stays unique for focus and
+    // scroll lookups.
+    .on_secondary_tap(
+      ContextMenuTargeted(MarkdownEditorContextTarget::EditorSurface),
+    )
+    .key("markdown-editor")
   let editor = editor_page(editor_control, theme, appearance).on_file_drop((
     paths,
     _position,

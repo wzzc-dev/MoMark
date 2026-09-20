@@ -1,0 +1,15 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "wzzc-dev/momark/native_metrics"
+
+// Values
+pub fn install_svg_text() -> Bool
+
+pub fn register_image_metrics() -> Unit
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

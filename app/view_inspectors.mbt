@@ -306,6 +306,9 @@ fn files_inspector(
             expanded=tree_expanded_paths,
             on_select=Some(id => SelectTreePath(id)),
             on_toggle=Some(id => ToggleTreePath(id)),
+            on_secondary_tap=Some(id => {
+              ContextMenuTargeted(app.explorer_target(id))
+            }),
             theme~,
             width=content_width,
           ),
@@ -369,6 +372,9 @@ fn files_inspector(
     .font(theme.typography.caption)
     .foreground(theme.palette.foreground),
   )
+  // The whole sidebar background is the explorer's "no row" target: rows and
+  // their scroll view carry more specific handlers, so only presses that miss
+  // them reach this one.
   let pinned_content = frame(
     padding_edges(
       column(file_rows, spacing=row_gap, align=@views.CrossAlign::Start),
@@ -376,6 +382,8 @@ fn files_inspector(
       right=theme.spacing_scale.sm,
       bottom=theme.spacing_scale.md,
       left=theme.spacing_scale.sm,
+    ).on_secondary_tap(
+      ContextMenuTargeted(MarkdownEditorContextTarget::ExplorerBackground),
     ),
     width=markdown_editor_file_sidebar_width(),
     height~,
@@ -575,6 +583,11 @@ fn file_sidebar_recent_row(
     theme~,
     width=markdown_editor_file_sidebar_content_width(),
     height=30.0,
+  )
+  // Recent rows are files the tree may not contain; the menu's Open action
+  // resolves the recorded path either way.
+  .on_secondary_tap(
+    ContextMenuTargeted(MarkdownEditorContextTarget::ExplorerFile(path)),
   )
 }
 

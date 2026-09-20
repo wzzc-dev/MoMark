@@ -134,7 +134,12 @@ fn MarkdownEditorApp::root(
       alignment=@geometry.Alignment::center(),
     ),
   )
-  @views.stack(layers)
+  // Root fallback: any right-press that no inner handler claimed (chrome,
+  // status bar, dialogs) lands here and gets the global menu. More specific
+  // targets are recorded deeper in the tree and win by activation order.
+  @views.stack(layers).on_secondary_tap(
+    ContextMenuTargeted(MarkdownEditorContextTarget::Global),
+  )
 }
 
 ///|
