@@ -74,11 +74,15 @@ test "markdown parser preserves malformed inline syntax as plain text" {
   guard blocks[0].kind is Paragraph else {
     fail("expected malformed inline paragraph")
   }
-  inspect(blocks[0].inlines.length(), content="1")
-  guard blocks[0].inlines[0] is { kind: MarkdownInlineKind::Plain, text, .. } else {
-    fail("expected plain malformed inline text")
-  }
-  inspect(text, content="Text with **open and `dangling")
+  // The unclosed backtick stays literal instead of opening a span that runs to
+  // the next backtick anywhere in the paragraph. That splits the line into a
+  // few plain spans rather than one, so assert the preserved text, which is
+  // what this test is about — not the span count.
+  assert_true(blocks[0].inlines.all(inline => inline.kind is MarkdownInlineKind::Plain))
+  inspect(
+    blocks[0].inlines.map(inline => inline.text).join(""),
+    content="Text with **open and `dangling",
+  )
 }
 
 ///|

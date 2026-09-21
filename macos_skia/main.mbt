@@ -38,6 +38,14 @@ async fn main {
       @macos_backend.entry(
         options=@macos_backend.MacosHostAppOptions::new(
           transparent_titlebar=true,
+          // Show the window as soon as it exists rather than waiting for the
+          // first presented frame. A large document takes seconds to parse and
+          // lay out, and with the default (`show_after_first_present=true`) the
+          // window stayed hidden for that whole time — the app looked like it
+          // had started and then done nothing. Mature editors bring the shell
+          // up first and fill the document in afterwards; the cost is a brief
+          // uninitialised surface, which the first frame overwrites.
+          show_after_first_present=false,
           on_ready=Some(
             @macos_backend.application_menu_on_ready(menus, runtime),
           ),

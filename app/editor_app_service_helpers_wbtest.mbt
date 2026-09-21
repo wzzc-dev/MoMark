@@ -86,6 +86,7 @@ fn markdown_editor_document_services(
   seen_kind~ : Ref[@host.HostFileDialogKind],
   seen_title~ : Ref[String],
   seen_default_name~ : Ref[String],
+  seen_written? : Ref[String]? = None,
 ) -> @services.AppServices {
   let selected = selected_path
   let bridge = @host.HostServiceBridge::new(
@@ -118,8 +119,14 @@ fn markdown_editor_document_services(
           @host.HostTextFileRequest::ReadText(path)
         ) => @host.HostServiceResponse::TextFileContent(path, read_text)
         @host.HostServiceRequest::TextFile(
-          @host.HostTextFileRequest::WriteText(path, _text)
-        ) => @host.HostServiceResponse::TextFileWritten(path)
+          @host.HostTextFileRequest::WriteText(path, text)
+        ) => {
+          match seen_written {
+            Some(seen) => seen.val = text
+            None => ()
+          }
+          @host.HostServiceResponse::TextFileWritten(path)
+        }
         @host.HostServiceRequest::ListDirectory(_path) =>
           @host.HostServiceResponse::DirectoryListing(_path, [])
         _ => @host.HostServiceResponse::Unavailable("unexpected request")

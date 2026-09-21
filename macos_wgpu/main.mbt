@@ -31,6 +31,10 @@ fn main {
     @macos_backend.entry(
       options=@macos_backend.MacosHostAppOptions::new(
         transparent_titlebar=true,
+        // See macos_skia/main.mbt: bring the window up immediately instead of
+        // holding it back until the first frame, so a slow document open does
+        // not look like a launch that did nothing.
+        show_after_first_present=false,
         on_ready=Some(@macos_backend.application_menu_on_ready(menus, runtime)),
         min_window_size=Some(@dpi.LogicalSize::LogicalSize(816.0, 480.0)),
       ),

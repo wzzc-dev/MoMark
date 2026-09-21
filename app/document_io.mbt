@@ -1,4 +1,91 @@
 ///|
+/// The line ending a document was loaded with.
+///
+/// The editor normalises to `\n` at the load boundary and restores the
+/// original sequence on the way back to disk. Everything downstream — the
+/// block parser, the soft-wrap, the font fallback, the hit-test ranges —
+/// assumes `\n`, and a CRLF document used to push a `\r` into every text run:
+/// the `\r` is not covered by the primary font, so every run took the platform
+/// font-fallback path, which resolves through a synchronous font-daemon query.
+/// On a novel-sized document that alone was the difference between seconds and
+/// minutes.
+priv enum MarkdownEditorEol {
+  Lf
+  CrLf
+}
+
+///|
+/// Which sequence the source uses, so a save can put it back. A lone `CR` is a
+/// line ending too, but it is not one this editor writes, so it counts as `Lf`
+/// rather than inventing a `CrLf` document.
+fn markdown_editor_detect_eol(source : String) -> MarkdownEditorEol {
+  let chars = source.to_array()
+  let mut index = 0
+  while index < chars.length() {
+    if chars[index] == '\r' {
+      if index + 1 < chars.length() && chars[index + 1] == '\n' {
+        return CrLf
+      }
+      index = index + 1
+    } else {
+      index = index + 1
+    }
+  }
+  Lf
+}
+
+///|
+/// Collapse CRLF and lone CR to LF. Documents that already use LF are returned
+/// unchanged, so the common case costs one scan for `\r` and no copy.
+fn markdown_editor_normalize_eol(source : String) -> String {
+  if !source.contains("\r") {
+    return source
+  }
+  let out : Array[Char] = []
+  let chars = source.to_array()
+  let mut index = 0
+  while index < chars.length() {
+    if chars[index] == '\r' {
+      out.push('\n')
+      if index + 1 < chars.length() && chars[index + 1] == '\n' {
+        index = index + 2
+      } else {
+        index = index + 1
+      }
+    } else {
+      out.push(chars[index])
+      index = index + 1
+    }
+  }
+  String::from_array(out)
+}
+
+///|
+/// Re-apply the document's line ending for a disk write. `source` is the
+/// editor's internal text, which is always LF, so this never doubles a `\r`.
+fn markdown_editor_restore_eol(
+  source : String,
+  eol : MarkdownEditorEol,
+) -> String {
+  match eol {
+    Lf => source
+    CrLf =>
+      if !source.contains("\n") {
+        source
+      } else {
+        let out : Array[Char] = []
+        for ch in source {
+          if ch == '\n' {
+            out.push('\r')
+          }
+          out.push(ch)
+        }
+        String::from_array(out)
+      }
+  }
+}
+
+///|
 fn MarkdownEditorApp::new_document(self : MarkdownEditorApp) -> Unit {
   self.load_document("", path="")
 }
@@ -9,6 +96,11 @@ fn MarkdownEditorApp::load_document(
   source : String,
   path~ : String,
 ) -> Unit {
+  // Normalise line endings once, at the boundary where text enters the editor,
+  // and remember what they were so a save writes the file back unchanged.
+  let eol = markdown_editor_detect_eol(source)
+  let source = markdown_editor_normalize_eol(source)
+  self.document_eol = eol
   // Clear the find session before the source swap: a visible find bar
   // would otherwise trigger one full-document match scan with the stale
   // query inside replace_document_source, only to be reset right after.
@@ -504,7 +596,7 @@ fn MarkdownEditorApp::request_text_file_write_at(
 ) -> @moui.Effect[MarkdownEditorMsg] {
   services
   .files()
-  .write_text(path, self.document)
+  .write_text(path, markdown_editor_restore_eol(self.document, self.document_eol))
   .effect(map=result => {
     ServiceCompleted(TextFileWritten(generation, path, save_as, result))
   })

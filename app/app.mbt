@@ -93,6 +93,9 @@ pub struct MarkdownEditorApp {
   priv mut directory_tree_items : Array[@views.TreeItem]
   priv mut file_tree_expanded : Bool
   priv mut image_centered : Bool
+  // Line ending the document was loaded with. The text itself is always LF
+  // inside the editor; this is what a save puts back. See `load_document`.
+  priv mut document_eol : MarkdownEditorEol
   // Surface the last context menu was requested over. Left as Global until a
   // right-press handler records a more specific target.
   priv mut context_menu_target : MarkdownEditorContextTarget
@@ -391,6 +394,7 @@ pub fn MarkdownEditorApp::new() -> MarkdownEditorApp {
     file_filter_query: "",
     file_tree_expanded: true,
     image_centered: false,
+    document_eol: Lf,
     context_menu_target: MarkdownEditorContextTarget::Global,
   }
 }

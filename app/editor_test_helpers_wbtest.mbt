@@ -221,6 +221,10 @@ fn MarkdownEditorApp::overwrite_from_for_test(
   self.file_tree_expanded = latest.file_tree_expanded
   self.image_centered = latest.image_centered
   self.context_menu_target = latest.context_menu_target
+  // Keep this list complete: every dispatch builds a fresh program from `self`
+  // and mirrors the result back, so a field left out here silently reverts to
+  // its constructor value between two dispatches.
+  self.document_eol = latest.document_eol
 }
 
 ///|
