@@ -42,8 +42,7 @@ test "markdown editor right-press records the context menu target per surface" {
     ),
   )
   assert_true(
-    app.context_menu_target ==
-    MarkdownEditorContextTarget::ExplorerBackground,
+    app.context_menu_target == MarkdownEditorContextTarget::ExplorerBackground,
   )
   let background_labels = markdown_editor_menu_labels_for_app(app)
   assert_true(background_labels.contains("Refresh File Tree"))
@@ -123,9 +122,9 @@ test "markdown editor orders each context menu for its surface" {
     content="Pick Folder,New Document,Open Document,Refresh File Tree,Toggle Files",
   )
   inspect(
-    markdown_editor_menu_labels_for_target(
-      MarkdownEditorContextTarget::Global,
-    ).join(","),
+    markdown_editor_menu_labels_for_target(MarkdownEditorContextTarget::Global).join(
+      ",",
+    ),
     content="New Document,Open Document,Save,Save As,Import Markdown from Clipboard,Export Markdown,Export HTML,Find,Find/Replace,Toggle Files,Toggle Outline,Toggle Document Info,Toggle Source Preview,Toggle Source Mode,Toggle Quick Format,Cycle Writing Look,Toggle Focus Mode,Toggle Typewriter Mode,Toggle Zen Mode",
   )
   inspect(
@@ -144,8 +143,12 @@ test "markdown editor scopes editor menu entries to the caret context" {
     ContextMenuTargeted(MarkdownEditorContextTarget::EditorSurface),
   )
   // A paragraph caret offers no table, task, or inline entries.
-  assert_true(!markdown_editor_menu_labels_for_app(app).contains("Insert Table Row"))
-  assert_true(!markdown_editor_menu_labels_for_app(app).contains("Table Align Center"))
+  assert_true(
+    !markdown_editor_menu_labels_for_app(app).contains("Insert Table Row"),
+  )
+  assert_true(
+    !markdown_editor_menu_labels_for_app(app).contains("Table Align Center"),
+  )
   assert_true(!markdown_editor_menu_labels_for_app(app).contains("Toggle Task"))
   assert_true(!markdown_editor_menu_labels_for_app(app).contains("Open Target"))
   assert_true(!markdown_editor_menu_labels_for_app(app).contains("Bold"))
@@ -158,14 +161,19 @@ test "markdown editor scopes editor menu entries to the caret context" {
 
   // Table commands appear only inside a table, and lead the menu there.
   app.block_label = "Table"
-  assert_true(markdown_editor_menu_labels_for_app(app).contains("Insert Table Row"))
+  assert_true(
+    markdown_editor_menu_labels_for_app(app).contains("Insert Table Row"),
+  )
   assert_true(
     markdown_editor_menu_labels_for_app(app).contains("Delete Table Column"),
   )
   assert_true(
     markdown_editor_menu_labels_for_app(app).contains("Table Align Auto"),
   )
-  inspect(markdown_editor_menu_labels_for_app(app)[0], content="Insert Table Row")
+  inspect(
+    markdown_editor_menu_labels_for_app(app)[0],
+    content="Insert Table Row",
+  )
 
   // The task toggle addresses the checkbox of the task item under the caret.
   app.block_label = "Task list"
@@ -188,13 +196,14 @@ test "markdown editor scopes editor menu entries to the caret context" {
 test "markdown editor lists one menu row per label" {
   // A few actions bind platform-specific shortcut variants under one label;
   // the menu must show one row each, not one row per binding.
-  for target in [
-    MarkdownEditorContextTarget::Global,
-    MarkdownEditorContextTarget::EditorSurface,
-    MarkdownEditorContextTarget::ExplorerFile("/tmp/project/notes.md"),
-    MarkdownEditorContextTarget::ExplorerFolder("/tmp/project"),
-    MarkdownEditorContextTarget::ExplorerBackground,
-  ] {
+  for
+    target in [
+      MarkdownEditorContextTarget::Global,
+      MarkdownEditorContextTarget::EditorSurface,
+      MarkdownEditorContextTarget::ExplorerFile("/tmp/project/notes.md"),
+      MarkdownEditorContextTarget::ExplorerFolder("/tmp/project"),
+      MarkdownEditorContextTarget::ExplorerBackground,
+    ] {
     let seen : Array[String] = []
     for label in markdown_editor_menu_labels_for_target(target) {
       assert_true(!seen.contains(label))
@@ -209,21 +218,22 @@ test "markdown editor keeps the command catalog stable across context targets" {
   // first command whose shortcut matches, and the native application menu
   // resolves by full equality against it. Neither may depend on which surface
   // was last right-pressed, so only the appended menu copies vary per target.
-  let catalog = (
-    target : MarkdownEditorContextTarget,
-  ) => markdown_editor_program_commands(
-    MarkdownEditorApp::new().update(ContextMenuTargeted(target)),
-  )
+  let catalog = (target : MarkdownEditorContextTarget) => {
+    markdown_editor_program_commands(
+      MarkdownEditorApp::new().update(ContextMenuTargeted(target)),
+    )
     .map(command => command.command())
     .filter(command => !command.context_menu)
+  }
   let reference = catalog(MarkdownEditorContextTarget::Global)
   assert_true(reference.length() > 0)
-  for target in [
-    MarkdownEditorContextTarget::EditorSurface,
-    MarkdownEditorContextTarget::ExplorerFile("/tmp/project/notes.md"),
-    MarkdownEditorContextTarget::ExplorerFolder("/tmp/project"),
-    MarkdownEditorContextTarget::ExplorerBackground,
-  ] {
+  for
+    target in [
+      MarkdownEditorContextTarget::EditorSurface,
+      MarkdownEditorContextTarget::ExplorerFile("/tmp/project/notes.md"),
+      MarkdownEditorContextTarget::ExplorerFolder("/tmp/project"),
+      MarkdownEditorContextTarget::ExplorerBackground,
+    ] {
     let other = catalog(target)
     assert_true(other.length() == reference.length())
     for index, command in other {
@@ -237,11 +247,12 @@ test "markdown editor application menu resolves against the command catalog" {
   // The native menu bar hands the host an ActionCommand built from the static
   // menu definition; dispatch matches it by full equality, so every item must
   // be present in the program's catalog whichever surface was last pressed.
-  for target in [
-    MarkdownEditorContextTarget::Global,
-    MarkdownEditorContextTarget::EditorSurface,
-    MarkdownEditorContextTarget::ExplorerBackground,
-  ] {
+  for
+    target in [
+      MarkdownEditorContextTarget::Global,
+      MarkdownEditorContextTarget::EditorSurface,
+      MarkdownEditorContextTarget::ExplorerBackground,
+    ] {
     let catalog = markdown_editor_program_commands(
       MarkdownEditorApp::new().update(ContextMenuTargeted(target)),
     ).map(command => command.command())
@@ -267,8 +278,9 @@ test "markdown editor offers one menu copy per label with its first shortcut" {
     // Inline formatting is offered only with a selection, so the copy only
     // exists once something is selected.
     .update(SetSelection(0, Some(@core.TextRange::new(start=0, end=4))))
-  let commands = markdown_editor_program_commands(app).map(command => command
-    .command())
+  let commands = markdown_editor_program_commands(app).map(command => {
+    command.command()
+  })
   let bold = commands.filter(command => command.label == "Bold")
   // Two catalog bindings, one per platform family, plus the menu copy.
   assert_true(bold.length() == 3)

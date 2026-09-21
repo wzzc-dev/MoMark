@@ -596,7 +596,10 @@ fn MarkdownEditorApp::request_text_file_write_at(
 ) -> @moui.Effect[MarkdownEditorMsg] {
   services
   .files()
-  .write_text(path, markdown_editor_restore_eol(self.document, self.document_eol))
+  .write_text(
+    path,
+    markdown_editor_restore_eol(self.document, self.document_eol),
+  )
   .effect(map=result => {
     ServiceCompleted(TextFileWritten(generation, path, save_as, result))
   })

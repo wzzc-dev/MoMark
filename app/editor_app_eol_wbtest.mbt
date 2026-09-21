@@ -65,7 +65,10 @@ test "opening a crlf document normalises the text and keeps the line ending" {
   assert_true(!app.dirty())
   // Line structure matches the LF equivalent exactly.
   let lf = MarkdownEditorApp::new()
-  lf.load_document_for_test("# Title\n\nBody line\nSecond line\n", path="/tmp/lf.md")
+  lf.load_document_for_test(
+    "# Title\n\nBody line\nSecond line\n",
+    path="/tmp/lf.md",
+  )
   assert_true(
     app.document_session.blocks.length() == lf.document_session.blocks.length(),
   )

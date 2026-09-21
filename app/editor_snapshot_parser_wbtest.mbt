@@ -78,7 +78,9 @@ test "markdown parser preserves malformed inline syntax as plain text" {
   // the next backtick anywhere in the paragraph. That splits the line into a
   // few plain spans rather than one, so assert the preserved text, which is
   // what this test is about — not the span count.
-  assert_true(blocks[0].inlines.all(inline => inline.kind is MarkdownInlineKind::Plain))
+  assert_true(
+    blocks[0].inlines.all(inline => inline.kind is MarkdownInlineKind::Plain),
+  )
   inspect(
     blocks[0].inlines.map(inline => inline.text).join(""),
     content="Text with **open and `dangling",

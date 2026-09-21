@@ -88,9 +88,9 @@ fn markdown_editor_editor_surface_labels(
   // Block commands act at the caret, so they stay visible without a selection.
   labels = labels +
     [
-      "Paragraph", "Heading 1", "Heading 2", "Heading 3", "Heading 4", "Heading 5", "Heading 6",
-      "Bullet List", "Ordered List", "Task List", "Quote", "Code Block", "Duplicate Block",
-      "Move Block Up", "Move Block Down",
+      "Paragraph", "Heading 1", "Heading 2", "Heading 3", "Heading 4", "Heading 5",
+      "Heading 6", "Bullet List", "Ordered List", "Task List", "Quote", "Code Block",
+      "Duplicate Block", "Move Block Up", "Move Block Down",
     ]
   if app.is_inside_task_item() {
     labels.push("Toggle Task")
@@ -98,9 +98,9 @@ fn markdown_editor_editor_surface_labels(
   labels +
   [
     "Indent Lines", "Outdent Lines", "Hard Line Break", "Insert Table of Contents",
-    "Insert YAML Front Matter", "Find", "Find/Replace", "Save", "Save As",
-    "Import Markdown from Clipboard", "Export Markdown", "Export HTML", "Toggle Source Preview",
-    "Toggle Source Mode", "Toggle Quick Format",
+    "Insert YAML Front Matter", "Find", "Find/Replace", "Save", "Save As", "Import Markdown from Clipboard",
+    "Export Markdown", "Export HTML", "Toggle Source Preview", "Toggle Source Mode",
+    "Toggle Quick Format",
   ]
 }
 
