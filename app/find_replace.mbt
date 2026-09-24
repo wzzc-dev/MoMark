@@ -290,7 +290,7 @@ fn markdown_editor_find_seed_from_caret_word(
     None
   } else {
     Some({
-      query: source.sub(start=start_offset, end=end_offset).to_owned(),
+      query: source.exact_view(start=start_offset, end=end_offset).to_owned(),
       range: @text.TextRange::new(start~, end~),
     })
   }
@@ -487,7 +487,7 @@ fn markdown_editor_replace_all_matches(
       source, utf16_length, char_index, utf16_offset, start,
     )
     builder.write_string(
-      source.sub(start=utf16_offset, end=start_offset).to_owned(),
+      source.exact_view(start=utf16_offset, end=start_offset).to_owned(),
     )
     builder.write_string(replacement)
     let end = markdown_editor_clamp_int(normalized.end, start, source_length)
@@ -498,7 +498,7 @@ fn markdown_editor_replace_all_matches(
     utf16_offset = end_offset
   }
   builder.write_string(
-    source.sub(start=utf16_offset, end=utf16_length).to_owned(),
+    source.exact_view(start=utf16_offset, end=utf16_length).to_owned(),
   )
   builder.to_string()
 }

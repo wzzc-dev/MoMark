@@ -428,3 +428,24 @@ test "markdown editor renders image preview while mapping alt text" {
   }
   inspect(text, content="logo")
 }
+
+///|
+test "markdown editor formatter keeps code block height stable when activated" {
+  let base = @core.FontSpec::new()
+  for source in [
+    "Intro\n```moonbit\nlet saved = markdown\n```\nTail",
+    "Intro\n```\nlet saved = markdown\n```\nTail",
+  ] {
+    let inactive = @moui_richtext.rich_text_document_height(
+      markdown_editor_format(source),
+      base,
+    )
+    let active = @moui_richtext.rich_text_document_height(
+      markdown_editor_format_for_selection(source, { caret: 16, selection: None }),
+      base,
+    )
+    if inactive != active {
+      fail("\{inactive} != \{active}")
+    }
+  }
+}

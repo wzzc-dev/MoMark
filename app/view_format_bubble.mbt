@@ -91,7 +91,11 @@ fn format_bubble_button(
 /// Position the format bubble above the selection start. Laid out as an overlay
 /// child of the editor stack so it floats over the page card. Returns empty
 /// when there is no non-empty selection.
-fn markdown_editor_format_bubble_overlay(
+///
+/// Temporarily disabled at the call site (`view_editor_surface.mbt`); the
+/// leading underscore marks it as intentionally unused so the build stays
+/// warning-free while the feature is parked.
+fn _markdown_editor_format_bubble_overlay(
   app : MarkdownEditorApp,
   session : MarkdownDocumentSession,
   selection : MarkdownEditorSelection,

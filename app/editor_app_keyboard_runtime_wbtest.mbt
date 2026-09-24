@@ -631,6 +631,16 @@ test "markdown editor arrow keys navigate across empty line heading and code blo
     ),
   )
   let code_caret = runtime3.focused_text_input().caret
+  guard markdown_editor_text_frame(
+      runtime3.draw_commands(),
+      "let saved = markdown",
+    )
+    is Some(active_code_frame) else {
+    fail("expected active rendered code block text")
+  }
+  assert_true(
+    (code_frame.size.height - active_code_frame.size.height).abs() < 0.5,
+  )
   runtime3.dispatch_event(
     @core.AppEvent::Keyboard(@core.KeyboardEvent::new(key="ArrowUp")),
   )

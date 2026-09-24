@@ -357,8 +357,9 @@ The editor supports formatted editing for common block and inline structures:
 - The active block also temporarily reveals its Markdown prefix, including
   heading markers, list and task markers, ordered-list numbers, and blockquote
   markers, while inactive blocks keep their cleaner visual presentation. Fenced
-  code blocks reveal their full source, including opening and closing fences,
-  so language info and fence text are edited directly in the code area.
+  code blocks reveal the opening and closing fences while active, while inactive
+  blocks keep the cleaner presentation but reserve the active-state height to
+  avoid height jumps.
 - Setext heading handling, including Space/Enter completion for `===` or `---`
   underlines beneath paragraph text, list and quote-list continuation on Enter,
   empty heading-marker exit on Enter, including inside blockquote prefixes,

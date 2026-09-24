@@ -376,12 +376,11 @@ test "markdown editor keeps target bar contextual controls detached" {
   let code = app.runtime(width=980.0, height=700.0).draw_commands()
   assert_true(
     code.any(command => {
-      command is @core.DrawCommand::DrawText({ text: "```moonbit", .. })
-    }),
-  )
-  assert_true(
-    code.any(command => {
-      command is @core.DrawCommand::DrawText({ text: "```", .. })
+      match command {
+        @core.DrawCommand::DrawText({ text, .. }) =>
+          text.contains("```moonbit") && text.contains("```")
+        _ => false
+      }
     }),
   )
   assert_true(detached(code))
