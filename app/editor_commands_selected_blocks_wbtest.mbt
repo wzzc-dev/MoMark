@@ -3,7 +3,7 @@ test "markdown editor block command transforms selected lines" {
   let bullet = markdown_editor_apply_command_at(
     "Intro\nFirst\nSecond\nTail",
     BulletList,
-    Some({ caret: 18, selection: Some(@core.TextRange::new(start=6, end=18)) }),
+    Some({ caret: 18, selection: Some(@core.TextRange::new(start=6, end=18)), }),
   )
   inspect(bullet.source, content="Intro\n- First\n- Second\nTail")
   guard bullet.selection is Some(bullet_selection) else {
@@ -14,19 +14,19 @@ test "markdown editor block command transforms selected lines" {
   let ordered = markdown_editor_apply_command_at(
     "Intro\n- First\n- Second\nTail",
     OrderedList,
-    Some({ caret: 22, selection: Some(@core.TextRange::new(start=6, end=22)) }),
+    Some({ caret: 22, selection: Some(@core.TextRange::new(start=6, end=22)), }),
   )
   inspect(ordered.source, content="Intro\n1. First\n2. Second\nTail")
   let quote = markdown_editor_apply_command_at(
     "Intro\n1. First\n2. Second\nTail",
     Quote,
-    Some({ caret: 24, selection: Some(@core.TextRange::new(start=6, end=24)) }),
+    Some({ caret: 24, selection: Some(@core.TextRange::new(start=6, end=24)), }),
   )
   inspect(quote.source, content="Intro\n> First\n> Second\nTail")
   let rule = markdown_editor_apply_command_at(
     "Intro\nFirst\nSecond\nTail",
     HorizontalRule,
-    Some({ caret: 18, selection: Some(@core.TextRange::new(start=6, end=18)) }),
+    Some({ caret: 18, selection: Some(@core.TextRange::new(start=6, end=18)), }),
   )
   inspect(rule.source, content="Intro\n---\nTail")
   guard rule.selection is Some(rule_selection) else {
@@ -37,7 +37,7 @@ test "markdown editor block command transforms selected lines" {
   let table = markdown_editor_apply_command_at(
     "Intro\nFirst\nSecond\nTail",
     Table,
-    Some({ caret: 18, selection: Some(@core.TextRange::new(start=6, end=18)) }),
+    Some({ caret: 18, selection: Some(@core.TextRange::new(start=6, end=18)), }),
   )
   inspect(
     table.source,
@@ -51,7 +51,7 @@ test "markdown editor selected list commands preserve blank separator lines" {
   let bullet = markdown_editor_apply_command_at(
     "Intro\nFirst\n\nSecond\nTail",
     BulletList,
-    Some({ caret: 19, selection: Some(@core.TextRange::new(start=6, end=19)) }),
+    Some({ caret: 19, selection: Some(@core.TextRange::new(start=6, end=19)), }),
   )
   inspect(bullet.source, content="Intro\n- First\n\n- Second\nTail")
   inspect(bullet.caret, content="23")
@@ -64,7 +64,7 @@ test "markdown editor selected list commands preserve blank separator lines" {
   let task = markdown_editor_apply_command_at(
     "Intro\nFirst\n\nSecond\nTail",
     TaskList,
-    Some({ caret: 19, selection: Some(@core.TextRange::new(start=6, end=19)) }),
+    Some({ caret: 19, selection: Some(@core.TextRange::new(start=6, end=19)), }),
   )
   inspect(task.source, content="Intro\n- [ ] First\n\n- [ ] Second\nTail")
   inspect(task.caret, content="31")
@@ -72,7 +72,7 @@ test "markdown editor selected list commands preserve blank separator lines" {
   let ordered = markdown_editor_apply_command_at(
     "Intro\nFirst\n\nSecond\nTail",
     OrderedList,
-    Some({ caret: 19, selection: Some(@core.TextRange::new(start=6, end=19)) }),
+    Some({ caret: 19, selection: Some(@core.TextRange::new(start=6, end=19)), }),
   )
   inspect(ordered.source, content="Intro\n1. First\n\n2. Second\nTail")
   inspect(ordered.caret, content="25")
@@ -80,7 +80,7 @@ test "markdown editor selected list commands preserve blank separator lines" {
   let quote = markdown_editor_apply_command_at(
     "Intro\nFirst\n\nSecond\nTail",
     Quote,
-    Some({ caret: 19, selection: Some(@core.TextRange::new(start=6, end=19)) }),
+    Some({ caret: 19, selection: Some(@core.TextRange::new(start=6, end=19)), }),
   )
   inspect(quote.source, content="Intro\n> First\n> \n> Second\nTail")
 }
@@ -195,7 +195,7 @@ test "markdown editor block commands renumber ordered list context" {
   let converted = markdown_editor_apply_command_at(
     "1. first\nsecond\n9. third",
     OrderedList,
-    Some({ caret: 15, selection: Some(@core.TextRange::new(start=9, end=15)) }),
+    Some({ caret: 15, selection: Some(@core.TextRange::new(start=9, end=15)), }),
   )
   inspect(converted.source, content="1. first\n2. second\n3. third")
   guard converted.selection is Some(converted_selection) else {
@@ -206,7 +206,7 @@ test "markdown editor block commands renumber ordered list context" {
   let unlisted = markdown_editor_apply_command_at(
     "1. first\n2. second\n3. third",
     Paragraph,
-    Some({ caret: 15, selection: Some(@core.TextRange::new(start=9, end=18)) }),
+    Some({ caret: 15, selection: Some(@core.TextRange::new(start=9, end=18)), }),
   )
   inspect(unlisted.source, content="1. first\nsecond\n3. third")
 }

@@ -67,9 +67,9 @@ fn MarkdownEditorApp::toggle_find_option(
 ) -> Unit {
   let options = self.find_options
   let next = match field {
-    "case_sensitive" => { ..options, case_sensitive: !options.case_sensitive }
-    "whole_word" => { ..options, whole_word: !options.whole_word }
-    "regex" => { ..options, regex: !options.regex }
+    "case_sensitive" => { ..options, case_sensitive: !options.case_sensitive, }
+    "whole_word" => { ..options, whole_word: !options.whole_word, }
+    "regex" => { ..options, regex: !options.regex, }
     _ => options
   }
   self.find_options = next
@@ -164,7 +164,7 @@ fn MarkdownEditorApp::dismiss_auxiliary_panels(
   } else {
     let selection = self.selection
     if selection.selection is Some(_) {
-      self.selection = { caret: selection.caret, selection: None }
+      self.selection = { caret: selection.caret, selection: None, }
       self.sync_target_inputs()
     }
   }
@@ -180,7 +180,7 @@ fn MarkdownEditorApp::jump_to_outline(
     0,
     markdown_editor_text_length(self.document),
   )
-  self.selection = { caret, selection: None }
+  self.selection = { caret, selection: None, }
   self.sync_target_inputs()
   self.scroll_to_source(caret)
 }
@@ -362,7 +362,7 @@ fn MarkdownEditorApp::update_find_query(
   if query == "" {
     let selection = self.selection
     if selection.selection is Some(_) {
-      self.selection = { caret: selection.caret, selection: None }
+      self.selection = { caret: selection.caret, selection: None, }
       self.sync_target_inputs()
     }
     return
@@ -370,7 +370,7 @@ fn MarkdownEditorApp::update_find_query(
   if matches.length() == 0 {
     let selection = self.selection
     if selection.selection is Some(_) {
-      self.selection = { caret: selection.caret, selection: None }
+      self.selection = { caret: selection.caret, selection: None, }
       self.sync_target_inputs()
     }
     return
@@ -386,7 +386,7 @@ fn MarkdownEditorApp::select_find_match(
   self : MarkdownEditorApp,
   range : @text.TextRange,
 ) -> Unit {
-  self.selection = { caret: range.end, selection: Some(range) }
+  self.selection = { caret: range.end, selection: Some(range), }
   self.sync_target_inputs()
   self.scroll_to_source(range.start)
 }

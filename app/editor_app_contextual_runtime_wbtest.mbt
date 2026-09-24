@@ -2,17 +2,25 @@
 test "markdown editor toolbar active state follows caret context" {
   let source = "# Title\n\nText **bold** and [MoUI](https://wzzc-dev.github.io/MoUI)\n- item\n> quote"
   inspect(
-    markdown_editor_command_active(source, { caret: 17, selection: None }, Bold),
-    content="true",
-  )
-  inspect(
-    markdown_editor_command_active(source, { caret: 30, selection: None }, Link),
+    markdown_editor_command_active(
+      source,
+      { caret: 17, selection: None, },
+      Bold,
+    ),
     content="true",
   )
   inspect(
     markdown_editor_command_active(
       source,
-      { caret: 3, selection: None },
+      { caret: 30, selection: None, },
+      Link,
+    ),
+    content="true",
+  )
+  inspect(
+    markdown_editor_command_active(
+      source,
+      { caret: 3, selection: None, },
       Heading(1),
     ),
     content="true",
@@ -20,7 +28,7 @@ test "markdown editor toolbar active state follows caret context" {
   inspect(
     markdown_editor_command_active(
       source,
-      { caret: 70, selection: None },
+      { caret: 70, selection: None, },
       BulletList,
     ),
     content="true",
@@ -28,7 +36,7 @@ test "markdown editor toolbar active state follows caret context" {
   inspect(
     markdown_editor_command_active(
       source,
-      { caret: 78, selection: None },
+      { caret: 78, selection: None, },
       Quote,
     ),
     content="true",
@@ -36,7 +44,7 @@ test "markdown editor toolbar active state follows caret context" {
   inspect(
     markdown_editor_command_active(
       source,
-      { caret: 17, selection: None },
+      { caret: 17, selection: None, },
       Italic,
     ),
     content="false",

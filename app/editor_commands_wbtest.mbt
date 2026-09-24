@@ -17,7 +17,7 @@ test "markdown editor inline command wraps selected source range" {
   let result = markdown_editor_apply_command_at(
     "# Title",
     Bold,
-    Some({ caret: 7, selection: Some(@core.TextRange::new(start=2, end=7)) }),
+    Some({ caret: 7, selection: Some(@core.TextRange::new(start=2, end=7)), }),
   )
   inspect(result.source, content="# **Title**")
   inspect(result.caret, content="9")

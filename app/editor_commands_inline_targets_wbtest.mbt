@@ -3,7 +3,7 @@ test "markdown editor inline command unwraps matching marker pair" {
   let bold = markdown_editor_apply_command_at(
     "Text **bold** tail",
     Bold,
-    Some({ caret: 11, selection: Some(@core.TextRange::new(start=7, end=11)) }),
+    Some({ caret: 11, selection: Some(@core.TextRange::new(start=7, end=11)), }),
   )
   inspect(bold.source, content="Text bold tail")
   inspect(bold.caret, content="9")
@@ -15,14 +15,14 @@ test "markdown editor inline command unwraps matching marker pair" {
   let code = markdown_editor_apply_command_at(
     "Use `code` now",
     Code,
-    Some({ caret: 9, selection: Some(@core.TextRange::new(start=5, end=9)) }),
+    Some({ caret: 9, selection: Some(@core.TextRange::new(start=5, end=9)), }),
   )
   inspect(code.source, content="Use code now")
   inspect(code.caret, content="8")
   let strike = markdown_editor_apply_command_at(
     "~~old~~ text",
     Strikethrough,
-    Some({ caret: 5, selection: Some(@core.TextRange::new(start=2, end=5)) }),
+    Some({ caret: 5, selection: Some(@core.TextRange::new(start=2, end=5)), }),
   )
   inspect(strike.source, content="old text")
 }
@@ -32,7 +32,7 @@ test "markdown editor inline command unwraps current formatted span" {
   let bold = markdown_editor_apply_command_at(
     "Text **bold** tail",
     Bold,
-    Some({ caret: 9, selection: None }),
+    Some({ caret: 9, selection: None, }),
   )
   inspect(bold.source, content="Text bold tail")
   inspect(bold.caret, content="9")
@@ -45,7 +45,7 @@ test "markdown editor inline command unwraps current formatted span" {
   let italic = markdown_editor_apply_command_at(
     "Use *em* now",
     Italic,
-    Some({ caret: 6, selection: None }),
+    Some({ caret: 6, selection: None, }),
   )
   inspect(italic.source, content="Use em now")
   guard italic.selection is Some(italic_selection) else {
@@ -57,14 +57,14 @@ test "markdown editor inline command unwraps current formatted span" {
   let code = markdown_editor_apply_command_at(
     "Use `code` now",
     Code,
-    Some({ caret: 7, selection: None }),
+    Some({ caret: 7, selection: None, }),
   )
   inspect(code.source, content="Use code now")
 
   let strike = markdown_editor_apply_command_at(
     "Keep ~~old~~ text",
     Strikethrough,
-    Some({ caret: 9, selection: None }),
+    Some({ caret: 9, selection: None, }),
   )
   inspect(strike.source, content="Keep old text")
 }
@@ -74,7 +74,7 @@ test "markdown editor link command wraps and unwraps selected text" {
   let linked = markdown_editor_apply_command_at(
     "Visit MoUI today",
     Link,
-    Some({ caret: 10, selection: Some(@core.TextRange::new(start=6, end=10)) }),
+    Some({ caret: 10, selection: Some(@core.TextRange::new(start=6, end=10)), }),
   )
   inspect(linked.source, content="Visit [MoUI](https://example.com) today")
   guard linked.selection is Some(selection) else {
@@ -85,7 +85,7 @@ test "markdown editor link command wraps and unwraps selected text" {
   let unlinked = markdown_editor_apply_command_at(
     linked.source,
     Link,
-    Some({ caret: 11, selection: Some(selection) }),
+    Some({ caret: 11, selection: Some(selection), }),
   )
   inspect(unlinked.source, content="Visit MoUI today")
   guard unlinked.selection is Some(unlinked_selection) else {
@@ -100,7 +100,7 @@ test "markdown editor link command unwraps link at caret" {
   let inline = markdown_editor_apply_command_at(
     "Visit [MoUI](https://example.com) today",
     Link,
-    Some({ caret: 9, selection: None }),
+    Some({ caret: 9, selection: None, }),
   )
   inspect(inline.source, content="Visit MoUI today")
   guard inline.selection is Some(inline_selection) else {
@@ -112,7 +112,7 @@ test "markdown editor link command unwraps link at caret" {
   let reference = markdown_editor_apply_command_at(
     "Visit [MoUI][site] today\n\n[site]: https://example.com",
     Link,
-    Some({ caret: 9, selection: None }),
+    Some({ caret: 9, selection: None, }),
   )
   inspect(
     reference.source,
@@ -122,7 +122,7 @@ test "markdown editor link command unwraps link at caret" {
   let autolink = markdown_editor_apply_command_at(
     "Mail <hello@example.dev>",
     Link,
-    Some({ caret: 12, selection: None }),
+    Some({ caret: 12, selection: None, }),
   )
   inspect(autolink.source, content="Mail hello@example.dev")
 }
@@ -132,7 +132,7 @@ test "markdown editor image command wraps and unwraps selected alt text" {
   let inserted = markdown_editor_apply_command_at(
     "Insert logo here",
     Image,
-    Some({ caret: 11, selection: Some(@core.TextRange::new(start=7, end=11)) }),
+    Some({ caret: 11, selection: Some(@core.TextRange::new(start=7, end=11)), }),
   )
   inspect(inserted.source, content="Insert ![logo](image.png) here")
   guard inserted.selection is Some(selection) else {
@@ -143,7 +143,7 @@ test "markdown editor image command wraps and unwraps selected alt text" {
   let unwrapped = markdown_editor_apply_command_at(
     inserted.source,
     Image,
-    Some({ caret: 13, selection: Some(selection) }),
+    Some({ caret: 13, selection: Some(selection), }),
   )
   inspect(unwrapped.source, content="Insert logo here")
   guard unwrapped.selection is Some(unwrapped_selection) else {
@@ -158,7 +158,7 @@ test "markdown editor image command unwraps image at caret" {
   let inline = markdown_editor_apply_command_at(
     "Insert ![logo](image.png) here",
     Image,
-    Some({ caret: 10, selection: None }),
+    Some({ caret: 10, selection: None, }),
   )
   inspect(inline.source, content="Insert logo here")
   guard inline.selection is Some(inline_selection) else {
@@ -170,7 +170,7 @@ test "markdown editor image command unwraps image at caret" {
   let reference = markdown_editor_apply_command_at(
     "Insert ![logo][img] here\n\n[img]: image.png",
     Image,
-    Some({ caret: 10, selection: None }),
+    Some({ caret: 10, selection: None, }),
   )
   inspect(reference.source, content="Insert logo here\n\n[img]: image.png")
 }
@@ -180,7 +180,7 @@ test "markdown editor link target command updates and wraps selected text" {
   let updated = markdown_editor_apply_command_at(
     "Visit [MoUI](https://example.com) today",
     SetLinkTarget("https://wzzc-dev.github.io/MoUI"),
-    Some({ caret: 11, selection: Some(@core.TextRange::new(start=7, end=11)) }),
+    Some({ caret: 11, selection: Some(@core.TextRange::new(start=7, end=11)), }),
   )
   inspect(
     updated.source,
@@ -194,7 +194,7 @@ test "markdown editor link target command updates and wraps selected text" {
   let wrapped = markdown_editor_apply_command_at(
     "Visit MoUI today",
     SetLinkTarget("https://wzzc-dev.github.io/MoUI"),
-    Some({ caret: 10, selection: Some(@core.TextRange::new(start=6, end=10)) }),
+    Some({ caret: 10, selection: Some(@core.TextRange::new(start=6, end=10)), }),
   )
   inspect(
     wrapped.source,
@@ -207,7 +207,7 @@ test "markdown editor link target command updates target at caret" {
   let inline = markdown_editor_apply_command_at(
     "Visit [MoUI](https://old.example) today",
     SetLinkTarget("https://wzzc-dev.github.io/MoUI"),
-    Some({ caret: 9, selection: None }),
+    Some({ caret: 9, selection: None, }),
   )
   inspect(
     inline.source,
@@ -222,7 +222,7 @@ test "markdown editor link target command updates target at caret" {
   let reference = markdown_editor_apply_command_at(
     "Visit [MoUI][site] today\n\n[site]: https://old.example",
     SetLinkTarget("https://wzzc-dev.github.io/MoUI"),
-    Some({ caret: 9, selection: None }),
+    Some({ caret: 9, selection: None, }),
   )
   inspect(
     reference.source,
@@ -232,7 +232,7 @@ test "markdown editor link target command updates target at caret" {
   let autolink = markdown_editor_apply_command_at(
     "Mail <hello@example.dev>",
     SetLinkTarget("team@example.dev"),
-    Some({ caret: 12, selection: None }),
+    Some({ caret: 12, selection: None, }),
   )
   inspect(autolink.source, content="Mail <team@example.dev>")
 }
@@ -242,7 +242,7 @@ test "markdown editor image target command updates target at caret" {
   let inline = markdown_editor_apply_command_at(
     "Insert ![logo](old.png) here",
     SetImageTarget("assets/logo.png"),
-    Some({ caret: 10, selection: None }),
+    Some({ caret: 10, selection: None, }),
   )
   inspect(inline.source, content="Insert ![logo](assets/logo.png) here")
   guard inline.selection is Some(inline_selection) else {
@@ -254,7 +254,7 @@ test "markdown editor image target command updates target at caret" {
   let reference = markdown_editor_apply_command_at(
     "Insert ![logo][img] here\n\n[img]: old.png",
     SetImageTarget("assets/logo.png"),
-    Some({ caret: 10, selection: None }),
+    Some({ caret: 10, selection: None, }),
   )
   inspect(
     reference.source,
@@ -275,7 +275,7 @@ test "markdown editor link target command updates selected autolink" {
   let updated_email = markdown_editor_apply_command_at(
     source,
     SetLinkTarget("team@example.dev"),
-    Some({ caret: 23, selection: Some(@core.TextRange::new(start=6, end=23)) }),
+    Some({ caret: 23, selection: Some(@core.TextRange::new(start=6, end=23)), }),
   )
   inspect(
     updated_email.source,
@@ -297,7 +297,7 @@ test "markdown editor link target command updates selected autolink" {
   let updated_url = markdown_editor_apply_command_at(
     source,
     SetLinkTarget("https://wzzc-dev.github.io/MoUI"),
-    Some({ caret: 54, selection: Some(@core.TextRange::new(start=35, end=54)) }),
+    Some({ caret: 54, selection: Some(@core.TextRange::new(start=35, end=54)), }),
   )
   inspect(
     updated_url.source,
@@ -318,7 +318,7 @@ test "markdown editor link target command updates reference definition" {
   let updated = markdown_editor_apply_command_at(
     source,
     SetLinkTarget("https://wzzc-dev.github.io/MoUI"),
-    Some({ caret: 11, selection: Some(@core.TextRange::new(start=7, end=11)) }),
+    Some({ caret: 11, selection: Some(@core.TextRange::new(start=7, end=11)), }),
   )
   inspect(
     updated.source,
@@ -337,7 +337,7 @@ test "markdown editor link target command creates missing reference definition" 
   let updated = markdown_editor_apply_command_at(
     source,
     SetLinkTarget("https://wzzc-dev.github.io/MoUI"),
-    Some({ caret: 11, selection: Some(@core.TextRange::new(start=7, end=11)) }),
+    Some({ caret: 11, selection: Some(@core.TextRange::new(start=7, end=11)), }),
   )
   inspect(
     updated.source,
@@ -363,7 +363,7 @@ test "markdown editor link target command updates shortcut reference definition"
   let updated = markdown_editor_apply_command_at(
     source,
     SetLinkTarget("https://wzzc-dev.github.io/MoUI"),
-    Some({ caret: 11, selection: Some(@core.TextRange::new(start=7, end=11)) }),
+    Some({ caret: 11, selection: Some(@core.TextRange::new(start=7, end=11)), }),
   )
   inspect(
     updated.source,
@@ -382,7 +382,7 @@ test "markdown editor link target command creates shortcut reference definition"
   let updated = markdown_editor_apply_command_at(
     source,
     SetLinkTarget("https://wzzc-dev.github.io/MoUI"),
-    Some({ caret: 11, selection: Some(@core.TextRange::new(start=7, end=11)) }),
+    Some({ caret: 11, selection: Some(@core.TextRange::new(start=7, end=11)), }),
   )
   inspect(
     updated.source,
@@ -432,14 +432,14 @@ test "markdown editor code language command updates fenced block" {
   let updated = markdown_editor_apply_command_at(
     source,
     SetCodeLanguage("rust"),
-    Some({ caret: 20, selection: None }),
+    Some({ caret: 20, selection: None, }),
   )
   inspect(updated.source, content="Intro\n```rust\nlet x = 1\n```\nTail")
   inspect(updated.caret, content="17")
   let cleared = markdown_editor_apply_command_at(
     updated.source,
     SetCodeLanguage(""),
-    Some({ caret: 17, selection: None }),
+    Some({ caret: 17, selection: None, }),
   )
   inspect(cleared.source, content="Intro\n```\nlet x = 1\n```\nTail")
   inspect(cleared.caret, content="13")
@@ -458,7 +458,7 @@ test "markdown editor footnote text command updates definition" {
   let updated = markdown_editor_apply_command_at(
     source,
     SetFootnoteText("New text"),
-    Some({ caret: 7, selection: Some(@core.TextRange::new(start=6, end=7)) }),
+    Some({ caret: 7, selection: Some(@core.TextRange::new(start=6, end=7)), }),
   )
   inspect(updated.source, content="Note[^a]\n\n[^a]: New text")
 }
@@ -469,7 +469,7 @@ test "markdown editor footnote text command creates missing definition" {
   let updated = markdown_editor_apply_command_at(
     source,
     SetFootnoteText("New text"),
-    Some({ caret: 7, selection: Some(@core.TextRange::new(start=6, end=7)) }),
+    Some({ caret: 7, selection: Some(@core.TextRange::new(start=6, end=7)), }),
   )
   inspect(updated.source, content="Note[^a]\n\n[^a]: New text")
 }
@@ -530,7 +530,7 @@ test "markdown editor html block command updates current block" {
   let updated = markdown_editor_apply_command_at(
     source,
     SetHtmlBlockText("<section>New</section>"),
-    Some({ caret: 9, selection: None }),
+    Some({ caret: 9, selection: None, }),
   )
   inspect(updated.source, content="Intro\n<section>New</section>\nTail")
 }
@@ -540,7 +540,7 @@ test "markdown editor image target command updates and wraps selected alt text" 
   let updated = markdown_editor_apply_command_at(
     "Insert ![logo](image.png) here",
     SetImageTarget("assets/logo.png"),
-    Some({ caret: 13, selection: Some(@core.TextRange::new(start=9, end=13)) }),
+    Some({ caret: 13, selection: Some(@core.TextRange::new(start=9, end=13)), }),
   )
   inspect(updated.source, content="Insert ![logo](assets/logo.png) here")
   guard updated.selection is Some(selection) else {
@@ -551,7 +551,7 @@ test "markdown editor image target command updates and wraps selected alt text" 
   let wrapped = markdown_editor_apply_command_at(
     "Insert logo here",
     SetImageTarget("assets/logo.png"),
-    Some({ caret: 11, selection: Some(@core.TextRange::new(start=7, end=11)) }),
+    Some({ caret: 11, selection: Some(@core.TextRange::new(start=7, end=11)), }),
   )
   inspect(wrapped.source, content="Insert ![logo](assets/logo.png) here")
 }
@@ -569,7 +569,7 @@ test "markdown editor image target command updates reference definition" {
   let updated = markdown_editor_apply_command_at(
     source,
     SetImageTarget("assets/logo.png"),
-    Some({ caret: 13, selection: Some(@core.TextRange::new(start=9, end=13)) }),
+    Some({ caret: 13, selection: Some(@core.TextRange::new(start=9, end=13)), }),
   )
   inspect(
     updated.source,
@@ -588,7 +588,7 @@ test "markdown editor image target command creates missing reference definition"
   let updated = markdown_editor_apply_command_at(
     source,
     SetImageTarget("assets/logo.png"),
-    Some({ caret: 13, selection: Some(@core.TextRange::new(start=9, end=13)) }),
+    Some({ caret: 13, selection: Some(@core.TextRange::new(start=9, end=13)), }),
   )
   inspect(
     updated.source,

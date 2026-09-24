@@ -282,7 +282,7 @@ pub fn markdown_editor_program_commands(
   ) => {
     if !seen_labels.any(seen => seen == label) {
       seen_labels.push(label)
-      bindings.push({ label, shortcut: Some(shortcut), message })
+      bindings.push({ label, shortcut: Some(shortcut), message, })
     }
     commands.push(markdown_editor_program_command(label, shortcut, message))
   }

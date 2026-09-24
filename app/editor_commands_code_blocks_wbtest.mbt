@@ -3,14 +3,14 @@ test "markdown editor code block wraps current line and selected lines" {
   let current = markdown_editor_apply_command_at(
     "Intro\nlet x = 1\nTail",
     CodeBlock,
-    Some({ caret: 8, selection: None }),
+    Some({ caret: 8, selection: None, }),
   )
   inspect(current.source, content="Intro\n```\nlet x = 1\n```\nTail")
   inspect(current.caret, content="12")
   let selected = markdown_editor_apply_command_at(
     "Intro\nlet x = 1\nlet y = 2\nTail",
     CodeBlock,
-    Some({ caret: 25, selection: Some(@core.TextRange::new(start=6, end=25)) }),
+    Some({ caret: 25, selection: Some(@core.TextRange::new(start=6, end=25)), }),
   )
   inspect(
     selected.source,
@@ -25,7 +25,7 @@ test "markdown editor code block wraps current line and selected lines" {
   let quoted_current = markdown_editor_apply_command_at(
     "> let x = 1",
     CodeBlock,
-    Some({ caret: 4, selection: None }),
+    Some({ caret: 4, selection: None, }),
   )
   inspect(quoted_current.source, content="> ```\n> let x = 1\n> ```")
   inspect(quoted_current.caret, content="10")
@@ -58,21 +58,21 @@ test "markdown editor code block unwraps containing fenced block" {
   let result = markdown_editor_apply_command_at(
     "Intro\n```\nlet x = 1\n```\nTail",
     CodeBlock,
-    Some({ caret: 12, selection: None }),
+    Some({ caret: 12, selection: None, }),
   )
   inspect(result.source, content="Intro\nlet x = 1\nTail")
   inspect(result.caret, content="8")
   let tagged = markdown_editor_apply_command_at(
     "Intro\n```moonbit\nlet x = 1\n```\nTail",
     CodeBlock,
-    Some({ caret: 20, selection: None }),
+    Some({ caret: 20, selection: None, }),
   )
   inspect(tagged.source, content="Intro\nlet x = 1\nTail")
   inspect(tagged.caret, content="9")
   let quoted = markdown_editor_apply_command_at(
     "> ```\n> let x = 1\n> ```",
     CodeBlock,
-    Some({ caret: 10, selection: None }),
+    Some({ caret: 10, selection: None, }),
   )
   inspect(quoted.source, content="> let x = 1")
   inspect(quoted.caret, content="4")
@@ -101,7 +101,7 @@ test "markdown editor code block unwraps containing fenced block" {
   let nested_quoted = markdown_editor_apply_command_at(
     "> > ```\n> > code\n> > ```",
     CodeBlock,
-    Some({ caret: 12, selection: None }),
+    Some({ caret: 12, selection: None, }),
   )
   inspect(nested_quoted.source, content="> > code")
   inspect(nested_quoted.caret, content="4")

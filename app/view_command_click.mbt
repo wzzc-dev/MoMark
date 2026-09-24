@@ -8,7 +8,7 @@ fn MarkdownEditorApp::handle_command_click(
   offset : Int,
 ) -> Unit {
   let source = self.document
-  let probe : MarkdownEditorSelection = { caret: offset, selection: None }
+  let probe : MarkdownEditorSelection = { caret: offset, selection: None, }
   match @moui_richtext.markdown_editor_selected_link_target(source, probe) {
     Some(target) => {
       // Open the link target through the host (URL open flow).

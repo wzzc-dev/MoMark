@@ -9,24 +9,24 @@ test "markdown editor snapshot tracks typora core document shape" {
   guard snapshot.blocks[0]
     is {
       block: { kind: Heading(1), text: "Title", .. },
-      source_range: { start: 0, end: 7 },
-      content_range: { start: 2, end: 7 },
+      source_range: { start: 0, end: 7, },
+      content_range: { start: 2, end: 7, },
     } else {
     fail("expected heading source mapping")
   }
   guard snapshot.blocks[1]
     is {
       block: { kind: Paragraph, text: "", inlines: [], .. },
-      source_range: { start: 8, end: 8 },
-      content_range: { start: 8, end: 8 },
+      source_range: { start: 8, end: 8, },
+      content_range: { start: 8, end: 8, },
     } else {
     fail("expected visible blank line mapping")
   }
   guard snapshot.blocks[3]
     is {
       block: { kind: TaskListItem(true), text: "done", .. },
-      content_range: { start, end },
-      ..,
+      content_range: { start, end, },
+      ..
     } else {
     fail("expected task block mapping")
   }
@@ -45,16 +45,16 @@ test "markdown editor snapshot excludes closing atx heading markers from content
   guard snapshot.blocks[0]
     is {
       block: { kind: Heading(2), text: "Title", .. },
-      source_range: { start: 0, end: 11 },
-      content_range: { start: 3, end: 8 },
+      source_range: { start: 0, end: 11, },
+      content_range: { start: 3, end: 8, },
     } else {
     fail("expected heading content range without closing marker")
   }
   guard snapshot.rich_text.blocks[0]
     is {
-      content_range: Some({ start: 3, end: 8 }),
-      runs: [{ text: "Title", source_range: Some({ start: 3, end: 8 }), .. }],
-      ..,
+      content_range: Some({ start: 3, end: 8, }),
+      runs: [{ text: "Title", source_range: Some({ start: 3, end: 8, }), .. }],
+      ..
     } else {
     fail("expected rich text run to map only visible heading text")
   }
@@ -67,13 +67,13 @@ test "markdown editor snapshot keeps literal heading hashes without closing sepa
   guard snapshot.blocks[0]
     is {
       block: { kind: Heading(2), text: "Title###", .. },
-      source_range: { start: 0, end: 11 },
-      content_range: { start: 3, end: 11 },
+      source_range: { start: 0, end: 11, },
+      content_range: { start: 3, end: 11, },
     } else {
     fail("expected trailing hashes without separator to stay visible")
   }
   guard snapshot.rich_text.blocks[0].runs[0]
-    is { text: "Title###", source_range: Some({ start: 3, end: 11 }), .. } else {
+    is { text: "Title###", source_range: Some({ start: 3, end: 11, }), .. } else {
     fail("expected run range to include literal trailing hashes")
   }
 }
@@ -85,8 +85,8 @@ test "markdown editor snapshot maps multiline setext heading" {
   guard snapshot.blocks[0]
     is {
       block: { kind: Heading(2), text: "Alpha\nBeta", .. },
-      source_range: { start: 0, end: 14 },
-      content_range: { start: 0, end: 10 },
+      source_range: { start: 0, end: 14, },
+      content_range: { start: 0, end: 10, },
     } else {
     fail("expected multiline setext heading mapping")
   }
@@ -96,9 +96,9 @@ test "markdown editor snapshot maps multiline setext heading" {
   inspect(reconstructed, content="Alpha\nBeta")
   guard snapshot.rich_text.blocks[0]
     is {
-      content_range: Some({ start: 0, end: 10 }),
-      source_range: Some({ start: 0, end: 14 }),
-      ..,
+      content_range: Some({ start: 0, end: 10, }),
+      source_range: Some({ start: 0, end: 14, }),
+      ..
     } else {
     fail("expected rich text heading source mapping")
   }
@@ -111,17 +111,17 @@ test "markdown editor snapshot maps paren ordered list markers" {
   guard snapshot.blocks[0]
     is {
       block: { kind: OrderedListItem(3), text: "third", .. },
-      source_range: { start: 0, end: 8 },
-      content_range: { start: 3, end: 8 },
+      source_range: { start: 0, end: 8, },
+      content_range: { start: 3, end: 8, },
     } else {
     fail("expected paren ordered item source mapping")
   }
   guard snapshot.rich_text.blocks[0]
     is {
       prefix: "3. ",
-      content_range: Some({ start: 3, end: 8 }),
-      runs: [{ text: "third", source_range: Some({ start: 3, end: 8 }), .. }],
-      ..,
+      content_range: Some({ start: 3, end: 8, }),
+      runs: [{ text: "third", source_range: Some({ start: 3, end: 8, }), .. }],
+      ..
     } else {
     fail("expected paren ordered marker to render as ordered item")
   }
@@ -137,10 +137,10 @@ test "markdown editor snapshot tracks tilde fenced code blocks" {
         kind: CodeBlock,
         text: "let x = 1",
         code_language: Some("moonbit"),
-        ..,
+        ..
       },
-      source_range: { start: 0, end: 25 },
-      content_range: { start: 11, end: 21 },
+      source_range: { start: 0, end: 25, },
+      content_range: { start: 11, end: 21, },
     } else {
     fail("expected tilde fenced code block")
   }
@@ -156,8 +156,8 @@ test "markdown editor snapshot tracks yaml front matter" {
   guard snapshot.blocks[0]
     is {
       block: { kind: FrontMatter, text: "title: Draft\ntags: [moui]", .. },
-      source_range: { start: 0, end: 33 },
-      content_range: { start: 4, end: 30 },
+      source_range: { start: 0, end: 33, },
+      content_range: { start: 4, end: 30, },
     } else {
     fail("expected front matter source mapping")
   }
@@ -217,7 +217,7 @@ test "markdown editor snapshot resolves collapsed whitespace reference labels" {
     fail("expected collapsed whitespace reference link")
   }
   guard snapshot.rich_text.blocks[0].runs[1]
-    is { text: "MoUI", source_range: Some({ start: 5, end: 9 }), .. } else {
+    is { text: "MoUI", source_range: Some({ start: 5, end: 9, }), .. } else {
     fail("expected resolved reference link source mapping")
   }
 }
@@ -226,7 +226,7 @@ test "markdown editor snapshot resolves collapsed whitespace reference labels" {
 test "markdown editor snapshot maps decoded entity run source ranges" {
   let snapshot = MarkdownEditorSnapshot::parse("AT&amp;T &lt; 5")
   guard snapshot.rich_text.blocks[0].runs[0]
-    is { text: "AT&T < 5", source_range: Some({ start: 0, end: 15 }), .. } else {
+    is { text: "AT&T < 5", source_range: Some({ start: 0, end: 15, }), .. } else {
     fail("expected decoded entity run to cover raw source")
   }
 }
@@ -235,7 +235,7 @@ test "markdown editor snapshot maps decoded entity run source ranges" {
 test "markdown editor snapshot maps numeric entity run source ranges" {
   let snapshot = MarkdownEditorSnapshot::parse("A&#38;B &#x3c; C")
   guard snapshot.rich_text.blocks[0].runs[0]
-    is { text: "A&B < C", source_range: Some({ start: 0, end: 16 }), .. } else {
+    is { text: "A&B < C", source_range: Some({ start: 0, end: 16, }), .. } else {
     fail("expected numeric entity run to cover raw source")
   }
 }
@@ -251,19 +251,19 @@ test "markdown editor snapshot maps multiline html blocks" {
       block: {
         kind: HtmlBlock,
         text: "<section>\nLine **raw**\n</section>",
-        ..,
+        ..
       },
-      source_range: { start: 0, end: 33 },
-      content_range: { start: 0, end: 33 },
+      source_range: { start: 0, end: 33, },
+      content_range: { start: 0, end: 33, },
     } else {
     fail("expected multiline html block mapping")
   }
   guard snapshot.rich_text.blocks[0]
     is {
       runs: [{ text: "<section>\nLine **raw**\n</section>", .. }],
-      source_range: Some({ start: 0, end: 33 }),
-      content_range: Some({ start: 0, end: 33 }),
-      ..,
+      source_range: Some({ start: 0, end: 33, }),
+      content_range: Some({ start: 0, end: 33, }),
+      ..
     } else {
     fail("expected rich text multiline html block")
   }
@@ -276,17 +276,17 @@ test "markdown editor snapshot maps processing instruction html blocks" {
   guard snapshot.blocks[0]
     is {
       block: { kind: HtmlBlock, text: "<?moui\nraw\n?>", .. },
-      source_range: { start: 0, end: 13 },
-      content_range: { start: 0, end: 13 },
+      source_range: { start: 0, end: 13, },
+      content_range: { start: 0, end: 13, },
     } else {
     fail("expected processing instruction html block mapping")
   }
   guard snapshot.rich_text.blocks[0]
     is {
       runs: [{ text: "<?moui\nraw\n?>", .. }],
-      source_range: Some({ start: 0, end: 13 }),
-      content_range: Some({ start: 0, end: 13 }),
-      ..,
+      source_range: Some({ start: 0, end: 13, }),
+      content_range: Some({ start: 0, end: 13, }),
+      ..
     } else {
     fail("expected rich text processing instruction html block")
   }
@@ -301,17 +301,17 @@ test "markdown editor snapshot maps cdata html blocks" {
   guard snapshot.blocks[0]
     is {
       block: { kind: HtmlBlock, text: "<![CDATA[\nraw <tag>\n]]>", .. },
-      source_range: { start: 0, end: 23 },
-      content_range: { start: 0, end: 23 },
+      source_range: { start: 0, end: 23, },
+      content_range: { start: 0, end: 23, },
     } else {
     fail("expected cdata html block mapping")
   }
   guard snapshot.rich_text.blocks[0]
     is {
       runs: [{ text: "<![CDATA[\nraw <tag>\n]]>", .. }],
-      source_range: Some({ start: 0, end: 23 }),
-      content_range: Some({ start: 0, end: 23 }),
-      ..,
+      source_range: Some({ start: 0, end: 23, }),
+      content_range: Some({ start: 0, end: 23, }),
+      ..
     } else {
     fail("expected rich text cdata html block")
   }
@@ -333,10 +333,10 @@ test "markdown editor snapshot tracks footnotes" {
         kind: FootnoteDefinition("1"),
         text: "Footnote body",
         inlines: [{ text: "Footnote body", .. }],
-        ..,
+        ..
       },
-      source_range: { start: 26, end: 45 },
-      content_range: { start: 32, end: 45 },
+      source_range: { start: 26, end: 45, },
+      content_range: { start: 32, end: 45, },
     } else {
     fail("expected footnote definition mapping")
   }
@@ -344,8 +344,8 @@ test "markdown editor snapshot tracks footnotes" {
     is {
       text: "[^1]",
       visual_text: Some("1"),
-      source_range: Some({ start: 19, end: 23 }),
-      ..,
+      source_range: Some({ start: 19, end: 23, }),
+      ..
     } else {
     fail("expected rich footnote reference marker")
   }
@@ -355,16 +355,16 @@ test "markdown editor snapshot tracks footnotes" {
       runs: [
         {
           visual_text: Some("1"),
-          source_range: Some({ start: 26, end: 32 }),
-          ..,
+          source_range: Some({ start: 26, end: 32, }),
+          ..
         },
         {
           text: "Footnote body",
-          source_range: Some({ start: 32, end: 45 }),
-          ..,
+          source_range: Some({ start: 32, end: 45, }),
+          ..
         },
       ],
-      ..,
+      ..
     } else {
     fail("expected rich footnote definition")
   }
@@ -380,10 +380,10 @@ test "markdown editor snapshot tracks long fenced code blocks" {
         kind: CodeBlock,
         text: "```",
         code_language: Some("moonbit"),
-        ..,
+        ..
       },
-      source_range: { start: 0, end: 20 },
-      content_range: { start: 12, end: 16 },
+      source_range: { start: 0, end: 20, },
+      content_range: { start: 12, end: 16, },
     } else {
     fail("expected long fenced code block")
   }
@@ -424,8 +424,8 @@ test "markdown editor snapshot groups adjacent indented code lines" {
   guard snapshot.blocks[0]
     is {
       block: { kind: CodeBlock, text: "one\ntwo", code_language: None, .. },
-      source_range: { start: 0, end: 15 },
-      content_range: { start: 4, end: 15 },
+      source_range: { start: 0, end: 15, },
+      content_range: { start: 4, end: 15, },
     } else {
     fail("expected one indented code block mapping")
   }
@@ -438,8 +438,8 @@ test "markdown editor snapshot keeps blank lines inside indented code blocks" {
   guard snapshot.blocks[0]
     is {
       block: { kind: CodeBlock, text: "one\n\ntwo", code_language: None, .. },
-      source_range: { start: 0, end: 16 },
-      content_range: { start: 4, end: 16 },
+      source_range: { start: 0, end: 16, },
+      content_range: { start: 4, end: 16, },
     } else {
     fail("expected blank-separated indented code chunks to stay together")
   }
@@ -455,19 +455,19 @@ test "markdown editor snapshot treats four-space indented fences as code text" {
         kind: CodeBlock,
         text: "```\ncode\n```",
         code_language: None,
-        ..,
+        ..
       },
-      source_range: { start: 0, end: 24 },
-      content_range: { start: 4, end: 24 },
+      source_range: { start: 0, end: 24, },
+      content_range: { start: 4, end: 24, },
     } else {
     fail("expected indented fence markers to stay visible in code text")
   }
   guard snapshot.rich_text.blocks[0]
     is {
       runs: [{ text: "```\ncode\n```", .. }],
-      source_range: Some({ start: 0, end: 24 }),
-      content_range: Some({ start: 4, end: 24 }),
-      ..,
+      source_range: Some({ start: 0, end: 24, }),
+      content_range: Some({ start: 4, end: 24, }),
+      ..
     } else {
     fail("expected rich text indented code block")
   }
@@ -483,10 +483,10 @@ test "markdown editor snapshot treats tab-indented fences as code text" {
         kind: CodeBlock,
         text: "```\ncode\n```",
         code_language: None,
-        ..,
+        ..
       },
-      source_range: { start: 0, end: 15 },
-      content_range: { start: 1, end: 15 },
+      source_range: { start: 0, end: 15, },
+      content_range: { start: 1, end: 15, },
     } else {
     fail("expected tab-indented fence markers to stay visible in code text")
   }
@@ -501,16 +501,16 @@ test "markdown editor snapshot preserves visible empty paragraph lines" {
   guard snapshot.blocks[1]
     is {
       block: { kind: Paragraph, text: "", inlines: [], .. },
-      source_range: { start: 6, end: 6 },
-      content_range: { start: 6, end: 6 },
+      source_range: { start: 6, end: 6, },
+      content_range: { start: 6, end: 6, },
     } else {
     fail("expected middle blank line block")
   }
   guard snapshot.blocks[3]
     is {
       block: { kind: Paragraph, text: "", inlines: [], .. },
-      source_range: { start: 12, end: 12 },
-      content_range: { start: 12, end: 12 },
+      source_range: { start: 12, end: 12, },
+      content_range: { start: 12, end: 12, },
     } else {
     fail("expected trailing blank line block")
   }
@@ -519,9 +519,9 @@ test "markdown editor snapshot preserves visible empty paragraph lines" {
   guard snapshot.rich_text.blocks[1]
     is {
       runs: [],
-      source_range: Some({ start: 6, end: 6 }),
-      content_range: Some({ start: 6, end: 6 }),
-      ..,
+      source_range: Some({ start: 6, end: 6, }),
+      content_range: Some({ start: 6, end: 6, }),
+      ..
     } else {
     fail("expected visible rich text block for middle blank line")
   }
@@ -565,16 +565,16 @@ test "markdown editor snapshot tracks setext headings" {
   guard snapshot.blocks[0]
     is {
       block: { kind: Heading(1), text: "Title", .. },
-      source_range: { start: 0, end: 11 },
-      content_range: { start: 0, end: 5 },
+      source_range: { start: 0, end: 11, },
+      content_range: { start: 0, end: 5, },
     } else {
     fail("expected setext h1 mapping")
   }
   guard snapshot.blocks[1]
     is {
       block: { kind: Heading(2), text: "Section", .. },
-      source_range: { start: 12, end: 23 },
-      content_range: { start: 12, end: 19 },
+      source_range: { start: 12, end: 23, },
+      content_range: { start: 12, end: 19, },
     } else {
     fail("expected setext h2 mapping")
   }
@@ -596,8 +596,8 @@ test "markdown editor snapshot keeps soft-wrapped paragraph lines in one block" 
   guard snapshot.blocks[0]
     is {
       block: { kind: Paragraph, text: "first line\nsecond line", .. },
-      source_range: { start: 0, end: 22 },
-      content_range: { start: 0, end: 22 },
+      source_range: { start: 0, end: 22, },
+      content_range: { start: 0, end: 22, },
     } else {
     fail("expected one soft-wrapped paragraph block")
   }
@@ -664,7 +664,7 @@ test "markdown editor snapshot tracks markdown tables" {
   inspect(body_range.start, content="34")
   inspect(body_range.end, content="38")
   inspect(
-    markdown_editor_active_block_label(source, { caret: 18, selection: None }),
+    markdown_editor_active_block_label(source, { caret: 18, selection: None, }),
     content="Table",
   )
 }
@@ -990,14 +990,14 @@ test "markdown editor focus mode dims inactive rich text blocks" {
   let source = "# Title\n\nBody"
   let normal = markdown_editor_format_for_writing_mode(
     source,
-    { caret: 3, selection: None },
+    { caret: 3, selection: None, },
     focus_mode=false,
   )
   assert_false(normal.blocks.any(block => block.color is Some(_)))
 
   let focused = markdown_editor_format_for_writing_mode(
     source,
-    { caret: 3, selection: None },
+    { caret: 3, selection: None, },
     focus_mode=true,
   )
   guard focused.blocks[0].color is None else {

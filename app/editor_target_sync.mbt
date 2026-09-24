@@ -80,7 +80,7 @@ fn markdown_editor_session_block_scoped_probe(
         0,
         markdown_editor_text_length(text),
       )
-      Some((text, { caret, selection: None }))
+      Some((text, { caret, selection: None, }))
     }
     None => None
   }
@@ -269,9 +269,9 @@ fn markdown_editor_session_selected_footnote_text(
             block: {
               kind: @moui_richtext.MarkdownBlockKind::FootnoteDefinition(_),
               text,
-              ..,
+              ..
             },
-            ..,
+            ..
           }
         ) => Some(text)
         Some({ block: { text, .. }, .. }) =>
@@ -429,7 +429,7 @@ fn markdown_editor_session_selected_html_block_text(
     Some(
       {
         block: { kind: @moui_richtext.MarkdownBlockKind::HtmlBlock, text, .. },
-        ..,
+        ..
       }
     ) => Some(text)
     _ => None

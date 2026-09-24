@@ -43,7 +43,7 @@ test "markdown editor find matching preserves unicode ranges" {
   inspect(overlapping[1].start, content="2")
   inspect(overlapping[1].end, content="4")
 
-  let options = { ..MarkdownEditorFindOptions::default(), whole_word: true }
+  let options = { ..MarkdownEditorFindOptions::default(), whole_word: true, }
   let whole = markdown_editor_find_matches(
     "🤣cat catalog cat_ cat",
     "cat",
@@ -58,7 +58,7 @@ test "markdown editor find matching preserves unicode ranges" {
 
 ///|
 test "markdown editor regex find uses pattern semantics and stable source ranges" {
-  let options = { ..MarkdownEditorFindOptions::default(), regex: true }
+  let options = { ..MarkdownEditorFindOptions::default(), regex: true, }
   let matches = markdown_editor_find_matches(
     "a🤣foo-42 foo-7",
     "foo-[[:digit:]]+",
@@ -73,7 +73,7 @@ test "markdown editor regex find uses pattern semantics and stable source ranges
   let insensitive = markdown_editor_find_matches("Cat cat", "cat", options~)
   inspect(insensitive.length(), content="2")
 
-  let whole_word = { ..options, case_sensitive: true, whole_word: true }
+  let whole_word = { ..options, case_sensitive: true, whole_word: true, }
   let whole_matches = markdown_editor_find_matches(
     "Cat catalog cat",
     "cat",

@@ -132,7 +132,7 @@ pub struct MarkdownEditorFindOptions {
 
 ///|
 fn MarkdownEditorFindOptions::default() -> MarkdownEditorFindOptions {
-  { case_sensitive: false, whole_word: false, regex: false }
+  { case_sensitive: false, whole_word: false, regex: false, }
 }
 
 ///|
@@ -345,7 +345,7 @@ pub fn MarkdownEditorApp::new() -> MarkdownEditorApp {
   {
     document,
     document_session: MarkdownDocumentSession::new(document),
-    selection: { caret: 0, selection: None },
+    selection: { caret: 0, selection: None, },
     link_target: "https://wzzc-dev.github.io/MoUI",
     image_target: "assets/image.png",
     footnote_text: "Footnote text",

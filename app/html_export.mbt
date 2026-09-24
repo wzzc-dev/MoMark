@@ -125,7 +125,10 @@ fn markdown_editor_html_unordered_list(
     }
     index = index + 1
   }
-  { html: "<ul>\n" + markdown_join_lines(items) + "\n</ul>", next_index: index }
+  {
+    html: "<ul>\n" + markdown_join_lines(items) + "\n</ul>",
+    next_index: index,
+  }
 }
 
 ///|

@@ -69,7 +69,7 @@ fn MarkdownEditorApp::apply_command_to_selection(
   self.record_edit_history_from_transaction(before~, transaction~)
   self.document = result.source
   self.refresh_find_matches_if_visible()
-  self.selection = { caret: result.caret, selection: result.selection }
+  self.selection = { caret: result.caret, selection: result.selection, }
   self.selection_engaged = true
   self.sync_target_inputs()
   self.maybe_center_typewriter_selection()
@@ -94,7 +94,7 @@ fn MarkdownEditorApp::apply_text_transform(
   self.record_edit_history_from_transaction(before~, transaction~)
   self.document = transform.text
   self.refresh_find_matches_if_visible()
-  self.selection = { caret: transform.caret, selection: transform.selection }
+  self.selection = { caret: transform.caret, selection: transform.selection, }
   self.selection_engaged = true
   self.sync_target_inputs()
   self.maybe_center_typewriter_selection()
@@ -157,7 +157,7 @@ fn MarkdownEditorApp::set_selection(
   caret : Int,
   selection : @text.TextRange?,
 ) -> Unit {
-  self.selection = { caret, selection }
+  self.selection = { caret, selection, }
   self.selection_engaged = true
   self.sync_target_inputs()
   self.maybe_center_typewriter_selection()
@@ -324,7 +324,7 @@ priv struct MarkdownEditorPreEdit {
 fn MarkdownEditorApp::pre_edit_state(
   self : MarkdownEditorApp,
 ) -> MarkdownEditorPreEdit {
-  { source: self.document_session.source(), selection: self.selection }
+  { source: self.document_session.source(), selection: self.selection, }
 }
 
 ///|
@@ -498,7 +498,10 @@ fn MarkdownEditorApp::record_edit_history_from_transaction(
         let top = self.undo_stack[top_index]
         let character = ch.to_string()
         self.undo_stack[top_index] = if kind == 1 {
-          { ..top, delta: { ..top.delta, after: top.delta.after + character } }
+          {
+            ..top,
+            delta: { ..top.delta, after: top.delta.after + character, },
+          }
         } else if kind == 2 {
           {
             ..top,
@@ -511,7 +514,7 @@ fn MarkdownEditorApp::record_edit_history_from_transaction(
         } else {
           {
             ..top,
-            delta: { ..top.delta, before: top.delta.before + character },
+            delta: { ..top.delta, before: top.delta.before + character, },
           }
         }
         group.last_push_ms = now
@@ -633,7 +636,7 @@ fn MarkdownEditorApp::toggle_task_at(
 
       self.document = result.source
       self.refresh_find_matches_if_visible()
-      self.selection = { caret: result.caret, selection: result.selection }
+      self.selection = { caret: result.caret, selection: result.selection, }
       self.sync_target_inputs()
       self.maybe_center_typewriter_selection()
     }
@@ -656,7 +659,7 @@ fn MarkdownEditorApp::toggle_current_task(self : MarkdownEditorApp) -> Unit {
 
       self.document = result.source
       self.refresh_find_matches_if_visible()
-      self.selection = { caret: result.caret, selection: result.selection }
+      self.selection = { caret: result.caret, selection: result.selection, }
       self.sync_target_inputs()
       self.maybe_center_typewriter_selection()
     }

@@ -185,7 +185,7 @@ test "markdown parser preserves footnote metadata" {
       kind: FootnoteDefinition("note"),
       text: "Body text",
       inlines: [{ text: "Body text", .. }],
-      ..,
+      ..
     } else {
     fail("expected footnote definition block")
   }
@@ -345,7 +345,7 @@ test "markdown formatter renders footnotes as structured rich text" {
     is {
       border_left: Some(_),
       runs: [{ visual_text: Some("a"), .. }, { text: "Footnote", .. }],
-      ..,
+      ..
     } else {
     fail("expected styled footnote definition")
   }
@@ -361,7 +361,7 @@ test "markdown formatter renders html blocks as structured rich text" {
       runs: [
         { text: "<section>Block</section>", font: Some({ families, .. }), .. },
       ],
-      ..,
+      ..
     } else {
     fail("expected styled html block")
   }
@@ -376,7 +376,7 @@ test "markdown formatter renders yaml front matter as metadata block" {
     is {
       background: Some(_),
       runs: [{ text: "title: Draft", font: Some({ families, .. }), .. }],
-      ..,
+      ..
     } else {
     fail("expected styled front matter block")
   }

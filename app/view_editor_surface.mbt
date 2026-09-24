@@ -294,7 +294,7 @@ fn MarkdownEditorApp::appearance_spec(
   self : MarkdownEditorApp,
 ) -> MarkdownEditorAppearanceSpec {
   let base = self.writing_appearance.spec(dark=self.dark_mode_enabled)
-  { ..base, font_family: markdown_editor_font_family_stack(self.font_family) }
+  { ..base, font_family: markdown_editor_font_family_stack(self.font_family), }
 }
 
 ///|

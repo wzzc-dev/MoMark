@@ -109,7 +109,7 @@ fn MarkdownEditorApp::load_document(
   self.document_path = path
   self.record_recent_document_path(path)
   self.saved_document = source
-  self.selection = { caret: 0, selection: None }
+  self.selection = { caret: 0, selection: None, }
   self.selection_engaged = false
   self.reset_format_palette()
   self.transfer_status = TransferReady
@@ -746,7 +746,7 @@ fn MarkdownEditorApp::insert_text_at_cursor(
       reason=MediaEdit,
     ),
   )
-  self.selection = { caret: new_caret, selection: None }
+  self.selection = { caret: new_caret, selection: None, }
   self.sync_target_inputs()
   self.maybe_center_typewriter_selection()
 }

@@ -15,7 +15,7 @@ fn blank_line_gap_blocks(
   caret : Int,
 ) -> Array[@moui_richtext.RichTextBlock] {
   let window = app.document_session.rich_text_window(
-    { caret, selection: None },
+    { caret, selection: None, },
     base=@text.FontSpec::new(size=17.0),
     source_mode=false,
     focus_mode=false,
@@ -201,7 +201,7 @@ test "markdown editor enter keeps a full writing line on the new blank line" {
   match
     @moui_richtext.rich_text_document_caret_rect_at_source(
       app.document_session.rich_text_window(
-        { caret, selection: None },
+        { caret, selection: None, },
         base=font,
         source_mode=false,
         focus_mode=false,
@@ -300,7 +300,7 @@ test "markdown editor one blank line is no caret target, three show one line" {
 fn blank_line_caret_block_top(app : MarkdownEditorApp, caret : Int) -> Double {
   let font = @text.FontSpec::new(size=17.0)
   let window = app.document_session.rich_text_window(
-    { caret, selection: None },
+    { caret, selection: None, },
     base=font,
     source_mode=false,
     focus_mode=false,

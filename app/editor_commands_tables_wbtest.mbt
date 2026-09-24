@@ -36,7 +36,7 @@ test "markdown editor command inserts table row below current cell" {
   let inserted = markdown_editor_apply_command_at(
     source,
     InsertTableRow,
-    Some({ caret: 30, selection: None }),
+    Some({ caret: 30, selection: None, }),
   )
   inspect(
     inserted.source,
@@ -46,7 +46,7 @@ test "markdown editor command inserts table row below current cell" {
   let header = markdown_editor_apply_command_at(
     source,
     InsertTableRow,
-    Some({ caret: 6, selection: None }),
+    Some({ caret: 6, selection: None, }),
   )
   inspect(header.source, content="| A | B |\n| --- | --- |\n|  |  |\n| 1 | 2 |")
   inspect(header.caret, content="29")
@@ -58,7 +58,7 @@ test "markdown editor command inserts table column after current cell" {
   let inserted = markdown_editor_apply_command_at(
     source,
     InsertTableColumn,
-    Some({ caret: 30, selection: None }),
+    Some({ caret: 30, selection: None, }),
   )
   inspect(
     inserted.source,
@@ -68,7 +68,7 @@ test "markdown editor command inserts table column after current cell" {
   let middle = markdown_editor_apply_command_at(
     source,
     InsertTableColumn,
-    Some({ caret: 26, selection: None }),
+    Some({ caret: 26, selection: None, }),
   )
   inspect(
     middle.source,
@@ -83,7 +83,7 @@ test "markdown editor table column edits preserve alignment markers" {
   let inserted = markdown_editor_apply_command_at(
     source,
     InsertTableColumn,
-    Some({ caret: 44, selection: None }),
+    Some({ caret: 44, selection: None, }),
   )
   inspect(
     inserted.source,
@@ -92,7 +92,7 @@ test "markdown editor table column edits preserve alignment markers" {
   let deleted = markdown_editor_apply_command_at(
     source,
     DeleteTableColumn,
-    Some({ caret: 44, selection: None }),
+    Some({ caret: 44, selection: None, }),
   )
   inspect(deleted.source, content="| A | C |\n| :--- | ---: |\n| 1 | 3 |")
 }
@@ -103,7 +103,7 @@ test "markdown editor command sets table column alignment" {
   let centered = markdown_editor_apply_command_at(
     source,
     SetTableColumnAlignment(Some(@core.TextAlign::TextCenter)),
-    Some({ caret: 48, selection: None }),
+    Some({ caret: 48, selection: None, }),
   )
   inspect(
     centered.source,
@@ -113,7 +113,7 @@ test "markdown editor command sets table column alignment" {
   let auto = markdown_editor_apply_command_at(
     centered.source,
     SetTableColumnAlignment(None),
-    Some({ caret: 48, selection: None }),
+    Some({ caret: 48, selection: None, }),
   )
   inspect(
     auto.source,
@@ -132,14 +132,14 @@ test "markdown editor command sets table column alignment" {
   let plain = markdown_editor_apply_command_at(
     "Plain text",
     SetTableColumnAlignment(Some(@core.TextAlign::TextEnd)),
-    Some({ caret: 5, selection: None }),
+    Some({ caret: 5, selection: None, }),
   )
   inspect(plain.source, content="Plain text")
   inspect(plain.caret, content="5")
   let selected = markdown_editor_apply_command_at(
     "Plain text",
     SetTableColumnAlignment(Some(@core.TextAlign::TextCenter)),
-    Some({ caret: 5, selection: Some(@core.TextRange::new(start=0, end=5)) }),
+    Some({ caret: 5, selection: Some(@core.TextRange::new(start=0, end=5)), }),
   )
   inspect(selected.source, content="Plain text")
 }
@@ -161,28 +161,28 @@ test "markdown editor table row and column commands no-op outside tables" {
   let row = markdown_editor_apply_command_at(
     source,
     InsertTableRow,
-    Some({ caret: 5, selection: None }),
+    Some({ caret: 5, selection: None, }),
   )
   inspect(row.source, content=source)
   inspect(row.caret, content="5")
   let column = markdown_editor_apply_command_at(
     source,
     InsertTableColumn,
-    Some({ caret: 5, selection: None }),
+    Some({ caret: 5, selection: None, }),
   )
   inspect(column.source, content=source)
   inspect(column.caret, content="5")
   let delete_row = markdown_editor_apply_command_at(
     source,
     DeleteTableRow,
-    Some({ caret: 5, selection: None }),
+    Some({ caret: 5, selection: None, }),
   )
   inspect(delete_row.source, content=source)
   inspect(delete_row.caret, content="5")
   let delete_column = markdown_editor_apply_command_at(
     source,
     DeleteTableColumn,
-    Some({ caret: 5, selection: None }),
+    Some({ caret: 5, selection: None, }),
   )
   inspect(delete_column.source, content=source)
   inspect(delete_column.caret, content="5")
@@ -190,7 +190,7 @@ test "markdown editor table row and column commands no-op outside tables" {
   let selected = markdown_editor_apply_command_at(
     source,
     InsertTableRow,
-    Some({ caret: 5, selection: Some(@core.TextRange::new(start=0, end=5)) }),
+    Some({ caret: 5, selection: Some(@core.TextRange::new(start=0, end=5)), }),
   )
   inspect(selected.source, content=source)
   guard selected.selection is Some(selection) else {
@@ -214,7 +214,7 @@ test "markdown editor command deletes current table row" {
   let cleared_header = markdown_editor_apply_command_at(
     source,
     DeleteTableRow,
-    Some({ caret: 6, selection: None }),
+    Some({ caret: 6, selection: None, }),
   )
   inspect(
     cleared_header.source,
@@ -224,14 +224,14 @@ test "markdown editor command deletes current table row" {
   let deleted = markdown_editor_apply_command_at(
     source,
     DeleteTableRow,
-    Some({ caret: 30, selection: None }),
+    Some({ caret: 30, selection: None, }),
   )
   inspect(deleted.source, content="| A | B |\n| --- | --- |\n| 3 | 4 |")
   inspect(deleted.caret, content="23")
   let cleared = markdown_editor_apply_command_at(
     "| A | B |\n| --- | --- |\n| 1 | 2 |",
     DeleteTableRow,
-    Some({ caret: 30, selection: None }),
+    Some({ caret: 30, selection: None, }),
   )
   inspect(cleared.source, content="| A | B |\n| --- | --- |\n|  |  |")
   inspect(cleared.caret, content="26")
@@ -243,14 +243,14 @@ test "markdown editor command deletes current table column" {
   let deleted = markdown_editor_apply_command_at(
     source,
     DeleteTableColumn,
-    Some({ caret: 40, selection: None }),
+    Some({ caret: 40, selection: None, }),
   )
   inspect(deleted.source, content="| A | C |\n| --- | --- |\n| 1 | 3 |")
   inspect(deleted.caret, content="2")
   let cleared = markdown_editor_apply_command_at(
     "| A |\n| --- |\n| 1 |",
     DeleteTableColumn,
-    Some({ caret: 16, selection: None }),
+    Some({ caret: 16, selection: None, }),
   )
   inspect(cleared.source, content="|  |\n| --- |\n|  |")
   inspect(cleared.caret, content="3")
