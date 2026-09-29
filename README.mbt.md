@@ -29,11 +29,11 @@ former `examples/markdown_editor` app and the primary proof of the `@moui_richte
 
 ```toml
 import {
-  "wzzc-dev/moui@0.1.12",
-  "wzzc-dev/moui_richtext@0.1.10",
-  "wzzc-dev/window@0.5.4-0.1.7",
-  "wzzc-dev/moui_skia_renderer@0.1.11",
-  "wzzc-dev/moui_wgpu_renderer@0.1.10",
+  "wzzc-dev/moui@0.2.0",
+  "wzzc-dev/moui_richtext@0.2.0",
+  "wzzc-dev/window@0.5.4-0.2.0",
+  "wzzc-dev/moui_skia_renderer@0.2.0",
+  "wzzc-dev/moui_wgpu_renderer@0.2.0",
 }
 ```
 
