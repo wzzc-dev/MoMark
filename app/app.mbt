@@ -114,6 +114,15 @@ struct MarkdownEditorHistoryEntry {
 } derive(Eq, Debug, ToJson)
 
 ///|
+pub extend MarkdownEditorHistoryEntry with Eq::{equal, not_equal}
+
+///|
+pub extend MarkdownEditorHistoryEntry with Debug::{to_repr}
+
+///|
+pub extend MarkdownEditorHistoryEntry with ToJson::{to_json}
+
+///|
 priv struct MarkdownEditorFormatPaletteItem {
   action : String
   label : String
@@ -129,6 +138,15 @@ pub struct MarkdownEditorFindOptions {
   whole_word : Bool
   regex : Bool
 } derive(Eq, Debug, ToJson)
+
+///|
+pub extend MarkdownEditorFindOptions with Eq::{equal, not_equal}
+
+///|
+pub extend MarkdownEditorFindOptions with Debug::{to_repr}
+
+///|
+pub extend MarkdownEditorFindOptions with ToJson::{to_json}
 
 ///|
 fn MarkdownEditorFindOptions::default() -> MarkdownEditorFindOptions {
@@ -191,6 +209,15 @@ pub enum MarkdownEditorFontFamily {
 } derive(Eq, Debug, ToJson)
 
 ///|
+pub extend MarkdownEditorFontFamily with Eq::{equal, not_equal}
+
+///|
+pub extend MarkdownEditorFontFamily with Debug::{to_repr}
+
+///|
+pub extend MarkdownEditorFontFamily with ToJson::{to_json}
+
+///|
 priv enum MarkdownEditorAppearance {
   PaperAppearance
   WarmAppearance
@@ -206,6 +233,15 @@ enum MarkdownEditorTargetKind {
   HtmlBlockTarget
   TableTools
 } derive(Eq, Debug, ToJson)
+
+///|
+pub extend MarkdownEditorTargetKind with Eq::{equal, not_equal}
+
+///|
+pub extend MarkdownEditorTargetKind with Debug::{to_repr}
+
+///|
+pub extend MarkdownEditorTargetKind with ToJson::{to_json}
 
 ///|
 priv enum MarkdownEditorTransferKind {

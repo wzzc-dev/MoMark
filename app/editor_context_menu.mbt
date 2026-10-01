@@ -16,6 +16,12 @@ pub enum MarkdownEditorContextTarget {
 } derive(Eq, Debug)
 
 ///|
+pub extend MarkdownEditorContextTarget with Eq::{equal, not_equal}
+
+///|
+pub extend MarkdownEditorContextTarget with Debug::{to_repr}
+
+///|
 /// Labels the current target offers, in the order the menu presents them.
 ///
 /// The catalog is declaration-ordered for shortcut dispatch, so this list —

@@ -79,20 +79,35 @@ pub enum MarkdownEditorContextTarget {
   ExplorerBackground
   EditorSurface
 } derive(Eq, @debug.Debug)
+pub fn MarkdownEditorContextTarget::equal(Self, Self) -> Bool
+pub fn MarkdownEditorContextTarget::not_equal(Self, Self) -> Bool
+pub fn MarkdownEditorContextTarget::to_repr(Self) -> @debug.Repr
 
 pub struct MarkdownEditorFindOptions {
   case_sensitive : Bool
   whole_word : Bool
   regex : Bool
 } derive(Eq, ToJson, @debug.Debug)
+pub fn MarkdownEditorFindOptions::equal(Self, Self) -> Bool
+pub fn MarkdownEditorFindOptions::not_equal(Self, Self) -> Bool
+pub fn MarkdownEditorFindOptions::to_json(Self) -> Json
+pub fn MarkdownEditorFindOptions::to_repr(Self) -> @debug.Repr
 
 pub enum MarkdownEditorFontFamily {
   SansFont
   SerifFont
   MonoFont
 } derive(Eq, ToJson, @debug.Debug)
+pub fn MarkdownEditorFontFamily::equal(Self, Self) -> Bool
+pub fn MarkdownEditorFontFamily::not_equal(Self, Self) -> Bool
+pub fn MarkdownEditorFontFamily::to_json(Self) -> Json
+pub fn MarkdownEditorFontFamily::to_repr(Self) -> @debug.Repr
 
 type MarkdownEditorHistoryEntry derive(Eq, ToJson, @debug.Debug)
+pub fn MarkdownEditorHistoryEntry::equal(Self, Self) -> Bool
+pub fn MarkdownEditorHistoryEntry::not_equal(Self, Self) -> Bool
+pub fn MarkdownEditorHistoryEntry::to_json(Self) -> Json
+pub fn MarkdownEditorHistoryEntry::to_repr(Self) -> @debug.Repr
 
 pub enum MarkdownEditorMsg {
   NewDocument
@@ -199,8 +214,17 @@ pub struct MarkdownEditorSettings {
   files : Bool
   document_info : Bool
 } derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+pub fn MarkdownEditorSettings::equal(Self, Self) -> Bool
+pub fn MarkdownEditorSettings::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn MarkdownEditorSettings::not_equal(Self, Self) -> Bool
+pub fn MarkdownEditorSettings::to_json(Self) -> Json
+pub fn MarkdownEditorSettings::to_repr(Self) -> @debug.Repr
 
 type MarkdownEditorTargetKind derive(Eq, ToJson, @debug.Debug)
+pub fn MarkdownEditorTargetKind::equal(Self, Self) -> Bool
+pub fn MarkdownEditorTargetKind::not_equal(Self, Self) -> Bool
+pub fn MarkdownEditorTargetKind::to_json(Self) -> Json
+pub fn MarkdownEditorTargetKind::to_repr(Self) -> @debug.Repr
 
 // Type aliases
 

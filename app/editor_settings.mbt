@@ -15,6 +15,18 @@ pub struct MarkdownEditorSettings {
 } derive(Eq, Debug, ToJson, FromJson)
 
 ///|
+pub extend MarkdownEditorSettings with Eq::{equal, not_equal}
+
+///|
+pub extend MarkdownEditorSettings with Debug::{to_repr}
+
+///|
+pub extend MarkdownEditorSettings with ToJson::{to_json}
+
+///|
+pub extend MarkdownEditorSettings with @json.FromJson::{from_json}
+
+///|
 fn MarkdownEditorSettings::default() -> MarkdownEditorSettings {
   {
     dark_mode: false,
