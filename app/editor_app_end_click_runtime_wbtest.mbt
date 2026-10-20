@@ -1,5 +1,5 @@
 ///|
-fn markdown_editor_end_click_document(blocks : Int) -> String {
+fn markdown_editor_end_click_document(blocks : Int32) -> String {
   let parts : Array[String] = []
   for index in 0..<blocks {
     parts.push("## Section " + index.to_string())

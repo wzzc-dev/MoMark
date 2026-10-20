@@ -5,10 +5,10 @@
 /// itself is unaffected; folding is an outline-navigation aid.
 fn MarkdownEditorApp::toggle_heading_fold(
   self : MarkdownEditorApp,
-  source_start : Int,
+  source_start : Int32,
 ) -> Unit {
   let folded = self.folded_headings
-  let next : Array[Int] = []
+  let next : Array[Int32] = []
   let mut found = false
   for offset in folded {
     if offset == source_start {
@@ -27,7 +27,7 @@ fn MarkdownEditorApp::toggle_heading_fold(
 /// True when a heading at `source_start` is currently folded in the outline.
 fn MarkdownEditorApp::heading_is_folded(
   self : MarkdownEditorApp,
-  source_start : Int,
+  source_start : Int32,
 ) -> Bool {
   self.folded_headings.contains(source_start)
 }
@@ -38,13 +38,13 @@ fn MarkdownEditorApp::heading_is_folded(
 /// level (i.e. its nested children).
 fn markdown_editor_folded_outline(
   items : Array[MarkdownEditorOutlineItem],
-  folded_starts : Array[Int],
+  folded_starts : Array[Int32],
 ) -> Array[MarkdownEditorOutlineItem] {
   if folded_starts.length() == 0 {
     return items
   }
   let visible : Array[MarkdownEditorOutlineItem] = []
-  let mut hide_until_level : Int? = None
+  let mut hide_until_level : Int32? = None
   for item in items {
     match hide_until_level {
       Some(limit) =>

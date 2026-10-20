@@ -86,7 +86,7 @@ fn markdown_editor_document_services(
   seen_kind~ : Ref[@host.HostFileDialogKind],
   seen_title~ : Ref[String],
   seen_default_name~ : Ref[String],
-  seen_written? : Ref[String]? = None,
+  seen_written~ : Ref[String]? = None,
 ) -> @services.AppServices {
   let selected = selected_path
   let bridge = @host.HostServiceBridge::new(

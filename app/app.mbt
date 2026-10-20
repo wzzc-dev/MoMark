@@ -53,7 +53,7 @@ pub struct MarkdownEditorApp {
   mut autosave_draft : String
   mut dark_mode_enabled : Bool
   mut font_family : MarkdownEditorFontFamily
-  mut folded_headings : Array[Int]
+  mut folded_headings : Array[Int32]
   priv mut pending_confirm : MarkdownEditorConfirmRequest?
   priv mut writing_appearance : MarkdownEditorAppearance
   mut find_visible : Bool
@@ -65,7 +65,7 @@ pub struct MarkdownEditorApp {
   mut recent_document_paths : Array[String]
   mut saved_document : String
   priv mut transfer_status : MarkdownEditorTransferStatus
-  priv mut transfer_generation : Int
+  priv mut transfer_generation : Int32
   mut undo_stack : Array[MarkdownEditorHistoryEntry]
   mut redo_stack : Array[MarkdownEditorHistoryEntry]
   // Wheel-driven smooth scrolling as a paint-time animation: the glide is
@@ -171,19 +171,19 @@ pub enum MarkdownEditorConfirmResolution {
 
 ///|
 priv struct MarkdownEditorDocumentInfo {
-  character_count : Int
-  heading_count : Int
-  paragraph_count : Int
-  list_item_count : Int
-  task_count : Int
-  checked_task_count : Int
-  quote_count : Int
-  code_block_count : Int
-  table_count : Int
-  link_count : Int
-  image_count : Int
-  footnote_reference_count : Int
-  footnote_definition_count : Int
+  character_count : Int32
+  heading_count : Int32
+  paragraph_count : Int32
+  list_item_count : Int32
+  task_count : Int32
+  checked_task_count : Int32
+  quote_count : Int32
+  code_block_count : Int32
+  table_count : Int32
+  link_count : Int32
+  image_count : Int32
+  footnote_reference_count : Int32
+  footnote_definition_count : Int32
 }
 
 ///|
@@ -271,13 +271,13 @@ priv enum MarkdownEditorTransferStatus {
 
 ///|
 pub enum MarkdownEditorServiceCompletion {
-  FileOpenPicked(Int, @services.ServiceTaskResult[String])
-  FileSavePicked(Int, @services.ServiceTaskResult[String])
-  TextFileRead(Int, String, @services.ServiceTaskResult[String])
-  TextFileWritten(Int, String, Bool, @services.ServiceTaskResult[Unit])
-  ClipboardImported(Int, @services.ServiceTaskResult[String])
-  ClipboardExported(Int, Bool, @services.ServiceTaskResult[Unit])
-  TargetOpened(Int, @services.ServiceTaskResult[Unit])
+  FileOpenPicked(Int32, @services.ServiceTaskResult[String])
+  FileSavePicked(Int32, @services.ServiceTaskResult[String])
+  TextFileRead(Int32, String, @services.ServiceTaskResult[String])
+  TextFileWritten(Int32, String, Bool, @services.ServiceTaskResult[Unit])
+  ClipboardImported(Int32, @services.ServiceTaskResult[String])
+  ClipboardExported(Int32, Bool, @services.ServiceTaskResult[Unit])
+  TargetOpened(Int32, @services.ServiceTaskResult[Unit])
   DirectoryPicked(@services.ServiceTaskResult[String])
   DirectoryListed(
     String,
@@ -340,9 +340,9 @@ pub enum MarkdownEditorMsg {
   ReplaceFindCurrent
   ReplaceFindAll
   ApplyCommand(MarkdownEditorCommand)
-  ToggleHeadingFold(Int)
-  CommandClickAt(Int)
-  SetSelection(Int, @text.TextRange?)
+  ToggleHeadingFold(Int32)
+  CommandClickAt(Int32)
+  SetSelection(Int32, @text.TextRange?)
   // The editor view supplies its actual viewport dimensions with every wheel
   // event. Scroll geometry must use the same dimensions as paint; falling
   // back to the old fixed 520px range makes a target clamp against a
@@ -350,14 +350,14 @@ pub enum MarkdownEditorMsg {
   EditorScrolled(Double, Double, Double, Double)
   RemoteImageMetricsChanged
   OpenRecentDocument(String)
-  JumpToOutline(Int)
+  JumpToOutline(Int32)
   JumpToNextHeading
   JumpToPreviousHeading
   ToggleCurrentTask
   InsertHardBreak
   IndentLines
   OutdentLines
-  ToggleTaskAt(Int)
+  ToggleTaskAt(Int32)
   PickWorkingDirectory
   RefreshFileTree
   UpdateFileFilterQuery(String)
@@ -806,12 +806,12 @@ fn MarkdownEditorApp::subscriptions(
 ///|
 pub fn MarkdownEditorApp::program(
   self : MarkdownEditorApp,
-  environment? : @services.AppEnvironment = @services.AppEnvironment::new(),
+  environment~ : @services.AppEnvironment = @services.AppEnvironment::new(),
   // When a path is given (e.g. from the command line), the program opens it
   // through the same `OpenRecentDocument` message the recent-files menu uses,
   // so host file reading, working-directory rooting, and the file tree all
   // behave exactly like a manual open.
-  initial_document_path? : String? = None,
+  initial_document_path~ : String? = None,
 ) -> @moui.Program[MarkdownEditorApp, MarkdownEditorMsg] {
   let services = environment.services()
   let timer_source = environment.timer()

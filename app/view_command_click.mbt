@@ -5,7 +5,7 @@
 /// no-op (the editor already skipped caret placement for modifier-held clicks).
 fn MarkdownEditorApp::handle_command_click(
   self : MarkdownEditorApp,
-  offset : Int,
+  offset : Int32,
 ) -> Unit {
   let source = self.document
   let probe : MarkdownEditorSelection = { caret: offset, selection: None, }

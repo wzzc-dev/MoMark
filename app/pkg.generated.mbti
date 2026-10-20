@@ -44,7 +44,7 @@ pub struct MarkdownEditorApp {
   mut autosave_draft : String
   mut dark_mode_enabled : Bool
   mut font_family : MarkdownEditorFontFamily
-  mut folded_headings : Array[Int]
+  mut folded_headings : Array[Int32]
   mut find_visible : Bool
   mut find_query : String
   mut find_options : MarkdownEditorFindOptions
@@ -161,20 +161,20 @@ pub enum MarkdownEditorMsg {
   ReplaceFindCurrent
   ReplaceFindAll
   ApplyCommand(@moui_richtext.MarkdownEditorCommand)
-  ToggleHeadingFold(Int)
-  CommandClickAt(Int)
-  SetSelection(Int, @core.TextRange?)
+  ToggleHeadingFold(Int32)
+  CommandClickAt(Int32)
+  SetSelection(Int32, @core.TextRange?)
   EditorScrolled(Double, Double, Double, Double)
   RemoteImageMetricsChanged
   OpenRecentDocument(String)
-  JumpToOutline(Int)
+  JumpToOutline(Int32)
   JumpToNextHeading
   JumpToPreviousHeading
   ToggleCurrentTask
   InsertHardBreak
   IndentLines
   OutdentLines
-  ToggleTaskAt(Int)
+  ToggleTaskAt(Int32)
   PickWorkingDirectory
   RefreshFileTree
   UpdateFileFilterQuery(String)
@@ -189,13 +189,13 @@ pub enum MarkdownEditorMsg {
 }
 
 pub enum MarkdownEditorServiceCompletion {
-  FileOpenPicked(Int, @services.ServiceTaskResult[String])
-  FileSavePicked(Int, @services.ServiceTaskResult[String])
-  TextFileRead(Int, String, @services.ServiceTaskResult[String])
-  TextFileWritten(Int, String, Bool, @services.ServiceTaskResult[Unit])
-  ClipboardImported(Int, @services.ServiceTaskResult[String])
-  ClipboardExported(Int, Bool, @services.ServiceTaskResult[Unit])
-  TargetOpened(Int, @services.ServiceTaskResult[Unit])
+  FileOpenPicked(Int32, @services.ServiceTaskResult[String])
+  FileSavePicked(Int32, @services.ServiceTaskResult[String])
+  TextFileRead(Int32, String, @services.ServiceTaskResult[String])
+  TextFileWritten(Int32, String, Bool, @services.ServiceTaskResult[Unit])
+  ClipboardImported(Int32, @services.ServiceTaskResult[String])
+  ClipboardExported(Int32, Bool, @services.ServiceTaskResult[Unit])
+  TargetOpened(Int32, @services.ServiceTaskResult[Unit])
   DirectoryPicked(@services.ServiceTaskResult[String])
   DirectoryListed(String, @services.ServiceTaskResult[Array[@services.DirectoryEntry]])
   SettingsLoaded(@services.ServiceTaskResult[String?])

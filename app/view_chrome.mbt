@@ -1,8 +1,8 @@
 ///|
 fn MarkdownEditorApp::root(
   self : MarkdownEditorApp,
-  viewport_width? : Double = 1120.0,
-  viewport_height? : Double = 520.0,
+  viewport_width~ : Double = 1120.0,
+  viewport_height~ : Double = 520.0,
 ) -> @moui.View[MarkdownEditorMsg] {
   let geometry_compensation = @moui_richtext.markdown_scroll_take_geometry_compensation()
   if geometry_compensation != 0.0 {

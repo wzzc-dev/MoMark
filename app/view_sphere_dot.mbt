@@ -8,9 +8,9 @@ using @views {draw_path}
 /// offset = r * 0.5523).
 fn sphere_dot(
   size~ : Double,
-  fill? : @graphics.Color = @graphics.Color::rgba(r=0.93, g=0.93, b=0.93),
-  ring? : @graphics.Color = @graphics.Color::rgba(r=0.75, g=0.75, b=0.75),
-  ring_width? : Double = 2.0,
+  fill~ : @graphics.Color = @graphics.Color::rgba(r=0.93, g=0.93, b=0.93),
+  ring~ : @graphics.Color = @graphics.Color::rgba(r=0.75, g=0.75, b=0.75),
+  ring_width~ : Double = 2.0,
 ) -> @moui.View[MarkdownEditorMsg] {
   custom_layout(
     measure=constraints => {

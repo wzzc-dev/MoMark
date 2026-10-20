@@ -11,7 +11,7 @@
 
 ///|
 fn smooth_scroll_test_app(
-  document_paragraphs? : Int = 200,
+  document_paragraphs~ : Int32 = 200,
 ) -> MarkdownEditorApp {
   let app = MarkdownEditorApp::new()
   let source : Array[String] = []

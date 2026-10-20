@@ -201,14 +201,14 @@ fn MarkdownEditorApp::target_bar(
 fn markdown_editor_session_caret_rect(
   session : MarkdownDocumentSession,
   selection : MarkdownEditorSelection,
-  caret : Int,
+  caret : Int32,
   editor_frame : @geometry.Rect,
   editor_font : @text.FontSpec,
   scroll_offset : @geometry.Point,
   viewport_height~ : Double,
-  source_mode? : Bool = false,
-  focus_mode? : Bool = false,
-  base_dir? : String? = None,
+  source_mode~ : Bool = false,
+  focus_mode~ : Bool = false,
+  base_dir~ : String? = None,
 ) -> @geometry.Rect? {
   let window = session.rich_text_window(
     selection,
@@ -342,7 +342,7 @@ fn MarkdownEditorAppearance::next(
 ///|
 fn MarkdownEditorAppearance::spec(
   self : MarkdownEditorAppearance,
-  dark? : Bool = false,
+  dark~ : Bool = false,
 ) -> MarkdownEditorAppearanceSpec {
   match self {
     PaperAppearance =>
@@ -608,10 +608,10 @@ fn editor_source_layout(
   selection : MarkdownEditorSelection,
   target_kind : MarkdownEditorTargetKind,
   scroll_glide : MarkdownScrollGlide,
-  on_selection_change : (Int, @text.TextRange?) -> MarkdownEditorMsg,
-  on_prefix_click : (Int) -> MarkdownEditorMsg,
-  viewport_width? : Double = 1120.0,
-  viewport_height? : Double = 520.0,
+  on_selection_change : (Int32, @text.TextRange?) -> MarkdownEditorMsg,
+  on_prefix_click : (Int32) -> MarkdownEditorMsg,
+  viewport_width~ : Double = 1120.0,
+  viewport_height~ : Double = 520.0,
 ) -> @moui.View[MarkdownEditorMsg] {
   let editor_width = markdown_editor_primary_editor_width_for_viewport(
     show_source,

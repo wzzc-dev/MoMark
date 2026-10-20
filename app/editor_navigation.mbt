@@ -173,7 +173,7 @@ fn MarkdownEditorApp::dismiss_auxiliary_panels(
 ///|
 fn MarkdownEditorApp::jump_to_outline(
   self : MarkdownEditorApp,
-  source_start : Int,
+  source_start : Int32,
 ) -> Unit {
   let caret = markdown_editor_clamp_int(
     source_start,
@@ -228,8 +228,8 @@ fn MarkdownEditorApp::jump_to_previous_heading(
 ///|
 fn markdown_editor_next_outline_start(
   outline : Array[MarkdownEditorOutlineItem],
-  caret : Int,
-) -> Int? {
+  caret : Int32,
+) -> Int32? {
   if outline.length() == 0 {
     return None
   }
@@ -244,12 +244,12 @@ fn markdown_editor_next_outline_start(
 ///|
 fn markdown_editor_previous_outline_start(
   outline : Array[MarkdownEditorOutlineItem],
-  caret : Int,
-) -> Int? {
+  caret : Int32,
+) -> Int32? {
   if outline.length() == 0 {
     return None
   }
-  let mut previous : Int? = None
+  let mut previous : Int32? = None
   for item in outline {
     if item.source_start < caret {
       previous = Some(item.source_start)
@@ -264,7 +264,7 @@ fn markdown_editor_previous_outline_start(
 ///|
 fn MarkdownEditorApp::scroll_to_source(
   self : MarkdownEditorApp,
-  source_start : Int,
+  source_start : Int32,
 ) -> Unit {
   self.scroll_to_source_with_anchor(source_start, center=false)
 }
@@ -272,7 +272,7 @@ fn MarkdownEditorApp::scroll_to_source(
 ///|
 fn MarkdownEditorApp::center_typewriter_source(
   self : MarkdownEditorApp,
-  source_start : Int,
+  source_start : Int32,
 ) -> Unit {
   self.scroll_to_source_with_anchor(source_start, center=true)
 }
@@ -280,7 +280,7 @@ fn MarkdownEditorApp::center_typewriter_source(
 ///|
 fn MarkdownEditorApp::scroll_to_source_with_anchor(
   self : MarkdownEditorApp,
-  source_start : Int,
+  source_start : Int32,
   center~ : Bool,
 ) -> Unit {
   let appearance = self.appearance_spec()

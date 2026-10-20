@@ -156,7 +156,7 @@ fn MarkdownEditorApp::record_recent_document_path(
 fn MarkdownEditorApp::begin_transfer(
   self : MarkdownEditorApp,
   kind : MarkdownEditorTransferKind,
-) -> Int {
+) -> Int32 {
   let generation = self.transfer_generation + 1
   self.transfer_generation = generation
   self.transfer_status = TransferRunning(kind)
@@ -166,7 +166,7 @@ fn MarkdownEditorApp::begin_transfer(
 ///|
 fn MarkdownEditorApp::transfer_is_current(
   self : MarkdownEditorApp,
-  generation : Int,
+  generation : Int32,
 ) -> Bool {
   self.transfer_generation == generation
 }
@@ -230,7 +230,7 @@ fn MarkdownEditorApp::request_text_file_read(
 ///|
 fn MarkdownEditorApp::request_text_file_read_at(
   _self : MarkdownEditorApp,
-  generation : Int,
+  generation : Int32,
   path : String,
   services : @services.AppServices,
 ) -> @moui.Effect[MarkdownEditorMsg] {
@@ -589,7 +589,7 @@ fn markdown_editor_replace_tree_item_children(
 ///|
 fn MarkdownEditorApp::request_text_file_write_at(
   self : MarkdownEditorApp,
-  generation : Int,
+  generation : Int32,
   path : String,
   services : @services.AppServices,
   save_as~ : Bool,
@@ -705,8 +705,8 @@ fn markdown_editor_image_alt_from_filename(file_name : String) -> String {
 }
 
 ///|
-fn markdown_editor_last_dot_position(chars : Array[Char]) -> Int? {
-  let mut pos : Int? = None
+fn markdown_editor_last_dot_position(chars : Array[Char]) -> Int32? {
+  let mut pos : Int32? = None
   for index, ch in chars {
     if ch == '.' {
       pos = Some(index)
@@ -1162,7 +1162,7 @@ fn markdown_editor_file_name(path : String) -> String {
 ///|
 fn markdown_editor_parent_directory(path : String) -> String {
   let chars = path.to_array()
-  let mut last_slash : Int = -1
+  let mut last_slash : Int32 = -1
   for index in 0..<chars.length() {
     if chars[index] == '/' {
       last_slash = index

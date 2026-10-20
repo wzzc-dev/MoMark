@@ -15,10 +15,10 @@
 /// own. `install_svg_text` returns false when no default platform font could
 /// be loaded; SVG text then keeps the renderer's bitmap fallback.
 pub fn runtime(
-  environment? : @services.AppEnvironment = @services.AppEnvironment::new(),
-  width? : Double = 1000.0,
-  height? : Double = 640.0,
-  initial_document_path? : String? = None,
+  environment~ : @services.AppEnvironment = @services.AppEnvironment::new(),
+  width~ : Double = 1000.0,
+  height~ : Double = 640.0,
+  initial_document_path~ : String? = None,
 ) -> @runtime.AppRuntime {
   @native_metrics.register_image_metrics()
   let _ = @native_metrics.install_svg_text()

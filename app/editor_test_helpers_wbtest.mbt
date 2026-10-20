@@ -152,7 +152,7 @@ fn MarkdownEditorApp::find_query(self : MarkdownEditorApp) -> String {
 }
 
 ///|
-fn MarkdownEditorApp::find_match_count(self : MarkdownEditorApp) -> Int {
+fn MarkdownEditorApp::find_match_count(self : MarkdownEditorApp) -> Int32 {
   self.find_matches.length()
 }
 
@@ -537,7 +537,7 @@ fn MarkdownEditorApp::block_label(self : MarkdownEditorApp) -> String {
 }
 
 ///|
-fn MarkdownEditorApp::selection_caret(self : MarkdownEditorApp) -> Int {
+fn MarkdownEditorApp::selection_caret(self : MarkdownEditorApp) -> Int32 {
   self.selection.caret
 }
 
@@ -615,7 +615,7 @@ fn MarkdownEditorApp::document_status_label_for_test(
 ///|
 fn MarkdownEditorApp::jump_to_outline_for_test(
   self : MarkdownEditorApp,
-  source_start : Int,
+  source_start : Int32,
 ) -> Unit {
   self.jump_to_outline(source_start)
 }
@@ -623,8 +623,8 @@ fn MarkdownEditorApp::jump_to_outline_for_test(
 ///|
 fn MarkdownEditorApp::runtime(
   self : MarkdownEditorApp,
-  width? : Double = 1120.0,
-  height? : Double = 720.0,
+  width~ : Double = 1120.0,
+  height~ : Double = 720.0,
 ) -> @runtime.AppRuntime {
   self.runtime_with_services(
     @services.AppServices::unavailable(),
@@ -637,8 +637,8 @@ fn MarkdownEditorApp::runtime(
 fn MarkdownEditorApp::runtime_with_services(
   self : MarkdownEditorApp,
   services : @services.AppServices,
-  width? : Double = 1120.0,
-  height? : Double = 720.0,
+  width~ : Double = 1120.0,
+  height~ : Double = 720.0,
 ) -> @runtime.AppRuntime {
   let runtime = @runtime.new_program_with_dimensions(
     program=self.tracked_program_for_test(services),
@@ -665,7 +665,7 @@ fn MarkdownEditorApp::runtime_with_services(
 fn MarkdownEditorApp::editor_content_x(
   self : MarkdownEditorApp,
   window_width : Double,
-  inner_x? : Double = 4.0,
+  inner_x~ : Double = 4.0,
 ) -> Double {
   let appearance = self.appearance_spec()
   let show_files = self.file_sidebar_visible
@@ -715,6 +715,6 @@ fn markdown_to_rich_text(text : String) -> @moui_richtext.RichTextDocument {
 ///|
 fn MarkdownEditorApp::document_session_parse_count(
   self : MarkdownEditorApp,
-) -> Int {
+) -> Int32 {
   self.document_session.parse_count
 }

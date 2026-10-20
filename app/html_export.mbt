@@ -94,13 +94,13 @@ fn markdown_editor_html_blocks(blocks : Array[MarkdownEditorBlock]) -> String {
 ///|
 priv struct MarkdownEditorHtmlListGroup {
   html : String
-  next_index : Int
+  next_index : Int32
 }
 
 ///|
 fn markdown_editor_html_unordered_list(
   blocks : Array[MarkdownEditorBlock],
-  start : Int,
+  start : Int32,
 ) -> MarkdownEditorHtmlListGroup {
   let items : Array[String] = []
   let mut index = start
@@ -134,7 +134,7 @@ fn markdown_editor_html_unordered_list(
 ///|
 fn markdown_editor_html_ordered_list(
   blocks : Array[MarkdownEditorBlock],
-  start : Int,
+  start : Int32,
 ) -> MarkdownEditorHtmlListGroup {
   let items : Array[String] = []
   let mut index = start
@@ -231,7 +231,7 @@ fn markdown_editor_html_table(block : MarkdownBlock) -> String {
 ///|
 fn markdown_editor_html_table_align_attribute(
   alignments : Array[@text.TextAlign?],
-  index : Int,
+  index : Int32,
 ) -> String {
   if index >= alignments.length() {
     return ""

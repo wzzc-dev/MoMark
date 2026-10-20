@@ -31,7 +31,7 @@ fn markdown_editor_session_reading_label(
 fn markdown_editor_count_visible_tree_items(
   items : Array[@views.TreeItem],
   expanded : Array[String],
-) -> Int {
+) -> Int32 {
   let mut count = 0
   for item in items {
     count = count + 1
@@ -724,7 +724,7 @@ fn outline_rows(
   app : MarkdownEditorApp,
   full_outline : Array[MarkdownEditorOutlineItem],
   visible : Array[MarkdownEditorOutlineItem],
-  active_index : Int,
+  active_index : Int32,
   theme : @moui.Theme,
 ) -> @moui.View[MarkdownEditorMsg] {
   let rows : Array[@moui.View[MarkdownEditorMsg]] = []
@@ -743,7 +743,7 @@ fn outline_rows(
 fn markdown_editor_outline_item_is_active(
   full_outline : Array[MarkdownEditorOutlineItem],
   item : MarkdownEditorOutlineItem,
-  active_index : Int,
+  active_index : Int32,
 ) -> Bool {
   if active_index < 0 || active_index >= full_outline.length() {
     false
@@ -793,7 +793,7 @@ fn outline_row(
 ///|
 
 ///|
-fn markdown_editor_outline_indent_width(level : Int) -> Double {
+fn markdown_editor_outline_indent_width(level : Int32) -> Double {
   markdown_editor_max_int(0, level - 1).to_double() * 12.0
 }
 
@@ -815,8 +815,8 @@ fn markdown_editor_outline_title(title : String) -> String {
 ///|
 fn markdown_editor_active_outline_index(
   outline : Array[MarkdownEditorOutlineItem],
-  caret : Int,
-) -> Int {
+  caret : Int32,
+) -> Int32 {
   let mut active = -1
   for index in 0..<outline.length() {
     if outline[index].source_start <= caret {

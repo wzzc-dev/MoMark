@@ -1,7 +1,7 @@
 ///|
 fn markdown_editor_begin_cached_layer_count(
   commands : Array[@core.DrawCommand],
-) -> Int {
+) -> Int32 {
   commands
   .filter(command => command is @core.DrawCommand::BeginRetainedLayer(_))
   .length()
@@ -23,7 +23,7 @@ fn markdown_editor_has_retained_chrome_layer(
 ///|
 fn markdown_editor_cached_layer_command_count(
   commands : Array[@core.DrawCommand],
-) -> Int {
+) -> Int32 {
   markdown_editor_begin_cached_layer_count(commands)
 }
 
@@ -142,7 +142,7 @@ test "markdown editor long scroll keeps cached layer tracking bounded" {
 }
 
 ///|
-fn markdown_editor_synthetic_scroll_document(blocks : Int) -> String {
+fn markdown_editor_synthetic_scroll_document(blocks : Int32) -> String {
   let parts : Array[String] = []
   for index in 0..<blocks {
     parts.push("## Section " + index.to_string())

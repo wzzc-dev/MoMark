@@ -12,7 +12,7 @@
 /// Typora's empty paragraph is a full line box too.
 fn blank_line_gap_blocks(
   app : MarkdownEditorApp,
-  caret : Int,
+  caret : Int32,
 ) -> Array[@moui_richtext.RichTextBlock] {
   let window = app.document_session.rich_text_window(
     { caret, selection: None, },
@@ -297,7 +297,7 @@ test "markdown editor one blank line is no caret target, three show one line" {
 
 ///|
 /// Layout top of the block that owns `caret`, in the current WYSIWYG window.
-fn blank_line_caret_block_top(app : MarkdownEditorApp, caret : Int) -> Double {
+fn blank_line_caret_block_top(app : MarkdownEditorApp, caret : Int32) -> Double {
   let font = @text.FontSpec::new(size=17.0)
   let window = app.document_session.rich_text_window(
     { caret, selection: None, },

@@ -10,9 +10,9 @@ fn markdown_editor_toolbar_button(
   label : String,
   message : MarkdownEditorMsg,
   theme~ : @moui.Theme,
-  active? : Bool = false,
-  disabled? : Bool = false,
-  shortcut? : String = "",
+  active~ : Bool = false,
+  disabled~ : Bool = false,
+  shortcut~ : String = "",
 ) -> @moui.View[MarkdownEditorMsg] {
   let tooltip_text = if shortcut == "" {
     label

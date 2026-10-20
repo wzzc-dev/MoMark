@@ -2,7 +2,7 @@
 fn MarkdownEditorApp::push_toast_for_test(
   self : MarkdownEditorApp,
   message : String,
-  tone? : @views.FeedbackTone = @views.FeedbackTone::Neutral,
+  tone~ : @views.FeedbackTone = @views.FeedbackTone::Neutral,
 ) -> Unit {
   let queue = self.toasts
   let serial = queue.items.length()

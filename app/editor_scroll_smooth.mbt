@@ -51,7 +51,7 @@ fn markdown_editor_scroll_stream_tau_ms() -> Double {
 fn MarkdownEditorApp::editor_scroll_max_offset(
   self : MarkdownEditorApp,
   viewport_height : Double,
-  viewport_width? : Double = 1120.0,
+  viewport_width~ : Double = 1120.0,
 ) -> Double {
   let appearance = self.appearance_spec()
   let editor_font = markdown_editor_appearance_font(appearance)
@@ -104,7 +104,7 @@ fn MarkdownEditorApp::editor_scroll_wheel(
   self : MarkdownEditorApp,
   wheel_delta_y : Double,
   viewport_height : Double,
-  viewport_width? : Double = 1120.0,
+  viewport_width~ : Double = 1120.0,
   continuous~ : Bool,
   clock_ms~ : Double,
 ) -> Unit {

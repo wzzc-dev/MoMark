@@ -161,7 +161,7 @@ fn markdown_editor_session_should_probe_reference(
 ///|
 fn markdown_editor_paragraph_reference_probe(
   text : String,
-  caret : Int,
+  caret : Int32,
   image~ : Bool,
 ) -> Bool {
   let text_length = markdown_editor_text_length(text)
@@ -225,8 +225,8 @@ fn markdown_editor_paragraph_reference_probe(
 ///|
 fn markdown_editor_paragraph_has_closing_reference(
   text : String,
-  start_offset : Int,
-  utf16_length : Int,
+  start_offset : Int32,
+  utf16_length : Int32,
   close : Char,
 ) -> Bool {
   let mut offset = start_offset
@@ -308,7 +308,7 @@ fn markdown_editor_session_selected_footnote_text(
 /// block-scoped twin of the session-level reference scan.
 fn markdown_editor_session_footnote_reference_label(
   text : String,
-  caret : Int,
+  caret : Int32,
 ) -> String? {
   let chars = text.to_array()
   if chars.length() == 0 {

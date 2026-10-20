@@ -8,7 +8,7 @@ fn MarkdownEditorApp::clear_history(self : MarkdownEditorApp) -> Unit {
 fn MarkdownEditorApp::replace_document_source(
   self : MarkdownEditorApp,
   source : String,
-  reason? : MarkdownEditReason = ReplaceEdit,
+  reason~ : MarkdownEditReason = ReplaceEdit,
 ) -> Unit {
   let previous = self.document_session
   // A whole-source swap is a fresh document, not an edit: the shell parse
@@ -154,7 +154,7 @@ fn MarkdownEditorApp::redo(self : MarkdownEditorApp) -> Bool {
 ///|
 fn MarkdownEditorApp::set_selection(
   self : MarkdownEditorApp,
-  caret : Int,
+  caret : Int32,
   selection : @text.TextRange?,
 ) -> Unit {
   self.selection = { caret, selection, }
@@ -334,11 +334,11 @@ fn MarkdownEditorApp::pre_edit_state(
 /// entry, so one undo reverts a typed run instead of one character.
 /// Command, task, and paste edits close the group, as do undo/redo.
 priv struct MarkdownEditorHistoryGroup {
-  mut kind : Int
-  mut start : Int
-  mut after_length : Int
-  mut last_push_ms : Int
-  mut expected_stack_length : Int
+  mut kind : Int32
+  mut start : Int32
+  mut after_length : Int32
+  mut last_push_ms : Int32
+  mut expected_stack_length : Int32
 }
 
 ///|
@@ -351,13 +351,13 @@ let markdown_editor_history_group : Ref[MarkdownEditorHistoryGroup] = Ref({
 })
 
 ///|
-let markdown_editor_history_merge_window_ms : Int = 500
+let markdown_editor_history_merge_window_ms : Int32 = 500
 
 ///|
 /// Position the next same-kind edit must land on to stay in the open
 /// group: one past the previous insertion, one before the previous
 /// backspace, or the same spot for a repeated forward delete.
-fn markdown_editor_history_group_delta(kind : Int) -> Int {
+fn markdown_editor_history_group_delta(kind : Int32) -> Int32 {
   if kind == 1 {
     1
   } else if kind == 2 {
@@ -374,11 +374,11 @@ fn markdown_editor_history_group_delta(kind : Int) -> Int {
 /// character left of the caret) and forward delete (deleted the one at
 /// the caret) stay distinguishable.
 fn markdown_editor_history_single_edit_shape(
-  start~ : Int,
+  start~ : Int32,
   deleted~ : String,
   replacement~ : String,
-  caret_before~ : Int,
-) -> (Int, Int, Char)? {
+  caret_before~ : Int32,
+) -> (Int32, Int32, Char)? {
   let deleted_chars = deleted.to_array()
   let replacement_chars = replacement.to_array()
   if deleted_chars.length() == 0 {
@@ -410,7 +410,7 @@ fn markdown_editor_history_single_edit_shape(
 /// Wall-clock milliseconds for the typing merge window. The app runtime
 /// dispatches edits synchronously, so consecutive keystrokes always land
 /// inside the window unless real wall time really moved past it.
-fn markdown_editor_history_now_ms() -> Int {
+fn markdown_editor_history_now_ms() -> Int32 {
   @env.now().to_int()
 }
 
@@ -465,7 +465,7 @@ fn MarkdownEditorApp::record_edit_history_from_transaction(
 ) -> Unit {
   let group = markdown_editor_history_group.val
   let now = markdown_editor_history_now_ms()
-  let shape : (Int, Int, Char)? = if transaction.reason is TextInput {
+  let shape : (Int32, Int32, Char)? = if transaction.reason is TextInput {
     markdown_editor_history_single_edit_shape(
       start=transaction.edit_range.start,
       deleted=transaction.deleted,
@@ -621,7 +621,7 @@ fn MarkdownEditorApp::restore_history(
 ///|
 fn MarkdownEditorApp::toggle_task_at(
   self : MarkdownEditorApp,
-  content_offset : Int,
+  content_offset : Int32,
 ) -> Unit {
   match markdown_editor_toggle_task_at(self.document, content_offset) {
     Some(result) => {
@@ -676,7 +676,7 @@ fn markdown_editor_toggle_image_center(source : String, wrap : Bool) -> String {
   for line in lines {
     line_views.push(line.to_owned())
   }
-  let mut img_idx : Int? = None
+  let mut img_idx : Int32? = None
   for i in 0..<line_views.length() {
     if line_views[i].contains("![") {
       img_idx = Some(i)
