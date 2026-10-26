@@ -206,10 +206,10 @@ test "markdown editor rekeys from the current range after content shrink" {
 }
 
 ///|
-/// Regression: the stream/notch decision must not depend on the pointer
-/// contract's `time_ms` (the input path never populates it — it stays 0.0),
-/// and a discrete notch arriving while the previous glide is still in flight
-/// must keep easing instead of being mistaken for momentum.
+/// Regression: the stream/notch decision must not depend on a pointer-event
+/// timestamp (the input path never populated one; the runtime clock is the
+/// only time source), and a discrete notch arriving while the previous glide
+/// is still in flight must keep easing instead of being mistaken for momentum.
 test "markdown editor discrete notch eases while the previous glide is in flight" {
   let app = smooth_scroll_test_app()
   smooth_scroll_wheel(app, -120.0, 1000.0)
