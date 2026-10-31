@@ -25,17 +25,14 @@ fn MarkdownEditorApp::target_bar(
             on_submit=Some(ApplyLinkTarget),
             placeholder="https://example.com",
             variant=@views.TextFieldVariant::Outline,
-            theme~,
             width=360.0,
             height=34.0,
           ).key("markdown-link-target"),
           editor_button(
             "Apply",
             ApplyLinkTarget,
-            @views.ButtonVariant::Tonal,
-            theme,
-          ),
-          editor_button("Open", OpenTarget, @views.ButtonVariant::Ghost, theme),
+            @views.ButtonVariant::Tonal),
+          editor_button("Open", OpenTarget, @views.ButtonVariant::Ghost),
         ],
         spacing=theme.spacing_scale.xs,
         align=@views.CrossAlign::Center,
@@ -53,17 +50,14 @@ fn MarkdownEditorApp::target_bar(
             on_submit=Some(ApplyImageTarget),
             placeholder="assets/image.png",
             variant=@views.TextFieldVariant::Outline,
-            theme~,
             width=360.0,
             height=34.0,
           ).key("markdown-image-target"),
           editor_button(
             "Apply",
             ApplyImageTarget,
-            @views.ButtonVariant::Tonal,
-            theme,
-          ),
-          editor_button("Open", OpenTarget, @views.ButtonVariant::Ghost, theme),
+            @views.ButtonVariant::Tonal),
+          editor_button("Open", OpenTarget, @views.ButtonVariant::Ghost),
         ],
         spacing=theme.spacing_scale.xs,
         align=@views.CrossAlign::Center,
@@ -81,16 +75,13 @@ fn MarkdownEditorApp::target_bar(
             on_submit=Some(ApplyFootnoteText),
             placeholder="Footnote text",
             variant=@views.TextFieldVariant::Outline,
-            theme~,
             width=360.0,
             height=34.0,
           ).key("markdown-footnote-text"),
           editor_button(
             "Apply",
             ApplyFootnoteText,
-            @views.ButtonVariant::Tonal,
-            theme,
-          ),
+            @views.ButtonVariant::Tonal),
         ],
         spacing=theme.spacing_scale.xs,
         align=@views.CrossAlign::Center,
@@ -108,16 +99,13 @@ fn MarkdownEditorApp::target_bar(
             on_submit=Some(ApplyHtmlBlockText),
             placeholder="<div>HTML</div>",
             variant=@views.TextFieldVariant::Outline,
-            theme~,
             width=360.0,
             height=34.0,
           ).key("markdown-html-block-text"),
           editor_button(
             "Apply",
             ApplyHtmlBlockText,
-            @views.ButtonVariant::Tonal,
-            theme,
-          ),
+            @views.ButtonVariant::Tonal),
         ],
         spacing=theme.spacing_scale.xs,
         align=@views.CrossAlign::Center,
@@ -132,27 +120,19 @@ fn MarkdownEditorApp::target_bar(
           editor_button(
             "+Row",
             ApplyCommand(InsertTableRow),
-            @views.ButtonVariant::Tonal,
-            theme,
-          ),
+            @views.ButtonVariant::Tonal),
           editor_button(
             "+Col",
             ApplyCommand(InsertTableColumn),
-            @views.ButtonVariant::Tonal,
-            theme,
-          ),
+            @views.ButtonVariant::Tonal),
           editor_button(
             "-Col",
             ApplyCommand(DeleteTableColumn),
-            @views.ButtonVariant::Tonal,
-            theme,
-          ),
+            @views.ButtonVariant::Tonal),
           editor_button(
             "-Row",
             ApplyCommand(DeleteTableRow),
-            @views.ButtonVariant::Tonal,
-            theme,
-          ),
+            @views.ButtonVariant::Tonal),
           editor_button(
             "Left",
             ApplyCommand(
@@ -160,9 +140,7 @@ fn MarkdownEditorApp::target_bar(
                 Some(@text.TextAlign::TextStart),
               ),
             ),
-            @views.ButtonVariant::Tonal,
-            theme,
-          ),
+            @views.ButtonVariant::Tonal),
           editor_button(
             "Center",
             ApplyCommand(
@@ -170,9 +148,7 @@ fn MarkdownEditorApp::target_bar(
                 Some(@text.TextAlign::TextCenter),
               ),
             ),
-            @views.ButtonVariant::Tonal,
-            theme,
-          ),
+            @views.ButtonVariant::Tonal),
           editor_button(
             "Right",
             ApplyCommand(
@@ -180,15 +156,11 @@ fn MarkdownEditorApp::target_bar(
                 Some(@text.TextAlign::TextEnd),
               ),
             ),
-            @views.ButtonVariant::Tonal,
-            theme,
-          ),
+            @views.ButtonVariant::Tonal),
           editor_button(
             "Auto",
             ApplyCommand(SetTableColumnAlignment(None)),
-            @views.ButtonVariant::Tonal,
-            theme,
-          ),
+            @views.ButtonVariant::Tonal),
         ],
         spacing=theme.spacing_scale.xs,
         align=@views.CrossAlign::Center,
@@ -238,10 +210,9 @@ fn editor_button(
   label : String,
   message : MarkdownEditorMsg,
   variant : @views.ButtonVariant,
-  theme : @moui.Theme,
 ) -> @moui.View[MarkdownEditorMsg] {
   let width = if markdown_editor_text_length(label) > 5 { 78.0 } else { 64.0 }
-  button(label, on_click=message, variant~, theme~, width~, height=34.0)
+  button(label, on_click=message, variant~,width~, height=34.0)
 }
 
 ///|
@@ -251,14 +222,12 @@ fn editor_find_icon_button(
   icon : @views.IconName,
   tooltip_label : String,
   message : MarkdownEditorMsg,
-  theme : @moui.Theme,
 ) -> @moui.View[MarkdownEditorMsg] {
   tooltip(
     button(
       "",
       on_click=message,
       variant=@views.ButtonVariant::Ghost,
-      theme~,
       icon=Some(icon),
       width=34.0,
       height=34.0,
@@ -276,7 +245,6 @@ fn editor_find_toggle(
   tooltip_label : String,
   message : MarkdownEditorMsg,
   active : Bool,
-  theme : @moui.Theme,
 ) -> @moui.View[MarkdownEditorMsg] {
   let variant = if active {
     @views.ButtonVariant::Tonal
@@ -284,7 +252,7 @@ fn editor_find_toggle(
     @views.ButtonVariant::Ghost
   }
   tooltip(
-    button(glyph, on_click=message, variant~, theme~, width=34.0, height=34.0),
+    button(glyph, on_click=message, variant~,width=34.0, height=34.0),
     tooltip_label,
   )
 }

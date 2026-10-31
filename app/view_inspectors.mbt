@@ -239,9 +239,7 @@ fn files_inspector(
       editor_button(
         "Refresh",
         RefreshFileTree,
-        @views.ButtonVariant::Ghost,
-        theme,
-      ),
+        @views.ButtonVariant::Ghost),
     )
   }
   folder_actions.push(
@@ -252,9 +250,7 @@ fn files_inspector(
         "Change"
       },
       PickWorkingDirectory,
-      @views.ButtonVariant::Ghost,
-      theme,
-    ),
+      @views.ButtonVariant::Ghost),
   )
   let file_rows : Array[@moui.View[MarkdownEditorMsg]] = [
     row(folder_actions, spacing=row_gap, align=@views.CrossAlign::Center),
@@ -268,7 +264,6 @@ fn files_inspector(
           on_input=value => UpdateFileFilterQuery(value),
           on_clear=UpdateFileFilterQuery(""),
           placeholder="Filter files",
-          theme~,
           width=markdown_editor_max_double(80.0, content_width - 44.0 - row_gap),
           height=32.0,
         ),
@@ -289,7 +284,6 @@ fn files_inspector(
             fold_label,
             on_click=ToggleFileTree,
             variant=@views.ButtonVariant::Ghost,
-            theme~,
             width=24.0,
             height=24.0,
           ),
@@ -309,7 +303,6 @@ fn files_inspector(
             on_secondary_tap=Some(id => {
               ContextMenuTargeted(app.explorer_target(id))
             }),
-            theme~,
             width=content_width,
           ),
           width=content_width,
@@ -393,7 +386,6 @@ fn files_inspector(
     width=markdown_editor_file_sidebar_width(),
     height~,
     variant=@views.ContainerVariant::Base,
-    theme~,
     background=theme.palette.surface,
     corner_radius=0.0,
     padding=0.0,
@@ -488,7 +480,6 @@ fn document_info_inspector(
     width=markdown_editor_info_inspector_width(),
     height~,
     variant=@views.ContainerVariant::Base,
-    theme~,
     background=theme.palette.surface,
     corner_radius=theme.radius_scale.sm,
     padding=0.0,
@@ -560,7 +551,7 @@ fn file_sidebar_recent_rows(
   let rows : Array[@moui.View[MarkdownEditorMsg]] = []
   for path in paths {
     rows.push(
-      file_sidebar_recent_row(path, current=path == current_path, theme),
+      file_sidebar_recent_row(path, current=path == current_path),
     )
   }
   column(rows, spacing=theme.spacing_scale.xs, align=@views.CrossAlign::Start)
@@ -570,7 +561,6 @@ fn file_sidebar_recent_rows(
 fn file_sidebar_recent_row(
   path : String,
   current~ : Bool,
-  theme : @moui.Theme,
 ) -> @moui.View[MarkdownEditorMsg] {
   button(
     markdown_editor_file_sidebar_recent_label(path),
@@ -580,7 +570,6 @@ fn file_sidebar_recent_row(
     } else {
       @views.ButtonVariant::Ghost
     },
-    theme~,
     width=markdown_editor_file_sidebar_content_width(),
     height=30.0,
   )
@@ -650,7 +639,6 @@ fn source_inspector(
     width=markdown_editor_source_inspector_width(),
     height~,
     variant=@views.ContainerVariant::Base,
-    theme~,
     background=theme.palette.surface,
     corner_radius=theme.radius_scale.sm,
     padding=0.0,
@@ -712,7 +700,6 @@ fn outline_inspector(
     width=markdown_editor_outline_inspector_width(),
     height~,
     variant=@views.ContainerVariant::Base,
-    theme~,
     background=theme.palette.surface,
     corner_radius=0.0,
     padding=0.0,
@@ -732,7 +719,7 @@ fn outline_rows(
     let active = markdown_editor_outline_item_is_active(
       full_outline, item, active_index,
     )
-    rows.push(outline_row(app, item, active~, theme))
+    rows.push(outline_row(app, item, active~))
   }
   column(rows, spacing=theme.spacing_scale.xs, align=@views.CrossAlign::Start)
 }
@@ -757,7 +744,6 @@ fn outline_row(
   app : MarkdownEditorApp,
   item : MarkdownEditorOutlineItem,
   active~ : Bool,
-  theme : @moui.Theme,
 ) -> @moui.View[MarkdownEditorMsg] {
   let indent = markdown_editor_outline_indent_width(item.level)
   // A folded heading renders a '▸' prefix in its label to signal the folded
@@ -779,7 +765,6 @@ fn outline_row(
       } else {
         @views.ButtonVariant::Ghost
       },
-      theme~,
       width=markdown_editor_max_double(
         96.0,
         markdown_editor_outline_content_width() - indent,

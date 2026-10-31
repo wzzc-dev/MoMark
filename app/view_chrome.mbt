@@ -124,7 +124,7 @@ fn MarkdownEditorApp::root(
   let layers : Array[@moui.View[MarkdownEditorMsg]] = [window_bg, outer]
   layers.push(
     @views.align(
-      self.toast_layer(theme),
+      self.toast_layer(),
       alignment=@geometry.Alignment::new(x=0.5, y=0.0),
     ),
   )
@@ -139,7 +139,7 @@ fn MarkdownEditorApp::root(
   // targets are recorded deeper in the tree and win by activation order.
   @views.stack(layers).on_secondary_tap(
     ContextMenuTargeted(MarkdownEditorContextTarget::Global),
-  )
+  ).theme(theme)
 }
 
 ///|
@@ -241,7 +241,6 @@ fn MarkdownEditorApp::chrome(
       title,
       on_click=ToggleDocumentInfo,
       variant=@views.ButtonVariant::Ghost,
-      theme~,
       height=22.0,
     )
     .font(theme.typography.caption)
@@ -255,7 +254,6 @@ fn MarkdownEditorApp::chrome(
     } else {
       @views.ButtonVariant::Ghost
     },
-    theme~,
     icon=Some(@views.IconName::ListBullet),
     width=26.0,
     height=22.0,
@@ -363,7 +361,6 @@ fn MarkdownEditorApp::find_bar(
           on_submit=Some(FindNext),
           placeholder="Search Markdown",
           variant=@views.TextFieldVariant::Outline,
-          theme~,
           width=196.0,
           height=34.0,
         ).key("markdown-find-query"),
@@ -376,7 +373,6 @@ fn MarkdownEditorApp::find_bar(
           on_submit=Some(ReplaceFindCurrent),
           placeholder="Replacement",
           variant=@views.TextFieldVariant::Outline,
-          theme~,
           width=196.0,
           height=34.0,
         ).key("markdown-replace-text"),
@@ -384,17 +380,13 @@ fn MarkdownEditorApp::find_bar(
           "Aa",
           "Match case",
           ToggleFindCaseSensitive,
-          options.case_sensitive,
-          theme,
-        ),
+          options.case_sensitive),
         editor_find_toggle(
           "W",
           "Whole word",
           ToggleFindWholeWord,
-          options.whole_word,
-          theme,
-        ),
-        editor_find_toggle(".*", "Regex", ToggleFindRegex, options.regex, theme),
+          options.whole_word),
+        editor_find_toggle(".*", "Regex", ToggleFindRegex, options.regex),
         text(
           markdown_editor_find_status_label(query, matches, selection, options~),
           width=88.0,
@@ -405,28 +397,20 @@ fn MarkdownEditorApp::find_bar(
         editor_find_icon_button(
           @views.IconName::ChevronLeft,
           "Previous match",
-          FindPrevious,
-          theme,
-        ),
+          FindPrevious),
         editor_find_icon_button(
           @views.IconName::ChevronRight,
           "Next match",
-          FindNext,
-          theme,
-        ),
+          FindNext),
         editor_button(
           "Replace",
           ReplaceFindCurrent,
-          @views.ButtonVariant::Tonal,
-          theme,
-        ),
-        editor_button("All", ReplaceFindAll, @views.ButtonVariant::Tonal, theme),
+          @views.ButtonVariant::Tonal),
+        editor_button("All", ReplaceFindAll, @views.ButtonVariant::Tonal),
         editor_find_icon_button(
           @views.IconName::Close,
           "Close find bar",
-          CloseFind,
-          theme,
-        ),
+          CloseFind),
       ],
       spacing=theme.spacing_scale.xs,
       align=@views.CrossAlign::Center,
@@ -476,16 +460,13 @@ fn MarkdownEditorApp::format_palette(
                 on_submit=Some(ApplyFirstFormatPaletteAction),
                 placeholder="Filter",
                 variant=@views.TextFieldVariant::Outline,
-                theme~,
                 width=markdown_editor_max_double(120.0, content_width - 190.0),
                 height=34.0,
               ).key("markdown-format-palette-query"),
               editor_button(
                 "Done",
                 ToggleFormatPalette,
-                @views.ButtonVariant::Ghost,
-                theme,
-              ),
+                @views.ButtonVariant::Ghost),
             ],
             spacing=theme.spacing_scale.xs,
             align=@views.CrossAlign::Center,
@@ -511,7 +492,6 @@ fn MarkdownEditorApp::format_palette(
     width=panel_width,
     height=240.0,
     variant=@views.ContainerVariant::Overlay,
-    theme~,
     padding=0.0,
   )
 }
@@ -529,7 +509,6 @@ fn markdown_editor_format_palette_row(
         item.label,
         on_click=ApplyFormatPaletteAction(item.action),
         variant=@views.ButtonVariant::Ghost,
-        theme~,
         width=label_width,
         height=32.0,
       ),

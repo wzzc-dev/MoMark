@@ -19,47 +19,46 @@ fn MarkdownEditorApp::format_bubble(
     let bubble = @views.container(
       @views.row(
         [
-          format_bubble_button("B", "Bold", ApplyCommand(Bold), theme),
-          format_bubble_button("I", "Italic", ApplyCommand(Italic), theme),
+          format_bubble_button("B", "Bold", ApplyCommand(Bold)),
+          format_bubble_button("I", "Italic", ApplyCommand(Italic)),
           format_bubble_button(
             "S",
             "Strikethrough",
-            ApplyCommand(Strikethrough),
-            theme,
+            ApplyCommand(Strikethrough)
+            
           ),
           format_bubble_button(
             "≡",
             "Highlight",
-            ApplyCommand(Highlight),
-            theme,
+            ApplyCommand(Highlight)
+            
           ),
-          format_bubble_button("</>", "Code", ApplyCommand(Code), theme),
+          format_bubble_button("</>", "Code", ApplyCommand(Code)),
           format_bubble_button(
             "H1",
             "Heading 1",
-            ApplyCommand(Heading(1)),
-            theme,
+            ApplyCommand(Heading(1))
+            
           ),
           format_bubble_button(
             "H2",
             "Heading 2",
-            ApplyCommand(Heading(2)),
-            theme,
+            ApplyCommand(Heading(2))
+            
           ),
           format_bubble_button(
             "•",
             "Bullet list",
-            ApplyCommand(BulletList),
-            theme,
+            ApplyCommand(BulletList)
+            
           ),
-          format_bubble_button("❝", "Quote", ApplyCommand(Quote), theme),
-          format_bubble_button("🔗", "Link", ApplyCommand(Link), theme),
+          format_bubble_button("❝", "Quote", ApplyCommand(Quote)),
+          format_bubble_button("🔗", "Link", ApplyCommand(Link)),
         ],
         spacing=theme.spacing_scale.xs,
         align=@views.CrossAlign::Center,
       ),
       variant=@views.ContainerVariant::Raised,
-      theme~,
       padding=theme.spacing_scale.xs,
     )
     bubble
@@ -72,14 +71,12 @@ fn format_bubble_button(
   glyph : String,
   tooltip_label : String,
   message : MarkdownEditorMsg,
-  theme : @moui.Theme,
 ) -> @moui.View[MarkdownEditorMsg] {
   tooltip(
     @views.button(
       glyph,
       on_click=message,
       variant=@views.ButtonVariant::Ghost,
-      theme~,
       width=32.0,
       height=30.0,
     ),

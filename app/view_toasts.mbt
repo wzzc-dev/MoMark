@@ -71,13 +71,12 @@ fn MarkdownEditorApp::resolve_pending_confirm(
 /// the workspace. Returns an empty view when there are no toasts.
 fn MarkdownEditorApp::toast_layer(
   self : MarkdownEditorApp,
-  theme : @moui.Theme,
 ) -> @moui.View[MarkdownEditorMsg] {
   let items = self.toasts.to_stack_items()
   if items.length() == 0 {
     @views.empty()
   } else {
-    @views.toast_stack(items, theme~)
+    @views.toast_stack(items)
   }
 }
 
@@ -109,7 +108,6 @@ fn MarkdownEditorApp::confirm_dialog(
                   "Save",
                   on_click=ResolvePendingConfirm(ConfirmSave),
                   variant=@views.ButtonVariant::Primary,
-                  theme~,
                   width=88.0,
                   height=34.0,
                 ),
@@ -117,7 +115,6 @@ fn MarkdownEditorApp::confirm_dialog(
                   "Discard",
                   on_click=ResolvePendingConfirm(ConfirmDiscard),
                   variant=@views.ButtonVariant::Ghost,
-                  theme~,
                   width=88.0,
                   height=34.0,
                 ),
@@ -125,7 +122,6 @@ fn MarkdownEditorApp::confirm_dialog(
                   "Cancel",
                   on_click=ResolvePendingConfirm(ConfirmCancel),
                   variant=@views.ButtonVariant::Ghost,
-                  theme~,
                   width=88.0,
                   height=34.0,
                 ),
@@ -139,7 +135,6 @@ fn MarkdownEditorApp::confirm_dialog(
         ),
         width=320.0,
         variant=@views.ContainerVariant::Overlay,
-        theme~,
         padding=theme.spacing_scale.md,
       )
     None => @views.empty()
