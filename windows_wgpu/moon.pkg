@@ -3,8 +3,8 @@ import {
   "wzzc-dev/moui/runtime",
   "wzzc-dev/moui/backend/windows" @windows_backend,
   "wzzc-dev/moui_wgpu_renderer" @render_wgpu,
-  "wzzc-dev/moui_wgpu_renderer/directwrite" @wgpu_directwrite,
-  "wzzc-dev/moui_wgpu_renderer/cosmic_text" @wgpu_cosmic,
+  "wzzc-dev/moui_text_providers/directwrite" @wgpu_directwrite,
+  "wzzc-dev/moui_text_providers/cosmic_text" @wgpu_cosmic,
   "wzzc-dev/momark",
 }
 
