@@ -31,13 +31,11 @@ The shared app exposes `MarkdownEditorApp::program` and
 `MarkdownEditorApp::program_with_services`; platform entrypoints and wbtest
 helpers construct the actual runtime through `moui/runtime`. Editor input,
 toolbar actions, shortcuts, target field edits, selection changes, task
-toggles, and scroll updates enter through typed `MarkdownEditorMsg` values. The
-package still keeps a small internal
-`@views.component` adapter at the app boundary so the demo/test
-`MarkdownEditorApp` handle can expose mutable document and target-state helpers
-while the mounted runtime rebuilds from the same state cells. Ordinary app code
-should treat this as a rich-editor integration detail, not the default app
-shape.
+toggles, and scroll updates enter through typed `MarkdownEditorMsg` values.
+Editor state is owned by `MarkdownEditorApp` and persists across the mounted
+Program; package-local helpers operate on that model without a component
+adapter or hidden state store. Ordinary app code should treat those helpers as
+a rich-editor integration detail, not the default app shape.
 
 ## Editing Model
 
