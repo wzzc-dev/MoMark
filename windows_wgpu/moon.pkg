@@ -1,6 +1,6 @@
 import {
+  "wzzc-dev/moui/apphost",
   "moonbitlang/core/env",
-  "wzzc-dev/moui/runtime",
   "wzzc-dev/moui/backend/windows" @windows_backend,
   "wzzc-dev/moui_wgpu_renderer" @render_wgpu,
   "wzzc-dev/moui_text_providers/directwrite" @wgpu_directwrite,
