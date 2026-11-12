@@ -42,7 +42,7 @@ test "markdown editor page decoration keeps editor interactive" {
       @core.PointerEvent::new(
         position=@geometry.Point::new(
           x=app.editor_content_x(980.0, inner_x=2.0),
-          y=102.0,
+          y=136.0,
         ),
         phase=@core.PointerPhase::Down,
       ),
@@ -64,7 +64,7 @@ test "markdown editor controlled runtime rebuilds after input" {
       @core.PointerEvent::new(
         position=@geometry.Point::new(
           x=app.editor_content_x(980.0, inner_x=2.0),
-          y=102.0,
+          y=136.0,
         ),
         phase=@core.PointerPhase::Down,
       ),

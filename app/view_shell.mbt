@@ -137,75 +137,6 @@ fn MarkdownEditorApp::markdown_shell_top_bar(
     ),
     width=left_width,
   )
-  let unsaved = if self.is_dirty() {
-    text("•", width=10.0, height=20.0)
-    .font(theme.typography.caption)
-    .foreground(tokens.dirty_dot)
-  } else {
-    empty()
-  }
-  let close_tab = tooltip(
-    button(
-      "",
-      on_click=NewDocument,
-      variant=@views.ButtonVariant::Ghost,
-      icon=Some(@views.IconName::Close),
-      width=20.0,
-      height=20.0,
-    ),
-    "Close tab",
-  )
-  let tab = @views.container(
-    @views.padding_edges(
-      @views.row(
-        [
-          @views.icon(
-            @views.IconName::FileMarkdown,
-            size=14.0,
-            color=tokens.accent,
-          ),
-          button(
-            markdown_editor_document_title(
-              path=self.document_path,
-              fallback="Untitled",
-            ),
-            on_click=ToggleDocumentInfo,
-            variant=@views.ButtonVariant::Ghost,
-            width=150.0,
-            height=20.0,
-            label_align=@text.TextAlign::TextStart,
-          )
-          .font(theme.typography.caption)
-          .foreground(tokens.text),
-          unsaved,
-          close_tab,
-        ],
-        spacing=6.0,
-        align=@views.CrossAlign::Center,
-      ),
-      top=2.0,
-      right=6.0,
-      bottom=2.0,
-      left=10.0,
-    ),
-    variant=@views.ContainerVariant::Base,
-    background=tokens.hover,
-    border=Some(
-      @core.BorderStyle::new(
-        brush=@graphics.Brush::solid(tokens.page_border),
-        width=1.0,
-      ),
-    ),
-    corner_radius=8.0,
-    padding=0.0,
-  )
-  let new_tab = markdown_shell_icon_button(
-    @views.IconName::FileNew,
-    "New document",
-    NewDocument,
-    tokens,
-    metrics,
-  )
   let actions = row(
     [
       markdown_shell_icon_button(
@@ -241,8 +172,6 @@ fn MarkdownEditorApp::markdown_shell_top_bar(
       [
         left_cluster,
         spacer(min_length=6.0, weight=0.0),
-        tab,
-        new_tab,
         spacer(min_length=0.0, weight=1.0),
         actions,
         spacer(min_length=metrics.bar_inset, weight=0.0),

@@ -164,7 +164,7 @@ test "markdown editor enter keeps a full writing line on the new blank line" {
       @core.PointerEvent::new(
         position=@geometry.Point::new(
           x=app.editor_content_x(980.0, inner_x=6.0),
-          y=102.0,
+          y=136.0,
         ),
         phase=@core.PointerPhase::Down,
       ),
@@ -344,7 +344,7 @@ test "markdown editor enter leaves the caret where the typed line lands" {
       @core.PointerEvent::new(
         position=@geometry.Point::new(
           x=app.editor_content_x(980.0, inner_x=6.0),
-          y=102.0,
+          y=136.0,
         ),
         phase=@core.PointerPhase::Down,
       ),

@@ -37,7 +37,7 @@ fn smooth_scroll_dispatch_wheel(
       @core.PointerEvent::new(
         position=@geometry.Point::new(
           x=app.editor_content_x(980.0, inner_x=8.0),
-          y=220.0,
+          y=254.0,
         ),
         phase=@core.PointerPhase::Move,
         wheel_delta=@geometry.Point::new(x=0.0, y=wheel_delta_y),

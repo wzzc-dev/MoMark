@@ -592,7 +592,12 @@ fn editor_source_layout(
   page_shadow? : @graphics.ShadowStyle,
   page_radius~ : Double = 4.0,
 ) -> @moui.View[MarkdownEditorMsg] {
-  let body_height = viewport_height
+  let tab_height = if app.zen_mode_enabled {
+    0.0
+  } else {
+    markdown_editor_tab_strip_height()
+  }
+  let body_height = markdown_editor_max_double(0.0, viewport_height - tab_height)
   let sidebars_width = markdown_editor_sidebar_total_width(
     show_source, show_outline, show_files, show_info, sidebar_width~,
   )
@@ -695,8 +700,20 @@ fn editor_source_layout(
     Some(shadow) => shadow
     None => markdown_editor_page_shadow()
   }
+  let tab_strip = if tab_height <= 0.0 {
+    empty()
+  } else {
+    markdown_editor_tab_strip(
+      app,
+      theme,
+      width=editor_width,
+      height=tab_height,
+      background=appearance.page_background,
+    )
+  }
   let editor = editor_page(
     editor_control,
+    tab_strip~,
     background=appearance.page_background,
     border_color=theme.palette.outline,
     shadow=page_shadow,
@@ -797,8 +814,148 @@ fn editor_source_layout(
 
 ///|
 ///|
+fn markdown_editor_tab_strip_height() -> Double {
+  34.0
+}
+
+///|
+/// The tab strip inside the editor card: one document tab with its file icon,
+/// dirty dot, and close affordance, plus new-tab and view actions. The top bar
+/// keeps only the sidebar/view controls; the document tab belongs to the
+/// editor card, Winc-style.
+fn markdown_editor_tab_strip(
+  app : MarkdownEditorApp,
+  theme : @moui.Theme,
+  width~ : Double,
+  height~ : Double,
+  background~ : @graphics.Color,
+) -> @moui.View[MarkdownEditorMsg] {
+  let title = markdown_editor_document_title(
+    path=app.document_path,
+    fallback="Untitled",
+  )
+  let unsaved = if app.is_dirty() {
+    text("•", width=10.0, height=18.0)
+    .font(theme.typography.caption)
+    .foreground(theme.palette.primary)
+  } else {
+    empty()
+  }
+  let close_tab = tooltip(
+    button(
+      "",
+      on_click=NewDocument,
+      variant=@views.ButtonVariant::Ghost,
+      icon=Some(@views.IconName::Close),
+      width=20.0,
+      height=20.0,
+    ),
+    "Close tab",
+  )
+  let tab = container(
+    padding_edges(
+      row(
+        [
+          @views.icon(
+            @views.IconName::FileMarkdown,
+            size=14.0,
+            color=theme.palette.primary,
+          ),
+          button(
+            title,
+            on_click=ToggleDocumentInfo,
+            variant=@views.ButtonVariant::Ghost,
+            width=150.0,
+            height=20.0,
+            label_align=@text.TextAlign::TextStart,
+          )
+          .font(theme.typography.caption)
+          .foreground(theme.palette.foreground),
+          unsaved,
+          close_tab,
+        ],
+        spacing=6.0,
+        align=@views.CrossAlign::Center,
+      ),
+      top=2.0,
+      right=6.0,
+      bottom=2.0,
+      left=10.0,
+    ),
+    variant=@views.ContainerVariant::Base,
+    background=theme.palette.surface_variant,
+    border=Some(
+      @core.BorderStyle::new(
+        brush=@graphics.Brush::solid(theme.palette.outline),
+        width=1.0,
+      ),
+    ),
+    corner_radius=7.0,
+    padding=0.0,
+  )
+  let new_tab = tooltip(
+    button(
+      "",
+      on_click=NewDocument,
+      variant=@views.ButtonVariant::Ghost,
+      icon=Some(@views.IconName::FileNew),
+      width=26.0,
+      height=26.0,
+    ),
+    "New document",
+  )
+  let view_actions = row(
+    [
+      tooltip(
+        button(
+          "",
+          on_click=ToggleSourceMode,
+          variant=@views.ButtonVariant::Ghost,
+          icon=Some(@views.IconName::FileCode),
+          width=26.0,
+          height=26.0,
+        ),
+        "Source mode",
+      ),
+      tooltip(
+        button(
+          "",
+          on_click=ToggleSourcePreview,
+          variant=@views.ButtonVariant::Ghost,
+          icon=Some(@views.IconName::Columns),
+          width=26.0,
+          height=26.0,
+        ),
+        "Source preview",
+      ),
+    ],
+    spacing=2.0,
+    align=@views.CrossAlign::Center,
+  )
+  let strip = row(
+    [tab, new_tab, spacer(min_length=0.0, weight=1.0), view_actions],
+    spacing=4.0,
+    align=@views.CrossAlign::Center,
+  )
+  let divider = frame(empty(), height=1.0).background(theme.palette.outline)
+  column(
+    [
+      frame(
+        padding_edges(strip, left=8.0, right=8.0),
+        width~,
+        height=height - 1.0,
+      ).background(background),
+      divider,
+    ],
+    spacing=0.0,
+    align=@views.CrossAlign::Stretch,
+  )
+}
+
+///|
 fn editor_page(
   editor : @moui.View[MarkdownEditorMsg],
+  tab_strip~ : @moui.View[MarkdownEditorMsg],
   background~ : @graphics.Color,
   border_color~ : @graphics.Color,
   shadow~ : @graphics.ShadowStyle,
@@ -807,7 +964,11 @@ fn editor_page(
   height~ : Double,
 ) -> @moui.View[MarkdownEditorMsg] {
   container(
-    editor,
+    column(
+      [tab_strip, editor],
+      spacing=0.0,
+      align=@views.CrossAlign::Stretch,
+    ),
     width~,
     height~,
     variant=@views.ContainerVariant::Base,
