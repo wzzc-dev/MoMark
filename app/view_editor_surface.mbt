@@ -267,7 +267,11 @@ fn MarkdownEditorApp::appearance_spec(
     None => self.dark_mode_enabled
   }
   let base = self.writing_appearance.spec(dark~)
-  { ..base, font_family: markdown_editor_font_family_stack(self.font_family), }
+  {
+    ..base,
+    editor_font_size: base.editor_font_size * self.editor_zoom,
+    font_family: markdown_editor_font_family_stack(self.font_family),
+  }
 }
 
 ///|
@@ -770,11 +774,14 @@ fn editor_source_layout(
     row(side_children, spacing=0.0, align=@views.CrossAlign::Stretch).frame(
       width=viewport_width,
     ),
-    markdown_editor_scroll_indicator(
-      MarkdownScrollGlide::settled(app.editor_scroll_settled_y),
-      viewport_height=body_height,
-      content_height~,
-      theme,
+    @views.align(
+      markdown_editor_scroll_indicator(
+        MarkdownScrollGlide::settled(app.editor_scroll_settled_y),
+        viewport_height=body_height,
+        content_height~,
+        theme,
+      ),
+      alignment=@geometry.Alignment::new(x=1.0, y=0.0),
     ),
   ])
   column(

@@ -2,3 +2,4 @@ _build/
 .mooncakes/
 dist/
 .zcode/
+trace.json

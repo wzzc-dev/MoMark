@@ -38,6 +38,7 @@ pub struct MarkdownEditorApp {
   mut sidebar_width : Double
   mut settings_visible : Bool
   mut caret_blink_visible : Bool
+  mut editor_zoom : Double
   mut focus_mode_enabled : Bool
   mut typewriter_mode_enabled : Bool
   mut zen_mode_enabled : Bool
@@ -175,6 +176,9 @@ pub enum MarkdownEditorMsg {
   DismissToastTick
   AutosaveTick
   CaretBlinkTick
+  ZoomIn
+  ZoomOut
+  ResetZoom
   ResolvePendingConfirm(MarkdownEditorConfirmResolution)
   ApplyEditorTransaction(@moui_richtext.MarkdownEditTransaction)
   UpdateFindQuery(String)
@@ -200,6 +204,7 @@ pub enum MarkdownEditorMsg {
   CommandClickAt(Int32)
   SetSelection(Int32, @core.TextRange?)
   EditorScrollSettled(Double)
+  EditorScrollDragTo(Double)
   RemoteImageMetricsChanged
   OpenRecentDocument(String)
   JumpToOutline(Int32)
@@ -253,6 +258,7 @@ pub struct MarkdownEditorSettings {
   follow_system_scheme : Bool
   sidebar_panel : String
   sidebar_width : Double
+  editor_zoom : Double
 }
 pub fn MarkdownEditorSettings::equal(Self, Self) -> Bool
 pub fn MarkdownEditorSettings::from_json(@json.Json, @json.JsonPath) -> Self raise @json.JsonDecodeError

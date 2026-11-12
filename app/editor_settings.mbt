@@ -16,6 +16,7 @@ pub struct MarkdownEditorSettings {
   follow_system_scheme : Bool
   sidebar_panel : String
   sidebar_width : Double
+  editor_zoom : Double
 } derive(Eq, Debug, ToJson, FromJson)
 
 ///|
@@ -45,6 +46,7 @@ struct MarkdownEditorLegacySettings {
   outline : Bool
   files : Bool
   document_info : Bool
+  editor_zoom : Double?
 } derive(FromJson)
 
 ///|
@@ -64,6 +66,7 @@ fn MarkdownEditorSettings::default() -> MarkdownEditorSettings {
     follow_system_scheme: false,
     sidebar_panel: "Files",
     sidebar_width: 300.0,
+    editor_zoom: 1.0,
   }
 }
 
@@ -122,6 +125,7 @@ fn markdown_editor_settings_from_legacy(
     follow_system_scheme: false,
     sidebar_panel: if legacy.outline { "Outline" } else { "Files" },
     sidebar_width: 300.0,
+    editor_zoom: 1.0,
   }
 }
 
@@ -152,6 +156,7 @@ fn MarkdownEditorApp::request_settings_save(
       OutlinePanel => "Outline"
     },
     sidebar_width: self.sidebar_width,
+    editor_zoom: self.editor_zoom,
   }
   let text = ToJson::to_json(settings).stringify(indent=2)
   services
@@ -193,6 +198,7 @@ fn MarkdownEditorApp::apply_settings(
     230.0,
     420.0,
   )
+  self.set_editor_zoom(settings.editor_zoom)
   match settings.writing_appearance {
     "Warm" => self.set_writing_appearance(WarmAppearance)
     "Wide" => self.set_writing_appearance(WideAppearance)

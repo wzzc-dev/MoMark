@@ -16,11 +16,20 @@ fn markdown_editor_scroll_indicator(
   content_height~ : Double,
   theme : @moui.Theme,
 ) -> @moui.View[MarkdownEditorMsg] {
-  @core.View::from_node(MarkdownEditorScrollIndicator::{
+  let indicator = @core.View::from_node(MarkdownEditorScrollIndicator::{
     glide,
     viewport_height,
     content_height,
     muted: theme.palette.muted,
+  })
+  indicator.on_drag_with_frame((event, frame) => {
+    EditorScrollDragTo(
+      markdown_editor_scroll_drag_offset(
+        frame,
+        event.position.y,
+        content_height,
+      ),
+    )
   })
 }
 
@@ -83,7 +92,7 @@ impl @core.ViewNode for MarkdownEditorScrollIndicator with fn layout(self, ctx) 
   // pins the track to its right edge.
   @core.ViewLayoutResult::new(
     size=ctx.constraints.constrain(
-      @geometry.Size::new(width=0.0, height=self.viewport_height),
+      @geometry.Size::new(width=12.0, height=self.viewport_height),
     ),
   )
 }
@@ -163,4 +172,30 @@ impl @core.ViewNode for MarkdownEditorScrollIndicator with fn semantics(_self) {
     role=@core.SemanticsRole::ScrollView,
     label="Editor scroll indicator",
   )
+}
+
+///|
+/// Map a pointer y on the scrollbar track to a document offset. The thumb is
+/// clamped to the track and its travel maps linearly to the scroll range; the
+/// same geometry as `paint`, so grabbing anywhere on the thumb does not jump.
+fn markdown_editor_scroll_drag_offset(
+  frame : @geometry.Rect,
+  pointer_y : Double,
+  content_height : Double,
+) -> Double {
+  let viewport = markdown_editor_max_double(1.0, frame.size.height)
+  let content = markdown_editor_max_double(viewport, content_height)
+  let thumb_height = markdown_editor_min_double(
+    viewport * 0.5,
+    markdown_editor_max_double(30.0, viewport * viewport / content),
+  )
+  let max_scroll = markdown_editor_max_double(1.0, content - viewport)
+  let travel = markdown_editor_max_double(1.0, viewport - thumb_height)
+  let top = frame.origin.y
+  let thumb_top = markdown_editor_clamp_double(
+    pointer_y - thumb_height / 2.0,
+    top,
+    top + travel,
+  )
+  (thumb_top - top) / travel * max_scroll
 }

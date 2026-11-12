@@ -52,6 +52,8 @@ pub struct MarkdownEditorApp {
   // 530ms caret blink phase. Edits/selection reset it to visible; the editor
   // paints the caret with a transparent cursor color while false.
   mut caret_blink_visible : Bool
+  // Multiplier over the writing look's base font size (Cmd+= / Cmd+-).
+  mut editor_zoom : Double
   mut focus_mode_enabled : Bool
   mut typewriter_mode_enabled : Bool
   mut zen_mode_enabled : Bool
@@ -334,6 +336,9 @@ pub enum MarkdownEditorMsg {
   DismissToastTick
   AutosaveTick
   CaretBlinkTick
+  ZoomIn
+  ZoomOut
+  ResetZoom
   ResolvePendingConfirm(MarkdownEditorConfirmResolution)
   ApplyEditorTransaction(MarkdownEditTransaction)
   UpdateFindQuery(String)
@@ -361,6 +366,7 @@ pub enum MarkdownEditorMsg {
   // One update per scroll gesture, not one per wheel tick. The editor element
   // owns the live glide and reports where it settled.
   EditorScrollSettled(Double)
+  EditorScrollDragTo(Double)
   RemoteImageMetricsChanged
   OpenRecentDocument(String)
   JumpToOutline(Int32)
@@ -415,6 +421,7 @@ pub fn MarkdownEditorApp::new() -> MarkdownEditorApp {
     sidebar_width: 300.0,
     settings_visible: false,
     caret_blink_visible: true,
+    editor_zoom: 1.0,
     focus_mode_enabled: false,
     typewriter_mode_enabled: false,
     zen_mode_enabled: false,
@@ -575,6 +582,9 @@ fn MarkdownEditorApp::update_in_place(
     DismissToastTick => self.expire_toasts()
     AutosaveTick => self.maybe_autosave()
     CaretBlinkTick => self.caret_blink_visible = !self.caret_blink_visible
+    ZoomIn => self.set_editor_zoom(self.editor_zoom + 0.1)
+    ZoomOut => self.set_editor_zoom(self.editor_zoom - 0.1)
+    ResetZoom => self.set_editor_zoom(1.0)
     ResolvePendingConfirm(resolution) =>
       self.resolve_pending_confirm(resolution)
     ApplyEditorTransaction(transaction) =>
@@ -609,6 +619,7 @@ fn MarkdownEditorApp::update_in_place(
     // path only records the target.
     OpenContextMenuTargetPath | OpenContextMenuTargetFolder => ()
     EditorScrollSettled(y) => self.editor_scroll_settled_y = y
+    EditorScrollDragTo(y) => self.editor_scroll_request_to_clamped(y)
     // A remote image's intrinsic size arrived after layout; re-rendering with
     // the cleared rich-text conversion cache re-projects the affected blocks
     // at their real aspect ratio.
@@ -741,6 +752,9 @@ fn MarkdownEditorApp::update_with_services(
     | ToggleZenMode
     | SetFontFamily(_)
     | SetWritingAppearance(_)
+    | ZoomIn
+    | ZoomOut
+    | ResetZoom
     | CycleWritingAppearance
     | ToggleSourcePreview => {
       self.update_in_place(message)

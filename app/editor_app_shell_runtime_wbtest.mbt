@@ -138,6 +138,7 @@ test "settings round-trip carries the shell state" {
     follow_system_scheme: true,
     sidebar_panel: "Files",
     sidebar_width: 340.0,
+    editor_zoom: 1.0,
   }
   let text = ToJson::to_json(settings).stringify(indent=2)
   let decoded = markdown_editor_decode_settings(text)
@@ -174,4 +175,17 @@ test "caret blinks on the timer and resets on selection" {
   assert_false(app.caret_blink_visible)
   app.set_selection(1, None)
   assert_true(app.caret_blink_visible)
+}
+
+///|
+test "zoom commands scale the editor font and reset" {
+  let app = MarkdownEditorApp::new()
+  let base = app.appearance_spec().editor_font_size
+  app.update_in_place(ZoomIn)
+  assert_true(app.appearance_spec().editor_font_size > base)
+  app.update_in_place(ZoomOut)
+  assert_true(app.appearance_spec().editor_font_size == base)
+  app.update_in_place(ZoomIn)
+  app.update_in_place(ResetZoom)
+  assert_true(app.appearance_spec().editor_font_size == base)
 }

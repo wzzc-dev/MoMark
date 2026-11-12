@@ -138,6 +138,7 @@ test "markdown editor settings round-trip through JSON" {
     follow_system_scheme: false,
     sidebar_panel: "Files",
     sidebar_width: 300.0,
+    editor_zoom: 1.0,
   }
   let text = ToJson::to_json(original).stringify(indent=2)
   let decoded = markdown_editor_decode_settings(text)

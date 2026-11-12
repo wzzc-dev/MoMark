@@ -685,6 +685,24 @@ pub fn markdown_editor_program_commands(
     ToggleFormatPalette,
   )
   add("Settings…", markdown_editor_shortcut(","), OpenSettings)
+  both(
+    "Zoom In",
+    markdown_editor_shortcut("="),
+    markdown_editor_control_shortcut("="),
+    ZoomIn,
+  )
+  both(
+    "Zoom Out",
+    markdown_editor_shortcut("-"),
+    markdown_editor_control_shortcut("-"),
+    ZoomOut,
+  )
+  both(
+    "Actual Size",
+    markdown_editor_shortcut("0"),
+    markdown_editor_control_shortcut("0"),
+    ResetZoom,
+  )
   add("Toggle Dark Mode", markdown_editor_no_shortcut(), ToggleDarkMode)
   add(
     "Layout: Workspace",

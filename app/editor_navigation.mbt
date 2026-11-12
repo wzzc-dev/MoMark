@@ -586,3 +586,11 @@ fn MarkdownEditorApp::sync_target_inputs(self : MarkdownEditorApp) -> Unit {
 }
 
 ///|
+
+///|
+fn MarkdownEditorApp::set_editor_zoom(
+  self : MarkdownEditorApp,
+  zoom : Double,
+) -> Unit {
+  self.editor_zoom = markdown_editor_clamp_double(zoom, 0.75, 2.0)
+}
