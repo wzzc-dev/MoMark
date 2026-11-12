@@ -24,7 +24,7 @@ test "click after scrolling a large single-paragraph document places the caret a
   // the caret must land at the clicked line, not stay at the front.
   let app = MarkdownEditorApp::new()
   app.set_document(large_file_novel_document())
-  app.editor_scroll_glide = MarkdownScrollGlide::settled(20000.0)
+  app.park_scroll_for_test(20000.0)
   let runtime = app.runtime(width=980.0, height=640.0)
   runtime.dispatch_event(
     @core.AppEvent::Pointer(
@@ -47,7 +47,7 @@ test "click after scrolling a large single-paragraph document places the caret a
 test "click without scrolling a large document moves the caret off the front" {
   let app = MarkdownEditorApp::new()
   app.set_document(large_file_novel_document())
-  app.editor_scroll_glide = MarkdownScrollGlide::settled(0.0)
+  app.park_scroll_for_test(0.0)
   let runtime = app.runtime(width=980.0, height=640.0)
   runtime.dispatch_event(
     @core.AppEvent::Pointer(
@@ -69,7 +69,7 @@ test "click without scrolling a large document moves the caret off the front" {
 test "drawn caret after a deep click sits near the click y" {
   let app = MarkdownEditorApp::new()
   app.set_document(large_file_novel_document())
-  app.editor_scroll_glide = MarkdownScrollGlide::settled(20000.0)
+  app.park_scroll_for_test(20000.0)
   let runtime = app.runtime(width=980.0, height=640.0)
   let click_y = 300.0
   runtime.dispatch_event(
@@ -113,7 +113,7 @@ test "drawn caret follows the scroll while parked outside the window band" {
   // the viewport), never pinned to the first rendered line of the band.
   let app = MarkdownEditorApp::new()
   app.set_document(large_file_novel_document())
-  app.editor_scroll_glide = MarkdownScrollGlide::settled(20000.0)
+  app.park_scroll_for_test(20000.0)
   let runtime = app.runtime(width=980.0, height=640.0)
   ignore(runtime.draw_frame())
   // Focus the editor without moving the caret (no pointer press), so the

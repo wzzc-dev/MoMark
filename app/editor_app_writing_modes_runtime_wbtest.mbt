@@ -274,7 +274,7 @@ test "markdown editor typewriter mode recenters after document input" {
   app.set_document(source)
   app.apply_action("typewriter-mode")
   app.set_selection(target, None)
-  app.editor_scroll_glide = MarkdownScrollGlide::settled(0.0)
+  app.park_scroll_for_test(0.0)
   app.edit_document(source + " updated")
   assert_true(app.editor_scroll_y() > 0.0)
 }

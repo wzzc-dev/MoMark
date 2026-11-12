@@ -76,7 +76,7 @@ test "markdown editor scroll indicator stays hidden at the top" {
   // the indicator semantics label region). After scrolling, indicator rects
   // appear. We assert the indicator is absent at rest by checking that no
   // 'Editor scroll indicator' semantics region is painted with a FillRect thumb.
-  app.editor_scroll_glide = MarkdownScrollGlide::settled(0.0)
+  app.park_scroll_for_test(0.0)
   let rest = app.runtime(width=980.0, height=640.0).draw_commands()
   let has_thumb = rest.any(command => {
     match command {

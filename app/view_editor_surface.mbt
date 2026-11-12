@@ -28,10 +28,7 @@ fn MarkdownEditorApp::target_bar(
             width=360.0,
             height=34.0,
           ).key("markdown-link-target"),
-          editor_button(
-            "Apply",
-            ApplyLinkTarget,
-            @views.ButtonVariant::Tonal),
+          editor_button("Apply", ApplyLinkTarget, @views.ButtonVariant::Tonal),
           editor_button("Open", OpenTarget, @views.ButtonVariant::Ghost),
         ],
         spacing=theme.spacing_scale.xs,
@@ -53,10 +50,7 @@ fn MarkdownEditorApp::target_bar(
             width=360.0,
             height=34.0,
           ).key("markdown-image-target"),
-          editor_button(
-            "Apply",
-            ApplyImageTarget,
-            @views.ButtonVariant::Tonal),
+          editor_button("Apply", ApplyImageTarget, @views.ButtonVariant::Tonal),
           editor_button("Open", OpenTarget, @views.ButtonVariant::Ghost),
         ],
         spacing=theme.spacing_scale.xs,
@@ -78,10 +72,7 @@ fn MarkdownEditorApp::target_bar(
             width=360.0,
             height=34.0,
           ).key("markdown-footnote-text"),
-          editor_button(
-            "Apply",
-            ApplyFootnoteText,
-            @views.ButtonVariant::Tonal),
+          editor_button("Apply", ApplyFootnoteText, @views.ButtonVariant::Tonal),
         ],
         spacing=theme.spacing_scale.xs,
         align=@views.CrossAlign::Center,
@@ -105,7 +96,8 @@ fn MarkdownEditorApp::target_bar(
           editor_button(
             "Apply",
             ApplyHtmlBlockText,
-            @views.ButtonVariant::Tonal),
+            @views.ButtonVariant::Tonal,
+          ),
         ],
         spacing=theme.spacing_scale.xs,
         align=@views.CrossAlign::Center,
@@ -120,19 +112,23 @@ fn MarkdownEditorApp::target_bar(
           editor_button(
             "+Row",
             ApplyCommand(InsertTableRow),
-            @views.ButtonVariant::Tonal),
+            @views.ButtonVariant::Tonal,
+          ),
           editor_button(
             "+Col",
             ApplyCommand(InsertTableColumn),
-            @views.ButtonVariant::Tonal),
+            @views.ButtonVariant::Tonal,
+          ),
           editor_button(
             "-Col",
             ApplyCommand(DeleteTableColumn),
-            @views.ButtonVariant::Tonal),
+            @views.ButtonVariant::Tonal,
+          ),
           editor_button(
             "-Row",
             ApplyCommand(DeleteTableRow),
-            @views.ButtonVariant::Tonal),
+            @views.ButtonVariant::Tonal,
+          ),
           editor_button(
             "Left",
             ApplyCommand(
@@ -140,7 +136,8 @@ fn MarkdownEditorApp::target_bar(
                 Some(@text.TextAlign::TextStart),
               ),
             ),
-            @views.ButtonVariant::Tonal),
+            @views.ButtonVariant::Tonal,
+          ),
           editor_button(
             "Center",
             ApplyCommand(
@@ -148,7 +145,8 @@ fn MarkdownEditorApp::target_bar(
                 Some(@text.TextAlign::TextCenter),
               ),
             ),
-            @views.ButtonVariant::Tonal),
+            @views.ButtonVariant::Tonal,
+          ),
           editor_button(
             "Right",
             ApplyCommand(
@@ -156,11 +154,13 @@ fn MarkdownEditorApp::target_bar(
                 Some(@text.TextAlign::TextEnd),
               ),
             ),
-            @views.ButtonVariant::Tonal),
+            @views.ButtonVariant::Tonal,
+          ),
           editor_button(
             "Auto",
             ApplyCommand(SetTableColumnAlignment(None)),
-            @views.ButtonVariant::Tonal),
+            @views.ButtonVariant::Tonal,
+          ),
         ],
         spacing=theme.spacing_scale.xs,
         align=@views.CrossAlign::Center,
@@ -212,7 +212,7 @@ fn editor_button(
   variant : @views.ButtonVariant,
 ) -> @moui.View[MarkdownEditorMsg] {
   let width = if markdown_editor_text_length(label) > 5 { 78.0 } else { 64.0 }
-  button(label, on_click=message, variant~,width~, height=34.0)
+  button(label, on_click=message, variant~, width~, height=34.0)
 }
 
 ///|
@@ -252,7 +252,7 @@ fn editor_find_toggle(
     @views.ButtonVariant::Ghost
   }
   tooltip(
-    button(glyph, on_click=message, variant~,width=34.0, height=34.0),
+    button(glyph, on_click=message, variant~, width=34.0, height=34.0),
     tooltip_label,
   )
 }
@@ -575,7 +575,7 @@ fn editor_source_layout(
   target_bar : @moui.View[MarkdownEditorMsg],
   selection : MarkdownEditorSelection,
   target_kind : MarkdownEditorTargetKind,
-  scroll_glide : MarkdownScrollGlide,
+  scroll_request : @core.ScrollRequest?,
   on_selection_change : (Int32, @text.TextRange?) -> MarkdownEditorMsg,
   on_prefix_click : (Int32) -> MarkdownEditorMsg,
   viewport_width~ : Double = 1120.0,
@@ -641,10 +641,9 @@ fn editor_source_layout(
       on_prefix_click=Some(on_prefix_click),
       on_command_click=Some(offset => CommandClickAt(offset)),
       accepts_tab_input=true,
-      scroll_glide~,
-      on_scroll=Some((wheel_delta_y, clock_ms) => {
-        EditorScrolled(wheel_delta_y, clock_ms, viewport_width, viewport_height)
-      }),
+      scroll_request~,
+      on_scroll_settled=Some(y => EditorScrollSettled(y)),
+      transient_scroll=true,
       visible_viewport_height=viewport_height,
       visible_overscan=markdown_editor_visible_overscan(viewport_height),
     )
@@ -715,7 +714,7 @@ fn editor_source_layout(
       width=viewport_width,
     ),
     markdown_editor_scroll_indicator(
-      scroll_glide,
+      MarkdownScrollGlide::settled(app.editor_scroll_settled_y),
       viewport_height~,
       content_height~,
       theme,

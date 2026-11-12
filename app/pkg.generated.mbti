@@ -54,7 +54,8 @@ pub struct MarkdownEditorApp {
   mut saved_document : String
   mut undo_stack : Array[MarkdownEditorHistoryEntry]
   mut redo_stack : Array[MarkdownEditorHistoryEntry]
-  mut editor_scroll_glide : @moui_richtext.MarkdownScrollGlide
+  mut editor_scroll_request : @core.ScrollRequest?
+  mut editor_scroll_settled_y : Double
   // private fields
 }
 pub fn MarkdownEditorApp::new() -> Self
@@ -72,41 +73,45 @@ pub enum MarkdownEditorConfirmResolution {
   ConfirmCancel
 }
 
+#derive(Eq, @debug.Debug)
 pub enum MarkdownEditorContextTarget {
   Global
   ExplorerFile(String)
   ExplorerFolder(String)
   ExplorerBackground
   EditorSurface
-} derive(Eq, @debug.Debug)
+}
 pub fn MarkdownEditorContextTarget::equal(Self, Self) -> Bool
 pub fn MarkdownEditorContextTarget::not_equal(Self, Self) -> Bool
 pub fn MarkdownEditorContextTarget::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug, @json.ToJson)
 pub struct MarkdownEditorFindOptions {
   case_sensitive : Bool
   whole_word : Bool
   regex : Bool
-} derive(Eq, ToJson, @debug.Debug)
+}
 pub fn MarkdownEditorFindOptions::equal(Self, Self) -> Bool
 pub fn MarkdownEditorFindOptions::not_equal(Self, Self) -> Bool
-pub fn MarkdownEditorFindOptions::to_json(Self) -> Json
+pub fn MarkdownEditorFindOptions::to_json(Self) -> @json.Json
 pub fn MarkdownEditorFindOptions::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug, @json.ToJson)
 pub enum MarkdownEditorFontFamily {
   SansFont
   SerifFont
   MonoFont
-} derive(Eq, ToJson, @debug.Debug)
+}
 pub fn MarkdownEditorFontFamily::equal(Self, Self) -> Bool
 pub fn MarkdownEditorFontFamily::not_equal(Self, Self) -> Bool
-pub fn MarkdownEditorFontFamily::to_json(Self) -> Json
+pub fn MarkdownEditorFontFamily::to_json(Self) -> @json.Json
 pub fn MarkdownEditorFontFamily::to_repr(Self) -> @debug.Repr
 
-type MarkdownEditorHistoryEntry derive(Eq, ToJson, @debug.Debug)
+#derive(Eq, @debug.Debug, @json.ToJson)
+type MarkdownEditorHistoryEntry
 pub fn MarkdownEditorHistoryEntry::equal(Self, Self) -> Bool
 pub fn MarkdownEditorHistoryEntry::not_equal(Self, Self) -> Bool
-pub fn MarkdownEditorHistoryEntry::to_json(Self) -> Json
+pub fn MarkdownEditorHistoryEntry::to_json(Self) -> @json.Json
 pub fn MarkdownEditorHistoryEntry::to_repr(Self) -> @debug.Repr
 
 pub enum MarkdownEditorMsg {
@@ -164,7 +169,7 @@ pub enum MarkdownEditorMsg {
   ToggleHeadingFold(Int32)
   CommandClickAt(Int32)
   SetSelection(Int32, @core.TextRange?)
-  EditorScrolled(Double, Double, Double, Double)
+  EditorScrollSettled(Double)
   RemoteImageMetricsChanged
   OpenRecentDocument(String)
   JumpToOutline(Int32)
@@ -202,6 +207,7 @@ pub enum MarkdownEditorServiceCompletion {
   SettingsSaved(@services.ServiceTaskResult[Unit])
 }
 
+#derive(Eq, @debug.Debug, @json.FromJson, @json.ToJson)
 pub struct MarkdownEditorSettings {
   dark_mode : Bool
   font_family : String
@@ -213,17 +219,18 @@ pub struct MarkdownEditorSettings {
   outline : Bool
   files : Bool
   document_info : Bool
-} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+}
 pub fn MarkdownEditorSettings::equal(Self, Self) -> Bool
-pub fn MarkdownEditorSettings::from_json(Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn MarkdownEditorSettings::from_json(@json.Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
 pub fn MarkdownEditorSettings::not_equal(Self, Self) -> Bool
-pub fn MarkdownEditorSettings::to_json(Self) -> Json
+pub fn MarkdownEditorSettings::to_json(Self) -> @json.Json
 pub fn MarkdownEditorSettings::to_repr(Self) -> @debug.Repr
 
-type MarkdownEditorTargetKind derive(Eq, ToJson, @debug.Debug)
+#derive(Eq, @debug.Debug, @json.ToJson)
+type MarkdownEditorTargetKind
 pub fn MarkdownEditorTargetKind::equal(Self, Self) -> Bool
 pub fn MarkdownEditorTargetKind::not_equal(Self, Self) -> Bool
-pub fn MarkdownEditorTargetKind::to_json(Self) -> Json
+pub fn MarkdownEditorTargetKind::to_json(Self) -> @json.Json
 pub fn MarkdownEditorTargetKind::to_repr(Self) -> @debug.Repr
 
 // Type aliases

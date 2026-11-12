@@ -4,21 +4,6 @@ fn MarkdownEditorApp::root(
   viewport_width~ : Double = 1120.0,
   viewport_height~ : Double = 520.0,
 ) -> @moui.View[MarkdownEditorMsg] {
-  let geometry_compensation = @moui_richtext.markdown_scroll_take_geometry_compensation()
-  if geometry_compensation != 0.0 {
-    let now_ms = match self.scroll_clock {
-      Some(clock) => clock()
-      // root has no paint context. Reuse the last frame's runtime time so
-      // an in-flight glide is re-keyed at the position the user just saw;
-      // interpreting it at time zero is a visible backward snap.
-      None => @moui_richtext.markdown_scroll_peek_frame_time()
-    }
-    self.editor_scroll_glide = self.editor_scroll_glide.with_anchor_compensation(
-      geometry_compensation,
-      self.editor_scroll_max_offset(viewport_height, viewport_width~),
-      now_ms~,
-    )
-  }
   let theme = self.chrome_theme()
   let session = self.document_session
   let document = session.source()
@@ -48,7 +33,7 @@ fn MarkdownEditorApp::root(
     PlainSelection
   }
   let block_label = self.block_label
-  let scroll_glide = self.editor_scroll_glide
+  let scroll_request = self.editor_scroll_request
   let children : Array[@moui.View[MarkdownEditorMsg]] = []
   if !zen && self.find_visible {
     children.push(self.find_bar(theme, selection, workspace_width))
@@ -70,7 +55,7 @@ fn MarkdownEditorApp::root(
       target_bar,
       selection,
       target_kind,
-      scroll_glide,
+      scroll_request,
       (caret, selection) => SetSelection(caret, selection),
       offset => ToggleTaskAt(offset),
       viewport_width~,
@@ -137,9 +122,9 @@ fn MarkdownEditorApp::root(
   // Root fallback: any right-press that no inner handler claimed (chrome,
   // status bar, dialogs) lands here and gets the global menu. More specific
   // targets are recorded deeper in the tree and win by activation order.
-  @views.stack(layers).on_secondary_tap(
-    ContextMenuTargeted(MarkdownEditorContextTarget::Global),
-  ).theme(theme)
+  @views.stack(layers)
+  .on_secondary_tap(ContextMenuTargeted(MarkdownEditorContextTarget::Global))
+  .theme(theme)
 }
 
 ///|
@@ -380,12 +365,14 @@ fn MarkdownEditorApp::find_bar(
           "Aa",
           "Match case",
           ToggleFindCaseSensitive,
-          options.case_sensitive),
+          options.case_sensitive,
+        ),
         editor_find_toggle(
           "W",
           "Whole word",
           ToggleFindWholeWord,
-          options.whole_word),
+          options.whole_word,
+        ),
         editor_find_toggle(".*", "Regex", ToggleFindRegex, options.regex),
         text(
           markdown_editor_find_status_label(query, matches, selection, options~),
@@ -397,20 +384,24 @@ fn MarkdownEditorApp::find_bar(
         editor_find_icon_button(
           @views.IconName::ChevronLeft,
           "Previous match",
-          FindPrevious),
+          FindPrevious,
+        ),
         editor_find_icon_button(
           @views.IconName::ChevronRight,
           "Next match",
-          FindNext),
+          FindNext,
+        ),
         editor_button(
           "Replace",
           ReplaceFindCurrent,
-          @views.ButtonVariant::Tonal),
+          @views.ButtonVariant::Tonal,
+        ),
         editor_button("All", ReplaceFindAll, @views.ButtonVariant::Tonal),
         editor_find_icon_button(
           @views.IconName::Close,
           "Close find bar",
-          CloseFind),
+          CloseFind,
+        ),
       ],
       spacing=theme.spacing_scale.xs,
       align=@views.CrossAlign::Center,
@@ -466,7 +457,8 @@ fn MarkdownEditorApp::format_palette(
               editor_button(
                 "Done",
                 ToggleFormatPalette,
-                @views.ButtonVariant::Ghost),
+                @views.ButtonVariant::Ghost,
+              ),
             ],
             spacing=theme.spacing_scale.xs,
             align=@views.CrossAlign::Center,

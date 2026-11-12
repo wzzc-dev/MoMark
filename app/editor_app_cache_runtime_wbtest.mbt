@@ -98,12 +98,14 @@ test "markdown editor scroll does not reparse session" {
   // so neither it nor the stack holding it relayouts when the thumb appears;
   // the previous empty/non-empty mount swap dirtied both, which is why this
   // count is two lower than before.
-  inspect(dirty.runtime().dirty_layout_count(), content="4")
+  // The live glide is element-owned now: a wheel tick is paint-only.
+  assert_eq(dirty.runtime().dirty_layout_count(), 0)
   assert_true(dirty.runtime().dirty_paint_count() > 0)
-  inspect(dirty.view_tree().dirty_layout_count(), content="4")
+  assert_eq(dirty.view_tree().dirty_layout_count(), 0)
   assert_true(dirty.view_tree().dirty_paint_count() > 0)
+  runtime.advance_time(32.0)
   ignore(runtime.draw_frame())
-  assert_true(app.editor_scroll_y() > 0.0)
+  assert_true(app.editor_painted_scroll_y_for_test() > 0.0)
   inspect(
     app.document_session_parse_count(),
     content=after_first_frame.to_string(),
@@ -117,7 +119,9 @@ test "markdown editor long scroll keeps cached layer tracking bounded" {
   let runtime = app.runtime(width=980.0, height=640.0)
   ignore(runtime.draw_frame())
   let mut last_cached_command_count = 0
+  let mut clock_ms = 0.0
   for _ in 0..<240 {
+    clock_ms = clock_ms + 16.0
     runtime.dispatch_event(
       @core.AppEvent::Pointer(
         @core.PointerEvent::new(
@@ -130,12 +134,13 @@ test "markdown editor long scroll keeps cached layer tracking bounded" {
         ),
       ),
     )
+    runtime.advance_time(clock_ms)
     let frame = runtime.draw_frame()
     last_cached_command_count = markdown_editor_cached_layer_command_count(
       frame.commands,
     )
   }
-  assert_true(app.editor_scroll_y() > 0.0)
+  assert_true(app.editor_painted_scroll_y_for_test() > 0.0)
   if last_cached_command_count <= 0 || last_cached_command_count > 64 {
     fail("expected long-scroll retained declarations to stay viewport bounded")
   }
@@ -199,8 +204,9 @@ test "markdown editor scroll renders text across full viewport" {
       ),
     ),
   )
+  runtime.advance_time(32.0)
   let frame = runtime.draw_frame()
-  assert_true(app.editor_scroll_y() > 0.0)
+  assert_true(app.editor_painted_scroll_y_for_test() > 0.0)
   let ys = markdown_editor_draw_text_y_centers(frame.commands)
   // There must be text rendered after scrolling.
   assert_true(ys.length() > 0)

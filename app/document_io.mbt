@@ -114,6 +114,17 @@ fn MarkdownEditorApp::load_document(
   self.reset_format_palette()
   self.transfer_status = TransferReady
   self.clear_history()
+  // A different document starts at the top. The editor element owns the live
+  // offset, so the reset is an explicit one-shot request rather than an app
+  // glide mutation.
+  self.editor_scroll_settled_y = 0.0
+  self.next_editor_scroll_request_id = self.next_editor_scroll_request_id + 1
+  self.editor_scroll_request = Some(
+    @core.ScrollRequest::new(
+      id=self.next_editor_scroll_request_id,
+      offset=@core.Point::new(x=0.0, y=0.0),
+    ),
+  )
   self.sync_target_inputs()
 }
 

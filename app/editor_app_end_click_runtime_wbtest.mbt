@@ -21,7 +21,9 @@ test "markdown editor bottom click keeps focused text input windowed" {
   let runtime = app.runtime(width=980.0, height=640.0)
   ignore(runtime.draw_frame())
   let parse_count = app.document_session_parse_count()
+  let mut clock_ms = 0.0
   for _ in 0..<240 {
+    clock_ms = clock_ms + 16.0
     runtime.dispatch_event(
       @core.AppEvent::Pointer(
         @core.PointerEvent::new(
@@ -34,9 +36,10 @@ test "markdown editor bottom click keeps focused text input windowed" {
         ),
       ),
     )
+    runtime.advance_time(clock_ms)
     ignore(runtime.draw_frame())
   }
-  assert_true(app.editor_scroll_y() > 1000.0)
+  assert_true(app.editor_painted_scroll_y_for_test() > 1000.0)
   runtime.dispatch_event(
     @core.AppEvent::Pointer(
       @core.PointerEvent::new(

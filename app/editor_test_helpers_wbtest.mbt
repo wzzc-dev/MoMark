@@ -213,7 +213,9 @@ fn MarkdownEditorApp::overwrite_from_for_test(
   self.transfer_generation = latest.transfer_generation
   self.undo_stack = latest.undo_stack
   self.redo_stack = latest.redo_stack
-  self.editor_scroll_glide = latest.editor_scroll_glide
+  self.editor_scroll_request = latest.editor_scroll_request
+  self.next_editor_scroll_request_id = latest.next_editor_scroll_request_id
+  self.editor_scroll_settled_y = latest.editor_scroll_settled_y
   self.file_filter_query = latest.file_filter_query
   self.working_directory = latest.working_directory
   self.expanded_tree_paths = latest.expanded_tree_paths
@@ -542,11 +544,38 @@ fn MarkdownEditorApp::selection_caret(self : MarkdownEditorApp) -> Int32 {
 }
 
 ///|
-/// The scroll offset the app is showing. Tests run without a host clock, so
-/// this resolves to the glide's destination; tests that need intermediate
-/// frames evaluate `editor_scroll_glide` directly.
+/// The offset the editor painted most recently. The live glide lives in the
+/// editor element now; this diagnostic is what tests observe after a frame.
 fn MarkdownEditorApp::editor_scroll_y(self : MarkdownEditorApp) -> Double {
-  self.editor_scroll_displayed_y()
+  self.editor_scroll_settled_y
+}
+
+///|
+/// The offset the editor actually painted. Tests that assert visual motion use
+/// this after advancing the frame clock.
+fn MarkdownEditorApp::editor_painted_scroll_y_for_test(
+  self : MarkdownEditorApp,
+) -> Double {
+  let _ = self
+  @moui_richtext.markdown_scroll_peek_painted_offset()
+}
+
+///|
+/// Park the scroll at `y` for a test. The element applies the request on its
+/// next paint/event pass, exactly like an app-issued anchor jump.
+fn MarkdownEditorApp::park_scroll_for_test(
+  self : MarkdownEditorApp,
+  y : Double,
+) -> Unit {
+  let clamped = y.max(0.0).min(self.editor_scroll_max_offset(640.0))
+  self.editor_scroll_settled_y = clamped
+  self.next_editor_scroll_request_id = self.next_editor_scroll_request_id + 1
+  self.editor_scroll_request = Some(
+    @core.ScrollRequest::new(
+      id=self.next_editor_scroll_request_id,
+      offset=@core.Point::new(x=0.0, y=clamped),
+    ),
+  )
 }
 
 ///|
