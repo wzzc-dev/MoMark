@@ -164,3 +164,14 @@ test "settings sheet opens from the shell and closes again" {
   app.update_in_place(CloseSettings)
   assert_false(app.settings_visible)
 }
+
+///|
+test "caret blinks on the timer and resets on selection" {
+  let app = MarkdownEditorApp::new()
+  app.set_document("Text")
+  assert_true(app.caret_blink_visible)
+  app.update_in_place(CaretBlinkTick)
+  assert_false(app.caret_blink_visible)
+  app.set_selection(1, None)
+  assert_true(app.caret_blink_visible)
+}

@@ -49,6 +49,9 @@ pub struct MarkdownEditorApp {
   mut sidebar_panel : MarkdownSidebarPanel
   mut sidebar_width : Double
   mut settings_visible : Bool
+  // 530ms caret blink phase. Edits/selection reset it to visible; the editor
+  // paints the caret with a transparent cursor color while false.
+  mut caret_blink_visible : Bool
   mut focus_mode_enabled : Bool
   mut typewriter_mode_enabled : Bool
   mut zen_mode_enabled : Bool
@@ -330,6 +333,7 @@ pub enum MarkdownEditorMsg {
   ToggleSourceMode
   DismissToastTick
   AutosaveTick
+  CaretBlinkTick
   ResolvePendingConfirm(MarkdownEditorConfirmResolution)
   ApplyEditorTransaction(MarkdownEditTransaction)
   UpdateFindQuery(String)
@@ -410,6 +414,7 @@ pub fn MarkdownEditorApp::new() -> MarkdownEditorApp {
     sidebar_panel: FilesPanel,
     sidebar_width: 300.0,
     settings_visible: false,
+    caret_blink_visible: true,
     focus_mode_enabled: false,
     typewriter_mode_enabled: false,
     zen_mode_enabled: false,
@@ -569,6 +574,7 @@ fn MarkdownEditorApp::update_in_place(
     ToggleSourceMode => self.toggle_source_mode()
     DismissToastTick => self.expire_toasts()
     AutosaveTick => self.maybe_autosave()
+    CaretBlinkTick => self.caret_blink_visible = !self.caret_blink_visible
     ResolvePendingConfirm(resolution) =>
       self.resolve_pending_confirm(resolution)
     ApplyEditorTransaction(transaction) =>
@@ -762,6 +768,14 @@ fn MarkdownEditorApp::subscriptions(
           ),
         )
       }
+      subscriptions.push(
+        source.subscription(
+          interval_ms=530.0,
+          key="markdown-editor:caret-blink",
+          label="Caret blink",
+          map=_ => CaretBlinkTick,
+        ),
+      )
       if self.is_dirty() &&
         self.document_path != "" &&
         !self.transfer_in_progress() {

@@ -644,6 +644,11 @@ fn editor_source_layout(
     cursor_color=theme.palette.primary,
     font=editor_font,
   )
+  let cursor_color = if app.caret_blink_visible {
+    editor_style.cursor_color()
+  } else {
+    editor_style.cursor_color().with_alpha(0.0)
+  }
   let editor_control = controlled_markdown_session_editor(
       session~,
       selection~,
@@ -656,7 +661,7 @@ fn editor_source_layout(
       background=page_brush,
       border=None,
       focused_border=None,
-      cursor_color=editor_style.cursor_color(),
+      cursor_color~,
       corner_radius=page_radius,
       source_mode~,
       focus_mode=app.focus_mode_enabled,

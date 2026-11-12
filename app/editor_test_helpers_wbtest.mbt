@@ -191,6 +191,7 @@ fn MarkdownEditorApp::overwrite_from_for_test(
   self.sidebar_panel = latest.sidebar_panel
   self.sidebar_width = latest.sidebar_width
   self.settings_visible = latest.settings_visible
+  self.caret_blink_visible = latest.caret_blink_visible
   self.follow_system_scheme = latest.follow_system_scheme
   self.focus_mode_enabled = latest.focus_mode_enabled
   self.typewriter_mode_enabled = latest.typewriter_mode_enabled

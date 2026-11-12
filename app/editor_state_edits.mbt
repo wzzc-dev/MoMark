@@ -151,6 +151,7 @@ fn MarkdownEditorApp::set_selection(
   selection : @text.TextRange?,
 ) -> Unit {
   self.selection = { caret, selection, }
+  self.caret_blink_visible = true
   self.selection_engaged = true
   self.sync_target_inputs()
   self.maybe_center_typewriter_selection()
