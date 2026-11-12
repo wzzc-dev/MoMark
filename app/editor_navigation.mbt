@@ -116,6 +116,7 @@ fn MarkdownEditorApp::toggle_format_palette(self : MarkdownEditorApp) -> Unit {
     self.reset_format_palette()
   } else {
     self.format_palette_visible = true
+    self.overlay_anim_frame = 0
   }
 }
 
@@ -170,6 +171,7 @@ fn MarkdownEditorApp::toggle_find(self : MarkdownEditorApp) -> Unit {
 ///|
 fn MarkdownEditorApp::open_find(self : MarkdownEditorApp) -> Unit {
   self.find_visible = true
+  self.overlay_anim_frame = 0
   match
     markdown_editor_find_query_from_selection(self.document, self.selection) {
     Some(query) => self.find_query = query
@@ -593,4 +595,12 @@ fn MarkdownEditorApp::set_editor_zoom(
   zoom : Double,
 ) -> Unit {
   self.editor_zoom = markdown_editor_clamp_double(zoom, 0.75, 2.0)
+}
+
+///|
+fn MarkdownEditorApp::overlay_anim_progress(self : MarkdownEditorApp) -> Double {
+  markdown_editor_min_double(
+    1.0,
+    self.overlay_anim_frame.to_double() / 12.0,
+  )
 }

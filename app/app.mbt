@@ -54,6 +54,8 @@ pub struct MarkdownEditorApp {
   mut caret_blink_visible : Bool
   // Multiplier over the writing look's base font size (Cmd+= / Cmd+-).
   mut editor_zoom : Double
+  // 0..12 frames for the 150ms overlay entrance; 12 means settled.
+  mut overlay_anim_frame : Int32
   mut focus_mode_enabled : Bool
   mut typewriter_mode_enabled : Bool
   mut zen_mode_enabled : Bool
@@ -339,6 +341,7 @@ pub enum MarkdownEditorMsg {
   ZoomIn
   ZoomOut
   ResetZoom
+  OverlayAnimTick
   ResolvePendingConfirm(MarkdownEditorConfirmResolution)
   ApplyEditorTransaction(MarkdownEditTransaction)
   UpdateFindQuery(String)
@@ -422,6 +425,7 @@ pub fn MarkdownEditorApp::new() -> MarkdownEditorApp {
     settings_visible: false,
     caret_blink_visible: true,
     editor_zoom: 1.0,
+    overlay_anim_frame: 12,
     focus_mode_enabled: false,
     typewriter_mode_enabled: false,
     zen_mode_enabled: false,
@@ -556,7 +560,12 @@ fn MarkdownEditorApp::update_in_place(
       self.follow_system_scheme = false
     }
     SetFollowSystemScheme(follow) => self.follow_system_scheme = follow
-    OpenSettings => self.settings_visible = !self.settings_visible
+    OpenSettings => {
+      if !self.settings_visible {
+        self.overlay_anim_frame = 0
+      }
+      self.settings_visible = !self.settings_visible
+    }
     CloseSettings => self.settings_visible = false
     ToggleFind => self.toggle_find()
     ToggleFocusMode => self.toggle_focus_mode()
@@ -585,6 +594,10 @@ fn MarkdownEditorApp::update_in_place(
     ZoomIn => self.set_editor_zoom(self.editor_zoom + 0.1)
     ZoomOut => self.set_editor_zoom(self.editor_zoom - 0.1)
     ResetZoom => self.set_editor_zoom(1.0)
+    OverlayAnimTick =>
+      if self.overlay_anim_frame < 12 {
+        self.overlay_anim_frame = self.overlay_anim_frame + 1
+      }
     ResolvePendingConfirm(resolution) =>
       self.resolve_pending_confirm(resolution)
     ApplyEditorTransaction(transaction) =>
@@ -779,6 +792,16 @@ fn MarkdownEditorApp::subscriptions(
             key="markdown-editor:toast-dismiss",
             label="Markdown editor toast dismiss tick",
             map=_ => DismissToastTick,
+          ),
+        )
+      }
+      if self.overlay_anim_frame < 12 {
+        subscriptions.push(
+          source.subscription(
+            interval_ms=16.0,
+            key="markdown-editor:overlay-anim",
+            label="Overlay entrance",
+            map=_ => OverlayAnimTick,
           ),
         )
       }

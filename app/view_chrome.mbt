@@ -175,10 +175,21 @@ fn MarkdownEditorApp::root(
   )
   let layers : Array[@moui.View[MarkdownEditorMsg]] = [window_bg, shell]
   let overlay_top = metrics.island_margin + metrics.top_bar_height + 8.0
+  let overlay_progress = self.overlay_anim_progress()
+  let overlay_spec = @core.TransitionSpec::new(
+    from=@core.TransitionStyle::identity()
+    .with_opacity(0.0)
+    .with_scale(sx=0.98, sy=0.98),
+    to=@core.TransitionStyle::identity(),
+    duration_ms=150.0,
+  )
   if !zen && self.find_visible {
     layers.push(
       markdown_top_overlay(
-        self.find_bar(theme, selection, workspace_width),
+        self.find_bar(theme, selection, workspace_width).transition(
+          spec=overlay_spec,
+          progress=overlay_progress,
+        ),
         top=overlay_top,
       ),
     )
@@ -186,7 +197,10 @@ fn MarkdownEditorApp::root(
   if !zen && self.format_palette_visible {
     layers.push(
       markdown_top_overlay(
-        self.format_palette(theme, workspace_width),
+        self.format_palette(theme, workspace_width).transition(
+          spec=overlay_spec,
+          progress=overlay_progress,
+        ),
         top=overlay_top,
       ),
     )
@@ -194,7 +208,10 @@ fn MarkdownEditorApp::root(
   if !zen && self.settings_visible {
     layers.push(
       @views.align(
-        self.markdown_settings_panel(tokens, metrics, theme),
+        self.markdown_settings_panel(tokens, metrics, theme).transition(
+          spec=overlay_spec,
+          progress=overlay_progress,
+        ),
         alignment=@geometry.Alignment::center(),
       ),
     )
