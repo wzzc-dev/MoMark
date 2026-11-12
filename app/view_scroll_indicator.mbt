@@ -90,12 +90,21 @@ impl @core.ViewNode for MarkdownEditorScrollIndicator with fn layout(self, ctx) 
 
 ///|
 impl @core.ViewNode for MarkdownEditorScrollIndicator with fn paint(self, ctx) {
-  let offset_y = self.glide.display_offset(
-    ctx.now_ms,
-    compensation=@moui_richtext.markdown_scroll_peek_geometry_compensation(),
-    scale=ctx.environment.scale_factor,
-  )
-  let animating = self.glide.is_animating(ctx.now_ms)
+  // The editor paints before this sibling (it is earlier in the stack) and
+  // publishes the frame-local scroll snapshot. While that snapshot is
+  // animating, follow it instead of the settled app glide: the thumb stays
+  // live without per-tick app state or a root rebuild.
+  let live = @moui_richtext.markdown_scroll_peek_painted_animating()
+  let offset_y = if live {
+    @moui_richtext.markdown_scroll_peek_painted_offset()
+  } else {
+    self.glide.display_offset(
+      ctx.now_ms,
+      compensation=@moui_richtext.markdown_scroll_peek_geometry_compensation(),
+      scale=ctx.environment.scale_factor,
+    )
+  }
+  let animating = live || self.glide.is_animating(ctx.now_ms)
   let commands : Array[@core.DrawCommand] = []
   // Hide entirely while at the top (no content scrolled past); the glide
   // still reports animating so a scroll back to the top keeps drawing.
