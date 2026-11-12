@@ -106,7 +106,6 @@ fn MarkdownEditorApp::root(
   let shell_children : Array[@moui.View[MarkdownEditorMsg]] = [
     top_bar,
     workspace.expanded(),
-    status_bar,
   ]
   let mut auxiliary_height = 0.0
   let mut auxiliary_count = 0
@@ -128,7 +127,15 @@ fn MarkdownEditorApp::root(
     None =>
       viewport_height + bars_height + metrics.island_margin * 2.0
   }
-  let shell = @views.column(
+  // Winc's status bar is flush with the window bottom; only the top and the
+  // sides get the island margin. The cards therefore meet the status bar
+  // directly instead of leaving a second gray band below them.
+  let status_height = if zen { 0.0 } else { metrics.status_bar_height }
+  let body_height = markdown_editor_max_double(
+    0.0,
+    total_height - status_height,
+  )
+  let shell_body = @views.column(
     shell_children,
     spacing=0.0,
     align=@views.CrossAlign::Stretch,
@@ -139,14 +146,14 @@ fn MarkdownEditorApp::root(
     ),
     height=markdown_editor_max_double(
       0.0,
-      total_height - metrics.island_margin * 2.0,
+      body_height - metrics.island_margin,
     ),
   )
   let inset = @views.padding_edges(
-    shell,
+    shell_body,
     top=metrics.island_margin,
     right=metrics.island_margin,
-    bottom=metrics.island_margin,
+    bottom=0.0,
     left=metrics.island_margin,
   )
   // Stack: frame fill → island shell → minimal overlays → dialogs.
@@ -161,7 +168,12 @@ fn MarkdownEditorApp::root(
     paint=(ctx, bounds) => fill_rect(ctx, bounds, tokens.frame),
     semantics_label="Window background",
   )
-  let layers : Array[@moui.View[MarkdownEditorMsg]] = [window_bg, inset]
+  let shell = @views.column(
+    [inset.expanded(), status_bar],
+    spacing=0.0,
+    align=@views.CrossAlign::Stretch,
+  )
+  let layers : Array[@moui.View[MarkdownEditorMsg]] = [window_bg, shell]
   let overlay_top = metrics.island_margin + metrics.top_bar_height + 8.0
   if !zen && self.find_visible {
     layers.push(

@@ -38,7 +38,7 @@ test "island shell draws the top and status bars inside the window inset" {
   let workspace = markdown_shell_metrics(WorkspaceMode)
   let top_left = workspace.island_margin
   let bar_width = 980.0 - workspace.island_margin * 2.0
-  let status_y = 640.0 - workspace.island_margin - workspace.status_bar_height
+  let status_y = 640.0 - workspace.status_bar_height
   assert_true(
     rects.any(rect => {
       rect.origin.x == top_left &&
@@ -49,9 +49,9 @@ test "island shell draws the top and status bars inside the window inset" {
   )
   assert_true(
     rects.any(rect => {
-      rect.origin.x == top_left &&
+      rect.origin.x == 0.0 &&
       rect.origin.y == status_y &&
-      rect.size.width == bar_width &&
+      rect.size.width == 980.0 &&
       rect.size.height == workspace.status_bar_height
     }),
   )
@@ -62,7 +62,7 @@ test "island shell draws the top and status bars inside the window inset" {
   let minimal = markdown_shell_metrics(MinimalMode)
   let minimal_top = minimal.island_margin
   let minimal_width = 980.0 - minimal.island_margin * 2.0
-  let minimal_status_y = 640.0 - minimal.island_margin - minimal.status_bar_height
+  let minimal_status_y = 640.0 - minimal.status_bar_height
   assert_true(
     minimal_rects.any(rect => {
       rect.origin.x == minimal_top &&
@@ -73,9 +73,9 @@ test "island shell draws the top and status bars inside the window inset" {
   )
   assert_true(
     minimal_rects.any(rect => {
-      rect.origin.x == minimal_top &&
+      rect.origin.x == 0.0 &&
       rect.origin.y == minimal_status_y &&
-      rect.size.width == minimal_width &&
+      rect.size.width == 980.0 &&
       rect.size.height == minimal.status_bar_height
     }),
   )

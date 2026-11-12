@@ -385,37 +385,62 @@ fn files_inspector(
     }
   }
   if working_directory == "" {
-    file_rows.push(
-      text("Recent", width=content_width, height=24.0)
+    let recent_children : Array[@moui.View[MarkdownEditorMsg]] = []
+    recent_children.push(
+      text("Recent", width=content_width - 16.0, height=24.0)
       .font(theme.typography.caption)
       .foreground(theme.palette.muted),
     )
     if recent_scroll_present {
-      file_rows.push(
+      recent_children.push(
         scroll_view(
           file_sidebar_recent_rows(
             filtered_recent_paths,
-            width=content_width,
+            width=content_width - 16.0,
             current_path=app.document_path,
             theme,
           ),
-          width=content_width,
-          height=recent_scroll_height,
+          width=content_width - 16.0,
+          height=markdown_editor_max_double(0.0, recent_scroll_height - 16.0),
         ),
       )
     } else if recent_paths.length() == 0 {
-      file_rows.push(
-        text("No recent files", width=content_width, height=28.0)
+      recent_children.push(
+        text("No recent files", width=content_width - 16.0, height=28.0)
         .font(theme.typography.caption)
         .foreground(theme.palette.muted),
       )
     } else {
-      file_rows.push(
-        text("No matching recent files", width=content_width, height=28.0)
+      recent_children.push(
+        text(
+          "No matching recent files",
+          width=content_width - 16.0,
+          height=28.0,
+        )
         .font(theme.typography.caption)
         .foreground(theme.palette.muted),
       )
     }
+    file_rows.push(
+      container(
+        padding_edges(
+          column(
+            recent_children,
+            spacing=theme.spacing_scale.xs,
+            align=@views.CrossAlign::Start,
+          ),
+          top=8.0,
+          right=8.0,
+          bottom=8.0,
+          left=8.0,
+        ),
+        width=content_width,
+        variant=@views.ContainerVariant::Base,
+        background=theme.palette.surface_variant,
+        corner_radius=8.0,
+        padding=0.0,
+      ),
+    )
   }
   // Footer pinned to the bottom: current-document status + folder actions.
   file_rows.push(
@@ -655,9 +680,13 @@ fn file_sidebar_recent_row(
   current~ : Bool,
   width~ : Double = markdown_editor_file_sidebar_content_width(),
 ) -> @moui.View[MarkdownEditorMsg] {
+  let (icon, _icon_color) = markdown_editor_tree_icon_for_name(
+    markdown_editor_file_sidebar_recent_label(path),
+  )
   button(
     markdown_editor_file_sidebar_recent_label(path),
     on_click=OpenRecentDocument(path),
+    icon=Some(icon),
     variant=if current {
       @views.ButtonVariant::Tonal
     } else {

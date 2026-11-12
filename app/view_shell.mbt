@@ -82,17 +82,6 @@ fn MarkdownEditorApp::markdown_shell_top_bar(
   metrics : MarkdownShellMetrics,
   theme : @moui.Theme,
 ) -> @moui.View[MarkdownEditorMsg] {
-  let title = markdown_editor_document_title(
-    path=self.document_path,
-    fallback="Untitled",
-  )
-  let unsaved = if self.is_dirty() {
-    text("•", width=10.0, height=20.0)
-    .font(theme.typography.caption)
-    .foreground(tokens.dirty_dot)
-  } else {
-    empty()
-  }
   let files_active = self.sidebar_panel is FilesPanel &&
     self.file_sidebar_visible
   let outline_active = self.sidebar_panel is OutlinePanel &&
@@ -148,6 +137,13 @@ fn MarkdownEditorApp::markdown_shell_top_bar(
     ),
     width=left_width,
   )
+  let unsaved = if self.is_dirty() {
+    text("•", width=10.0, height=20.0)
+    .font(theme.typography.caption)
+    .foreground(tokens.dirty_dot)
+  } else {
+    empty()
+  }
   let close_tab = tooltip(
     button(
       "",
@@ -169,7 +165,10 @@ fn MarkdownEditorApp::markdown_shell_top_bar(
             color=tokens.accent,
           ),
           button(
-            title,
+            markdown_editor_document_title(
+              path=self.document_path,
+              fallback="Untitled",
+            ),
             on_click=ToggleDocumentInfo,
             variant=@views.ButtonVariant::Ghost,
             width=150.0,
@@ -297,7 +296,10 @@ fn MarkdownEditorApp::markdown_shell_status_bar(
   frame(
     row(
       [
-        spacer(min_length=metrics.bar_inset, weight=0.0),
+        spacer(
+          min_length=metrics.bar_inset + metrics.island_margin,
+          weight=0.0,
+        ),
         text(breadcrumb, width=left_width, height=metrics.status_bar_height)
         .font(theme.typography.caption)
         .foreground(tokens.text_muted),
@@ -305,7 +307,10 @@ fn MarkdownEditorApp::markdown_shell_status_bar(
         text(right_text, width=right_width, height=metrics.status_bar_height)
         .font(theme.typography.caption)
         .foreground(tokens.text_muted),
-        spacer(min_length=metrics.bar_inset, weight=0.0),
+        spacer(
+          min_length=metrics.bar_inset + metrics.island_margin,
+          weight=0.0,
+        ),
       ],
       spacing=8.0,
       align=@views.CrossAlign::Center,

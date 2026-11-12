@@ -588,6 +588,7 @@ fn editor_source_layout(
   page_shadow? : @graphics.ShadowStyle,
   page_radius~ : Double = 4.0,
 ) -> @moui.View[MarkdownEditorMsg] {
+  let body_height = viewport_height
   let sidebars_width = markdown_editor_sidebar_total_width(
     show_source, show_outline, show_files, show_info, sidebar_width~,
   )
@@ -615,7 +616,7 @@ fn editor_source_layout(
   }
   let source_mode = app.source_mode_enabled
   let content_height = markdown_editor_max_double(
-    viewport_height,
+    body_height,
     session.estimated_content_height(
       base=editor_font,
       source_mode~,
@@ -654,7 +655,7 @@ fn editor_source_layout(
       selection~,
       on_transaction=transaction => ApplyEditorTransaction(transaction),
       placeholder="Start writing Markdown",
-      size=@geometry.Size::new(width=editor_width, height=viewport_height),
+      size=@geometry.Size::new(width=editor_width, height=body_height),
       font=editor_style.font(),
       foreground=appearance.foreground,
       placeholder_color=editor_style.placeholder_color(),
@@ -675,8 +676,8 @@ fn editor_source_layout(
         MarkdownScrollGlide::settled(0.0),
         Some(y => EditorScrollSettled(y)),
       ),
-      visible_viewport_height=viewport_height,
-      visible_overscan=markdown_editor_visible_overscan(viewport_height),
+      visible_viewport_height=body_height,
+      visible_overscan=markdown_editor_visible_overscan(body_height),
     )
     // The document surface owns its own menu (clipboard, formatting, document
     // actions); the root view keeps a broader menu for the surrounding chrome.
@@ -692,8 +693,12 @@ fn editor_source_layout(
   }
   let editor = editor_page(
     editor_control,
+    background=appearance.page_background,
+    border_color=theme.palette.outline,
     shadow=page_shadow,
     page_radius~,
+    width=editor_width,
+    height=viewport_height,
   ).on_file_drop((
     paths,
     _position,
@@ -767,7 +772,7 @@ fn editor_source_layout(
     ),
     markdown_editor_scroll_indicator(
       MarkdownScrollGlide::settled(app.editor_scroll_settled_y),
-      viewport_height~,
+      viewport_height=body_height,
       content_height~,
       theme,
     ),
@@ -784,15 +789,31 @@ fn editor_source_layout(
 }
 
 ///|
+///|
 fn editor_page(
   editor : @moui.View[MarkdownEditorMsg],
+  background~ : @graphics.Color,
+  border_color~ : @graphics.Color,
   shadow~ : @graphics.ShadowStyle,
   page_radius~ : Double = 4.0,
+  width~ : Double,
+  height~ : Double,
 ) -> @moui.View[MarkdownEditorMsg] {
-  editor
-  .shadow(shadow)
-  .corner_radius(page_radius)
-  .repaint_boundary()
+  container(
+    editor,
+    width~,
+    height~,
+    variant=@views.ContainerVariant::Base,
+    background=background,
+    border=Some(
+      @core.BorderStyle::new(
+        brush=@graphics.Brush::solid(border_color),
+        width=1.0,
+      ),
+    ),
+    corner_radius=page_radius,
+    padding=0.0,
+  ).shadow(shadow)
 }
 
 ///|
