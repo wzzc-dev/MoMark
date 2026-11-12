@@ -405,6 +405,20 @@ fn markdown_editor_appearance_font(
 }
 
 ///|
+/// Markdown block colors for the active color scheme. The rich-text
+/// projection bakes colors into runs/blocks, so the editor session carries
+/// this palette; a scheme switch re-projects through the conversion cache.
+fn markdown_editor_rich_text_palette(
+  dark : Bool,
+) -> @moui_richtext.MarkdownRichTextPalette {
+  if dark {
+    @moui_richtext.MarkdownRichTextPalette::dark()
+  } else {
+    @moui_richtext.MarkdownRichTextPalette::light()
+  }
+}
+
+///|
 fn markdown_editor_page_width() -> Double {
   780.0
 }
