@@ -579,17 +579,35 @@ fn editor_source_layout(
   on_prefix_click : (Int32) -> MarkdownEditorMsg,
   viewport_width~ : Double = 1120.0,
   viewport_height~ : Double = 520.0,
+  card_gap~ : Double = 0.0,
   page_shadow? : @graphics.ShadowStyle,
   page_radius~ : Double = 4.0,
 ) -> @moui.View[MarkdownEditorMsg] {
-  let editor_width = markdown_editor_primary_editor_width_for_viewport(
-    show_source,
-    show_outline,
-    show_files,
-    show_info,
-    appearance,
-    viewport_width~,
+  let sidebars_width = markdown_editor_sidebar_total_width(
+    show_source, show_outline, show_files, show_info,
   )
+  let mut card_gaps = 0
+  if show_files {
+    card_gaps = card_gaps + 1
+  }
+  if show_info {
+    card_gaps = card_gaps + 1
+  }
+  if show_outline {
+    card_gaps = card_gaps + 1
+  }
+  if show_source {
+    card_gaps = card_gaps + 1
+  }
+  let available_width = markdown_editor_max_double(
+    0.0,
+    viewport_width - sidebars_width - card_gaps.to_double() * card_gap,
+  )
+  let editor_width = if show_files || card_gaps > 0 {
+    markdown_editor_min_double(appearance.page_width, available_width)
+  } else {
+    appearance.page_width
+  }
   let source_mode = app.source_mode_enabled
   let content_height = markdown_editor_max_double(
     viewport_height,
@@ -693,21 +711,25 @@ fn editor_source_layout(
     side_children.push(
       files_inspector(app, session, theme, height=viewport_height),
     )
+    side_children.push(spacer(min_length=card_gap, weight=0.0))
   }
   side_children.push(spacer(min_length=0.0, weight=1.0))
   side_children.push(editor_view)
   side_children.push(spacer(min_length=0.0, weight=1.0))
   if show_info {
+    side_children.push(spacer(min_length=card_gap, weight=0.0))
     side_children.push(
       document_info_inspector(session, theme, height=viewport_height),
     )
   }
   if show_outline {
+    side_children.push(spacer(min_length=card_gap, weight=0.0))
     side_children.push(
       outline_inspector(app, session, selection, theme, height=viewport_height),
     )
   }
   if show_source {
+    side_children.push(spacer(min_length=card_gap, weight=0.0))
     side_children.push(
       source_inspector(session.source(), theme, height=viewport_height),
     )

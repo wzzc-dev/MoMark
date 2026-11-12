@@ -105,10 +105,10 @@ fn markdown_shell_metrics(
     WorkspaceMode =>
       {
         layout_mode,
-        island_margin: 6.0,
+        island_margin: 4.0,
         island_gap: 6.0,
         island_radius: 10.0,
-        bar_inset: 12.0,
+        bar_inset: 10.0,
         top_bar_height: 40.0,
         status_bar_height: 26.0,
         sidebar_width,
@@ -124,10 +124,10 @@ fn markdown_shell_metrics(
     MinimalMode =>
       {
         layout_mode,
-        island_margin: 8.0,
+        island_margin: 4.0,
         island_gap: 0.0,
         island_radius: 10.0,
-        bar_inset: 12.0,
+        bar_inset: 10.0,
         top_bar_height: 32.0,
         status_bar_height: 24.0,
         sidebar_width: 0.0,

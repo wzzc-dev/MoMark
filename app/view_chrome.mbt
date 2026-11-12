@@ -83,6 +83,7 @@ fn MarkdownEditorApp::root(
       offset => ToggleTaskAt(offset),
       viewport_width=content_width,
       viewport_height~,
+      card_gap=metrics.island_gap,
       page_shadow=tokens.page_shadow,
       page_radius=metrics.island_radius,
     )

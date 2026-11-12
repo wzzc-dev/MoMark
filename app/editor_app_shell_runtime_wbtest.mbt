@@ -1,14 +1,14 @@
 ///|
 test "island shell metrics keep the window inset and bar sizes" {
   let workspace = markdown_shell_metrics(WorkspaceMode)
-  assert_eq(workspace.island_margin, 6.0)
+  assert_eq(workspace.island_margin, 4.0)
   assert_eq(workspace.island_gap, 6.0)
   assert_eq(workspace.island_radius, 10.0)
-  assert_eq(workspace.bar_inset, 12.0)
+  assert_eq(workspace.bar_inset, 10.0)
   assert_eq(workspace.top_bar_height, 40.0)
   assert_eq(workspace.status_bar_height, 26.0)
   let minimal = markdown_shell_metrics(MinimalMode)
-  assert_eq(minimal.island_margin, 8.0)
+  assert_eq(minimal.island_margin, 4.0)
   assert_eq(minimal.island_gap, 0.0)
   assert_eq(minimal.top_bar_height, 32.0)
   assert_eq(minimal.status_bar_height, 24.0)
@@ -35,41 +35,48 @@ test "island shell draws the top and status bars inside the window inset" {
   app.set_document("# Plan")
   let commands = app.runtime(width=980.0, height=640.0).draw_commands()
   let rects = markdown_shell_fill_rects(commands)
-  // Workspace: 6px outer margin, 40px top bar, 26px status bar.
+  let workspace = markdown_shell_metrics(WorkspaceMode)
+  let top_left = workspace.island_margin
+  let bar_width = 980.0 - workspace.island_margin * 2.0
+  let status_y = 640.0 - workspace.island_margin - workspace.status_bar_height
   assert_true(
     rects.any(rect => {
-      rect.origin.x == 6.0 &&
-      rect.origin.y == 6.0 &&
-      rect.size.width == 968.0 &&
-      rect.size.height == 40.0
+      rect.origin.x == top_left &&
+      rect.origin.y == top_left &&
+      rect.size.width == bar_width &&
+      rect.size.height == workspace.top_bar_height
     }),
   )
   assert_true(
     rects.any(rect => {
-      rect.origin.x == 6.0 &&
-      rect.origin.y == 608.0 &&
-      rect.size.width == 968.0 &&
-      rect.size.height == 26.0
+      rect.origin.x == top_left &&
+      rect.origin.y == status_y &&
+      rect.size.width == bar_width &&
+      rect.size.height == workspace.status_bar_height
     }),
   )
   // Minimal: 8px outer margin, 32px top bar, 24px status bar.
   app.set_layout_mode(MinimalMode)
   let minimal_commands = app.runtime(width=980.0, height=640.0).draw_commands()
   let minimal_rects = markdown_shell_fill_rects(minimal_commands)
+  let minimal = markdown_shell_metrics(MinimalMode)
+  let minimal_top = minimal.island_margin
+  let minimal_width = 980.0 - minimal.island_margin * 2.0
+  let minimal_status_y = 640.0 - minimal.island_margin - minimal.status_bar_height
   assert_true(
     minimal_rects.any(rect => {
-      rect.origin.x == 8.0 &&
-      rect.origin.y == 8.0 &&
-      rect.size.width == 964.0 &&
-      rect.size.height == 32.0
+      rect.origin.x == minimal_top &&
+      rect.origin.y == minimal_top &&
+      rect.size.width == minimal_width &&
+      rect.size.height == minimal.top_bar_height
     }),
   )
   assert_true(
     minimal_rects.any(rect => {
-      rect.origin.x == 8.0 &&
-      rect.origin.y == 608.0 &&
-      rect.size.width == 964.0 &&
-      rect.size.height == 24.0
+      rect.origin.x == minimal_top &&
+      rect.origin.y == minimal_status_y &&
+      rect.size.width == minimal_width &&
+      rect.size.height == minimal.status_bar_height
     }),
   )
 }
