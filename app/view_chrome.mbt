@@ -45,6 +45,7 @@ fn MarkdownEditorApp::root(
     show_info,
     appearance,
     viewport_width=content_width,
+    sidebar_width=self.sidebar_width,
   )
   let target_bar = self.target_bar(theme)
   let selection = self.selection
@@ -58,12 +59,6 @@ fn MarkdownEditorApp::root(
   }
   let scroll_request = self.editor_scroll_request
   let children : Array[@moui.View[MarkdownEditorMsg]] = []
-  if !zen && self.find_visible {
-    children.push(self.find_bar(theme, selection, workspace_width))
-  }
-  if !zen && self.format_palette_visible {
-    children.push(self.format_palette(theme, workspace_width))
-  }
   children.push(
     editor_source_layout(
       self,
@@ -84,6 +79,7 @@ fn MarkdownEditorApp::root(
       viewport_width=content_width,
       viewport_height~,
       card_gap=metrics.island_gap,
+      sidebar_width=self.sidebar_width,
       page_shadow=tokens.page_shadow,
       page_radius=metrics.island_radius,
     )
@@ -130,9 +126,7 @@ fn MarkdownEditorApp::root(
   let total_height = match window_height {
     Some(value) => value
     None =>
-      viewport_height + bars_height + auxiliary_height +
-      metrics.island_margin * 2.0 +
-      theme.spacing_scale.sm * auxiliary_count.to_double()
+      viewport_height + bars_height + metrics.island_margin * 2.0
   }
   let shell = @views.column(
     shell_children,
@@ -168,6 +162,23 @@ fn MarkdownEditorApp::root(
     semantics_label="Window background",
   )
   let layers : Array[@moui.View[MarkdownEditorMsg]] = [window_bg, inset]
+  let overlay_top = metrics.island_margin + metrics.top_bar_height + 8.0
+  if !zen && self.find_visible {
+    layers.push(
+      markdown_top_overlay(
+        self.find_bar(theme, selection, workspace_width),
+        top=overlay_top,
+      ),
+    )
+  }
+  if !zen && self.format_palette_visible {
+    layers.push(
+      markdown_top_overlay(
+        self.format_palette(theme, workspace_width),
+        top=overlay_top,
+      ),
+    )
+  }
   if !zen && self.settings_visible {
     layers.push(
       @views.align(
@@ -221,22 +232,6 @@ fn MarkdownEditorApp::root_with_environment(
     fixed_height = fixed_height +
       metrics.top_bar_height +
       metrics.status_bar_height
-    let mut auxiliary_count = 0
-    if self.find_visible {
-      fixed_height = fixed_height + 42.0
-      auxiliary_count = auxiliary_count + 1
-    }
-    if self.format_palette_visible {
-      fixed_height = fixed_height + 240.0
-      auxiliary_count = auxiliary_count + 1
-    }
-    fixed_height = fixed_height +
-      markdown_ui_theme(markdown_ui_tokens(if dark {
-        @core.ColorScheme::Dark
-      } else {
-        @core.ColorScheme::Light
-      })).spacing_scale.sm *
-      auxiliary_count.to_double()
   }
   let viewport_height = markdown_editor_max_double(
     320.0,
@@ -259,6 +254,7 @@ fn markdown_editor_workspace_width(
   show_info : Bool,
   appearance : MarkdownEditorAppearanceSpec,
   viewport_width~ : Double,
+  sidebar_width~ : Double = markdown_editor_file_sidebar_width(),
 ) -> Double {
   let editor_width = markdown_editor_primary_editor_width_for_viewport(
     show_source,
@@ -267,9 +263,10 @@ fn markdown_editor_workspace_width(
     show_info,
     appearance,
     viewport_width~,
+    sidebar_width~,
   )
   let sidebars_width = markdown_editor_sidebar_total_width(
-    show_source, show_outline, show_files, show_info,
+    show_source, show_outline, show_files, show_info, sidebar_width~,
   )
   markdown_editor_min_double(viewport_width, editor_width + sidebars_width)
 }
@@ -367,10 +364,10 @@ fn MarkdownEditorApp::format_palette(
   theme : @moui.Theme,
   width : Double,
 ) -> @moui.View[MarkdownEditorMsg] {
-  let panel_width = markdown_editor_min_double(540.0, width)
+  let panel_width = markdown_editor_min_double(580.0, width)
   let content_width = markdown_editor_max_double(
-    120.0,
-    panel_width - theme.spacing_scale.md * 2.0,
+    160.0,
+    panel_width - 32.0,
   )
   let query = self.format_palette_query
   let rows : Array[@moui.View[MarkdownEditorMsg]] = []
@@ -381,7 +378,7 @@ fn MarkdownEditorApp::format_palette(
   }
   if rows.length() == 0 {
     rows.push(
-      text("No commands", width=content_width, height=30.0)
+      text("No commands", width=content_width, height=36.0)
       .font(theme.typography.caption)
       .foreground(theme.palette.muted),
     )
@@ -392,17 +389,20 @@ fn MarkdownEditorApp::format_palette(
         [
           row(
             [
-              text("Quick Format", width=112.0, height=34.0)
+              text("Commands", width=92.0, height=36.0)
               .font(theme.typography.caption)
               .foreground(theme.palette.muted),
               text_field(
                 query,
                 on_input=value => UpdateFormatPaletteQuery(value),
                 on_submit=Some(ApplyFirstFormatPaletteAction),
-                placeholder="Filter",
+                placeholder="Search commands",
                 variant=@views.TextFieldVariant::Outline,
-                width=markdown_editor_max_double(120.0, content_width - 190.0),
-                height=34.0,
+                width=markdown_editor_max_double(
+                  120.0,
+                  content_width - 92.0 - 76.0 - 16.0,
+                ),
+                height=36.0,
               ).key("markdown-format-palette-query"),
               editor_button(
                 "Done",
@@ -410,32 +410,65 @@ fn MarkdownEditorApp::format_palette(
                 @views.ButtonVariant::Ghost,
               ),
             ],
-            spacing=theme.spacing_scale.xs,
+            spacing=theme.spacing_scale.sm,
             align=@views.CrossAlign::Center,
           ),
           scroll_view(
             column(
               rows,
-              spacing=theme.spacing_scale.xs,
+              spacing=2.0,
               align=@views.CrossAlign::Start,
             ),
             width=content_width,
-            height=176.0,
+            height=286.0,
           ),
+          text(
+            "Enter applies the first match · Esc closes",
+            width=content_width,
+            height=18.0,
+          )
+          .font(theme.typography.caption)
+          .foreground(theme.palette.muted),
         ],
         spacing=theme.spacing_scale.sm,
         align=@views.CrossAlign::Start,
       ),
-      top=theme.spacing_scale.sm,
+      top=theme.spacing_scale.md,
       right=theme.spacing_scale.md,
       bottom=theme.spacing_scale.sm,
       left=theme.spacing_scale.md,
     ),
     width=panel_width,
-    height=240.0,
+    height=384.0,
     variant=@views.ContainerVariant::Overlay,
+    background=theme.palette.surface,
+    border=Some(
+      @core.BorderStyle::new(
+        brush=@graphics.Brush::solid(theme.palette.outline),
+        width=1.0,
+      ),
+    ),
+    corner_radius=theme.radius_scale.lg,
     padding=0.0,
+  ).shadow(
+    @graphics.ShadowStyle::new(
+      color=@graphics.Color::black().multiply_alpha(0.16),
+      offset=@geometry.Point::new(x=0.0, y=8.0),
+      blur_radius=28.0,
+    ),
   )
+}
+
+///|
+fn markdown_editor_format_palette_icon(
+  group : String,
+) -> @views.IconName {
+  match group {
+    "Inline" => @views.IconName::Bold
+    "View" => @views.IconName::Eye
+    "Document" => @views.IconName::FileMarkdown
+    _ => @views.IconName::Heading
+  }
 }
 
 ///|
@@ -444,24 +477,25 @@ fn markdown_editor_format_palette_row(
   theme : @moui.Theme,
   width~ : Double,
 ) -> @moui.View[MarkdownEditorMsg] {
-  let label_width = markdown_editor_max_double(120.0, width - 250.0)
+  let label_width = markdown_editor_max_double(140.0, width - 78.0 - 150.0 - 16.0)
   row(
     [
       button(
         item.label,
         on_click=ApplyFormatPaletteAction(item.action),
         variant=@views.ButtonVariant::Ghost,
+        icon=Some(markdown_editor_format_palette_icon(item.group)),
         width=label_width,
-        height=32.0,
+        height=36.0,
       ),
-      text(item.group, width=82.0, height=32.0)
+      text(item.group, width=78.0, height=36.0)
       .font(theme.typography.caption)
       .foreground(theme.palette.muted),
-      text(item.shortcut, width=152.0, height=32.0)
+      text(item.shortcut, width=150.0, height=36.0)
       .font(theme.typography.caption)
       .foreground(theme.palette.muted),
     ],
-    spacing=theme.spacing_scale.xs,
+    spacing=8.0,
     align=@views.CrossAlign::Center,
   )
 }
@@ -480,13 +514,29 @@ fn markdown_editor_format_palette_filtered_items(
 }
 
 ///|
+fn markdown_editor_fuzzy_subsequence(text : String, needle : String) -> Bool {
+  if needle == "" {
+    return true
+  }
+  let haystack = text.to_lower().to_array()
+  let pattern = needle.to_array()
+  let mut matched = 0
+  for ch in haystack {
+    if matched < pattern.length() && ch == pattern[matched] {
+      matched = matched + 1
+    }
+  }
+  matched == pattern.length()
+}
+
+///|
 fn markdown_editor_format_palette_matches(
   item : MarkdownEditorFormatPaletteItem,
   needle : String,
 ) -> Bool {
-  item.label.to_lower().contains(needle) ||
-  item.group.to_lower().contains(needle) ||
-  item.shortcut.to_lower().contains(needle)
+  markdown_editor_fuzzy_subsequence(item.label, needle) ||
+  markdown_editor_fuzzy_subsequence(item.group, needle) ||
+  markdown_editor_fuzzy_subsequence(item.shortcut, needle)
 }
 
 ///|

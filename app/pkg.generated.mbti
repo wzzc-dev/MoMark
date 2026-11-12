@@ -162,6 +162,8 @@ pub enum MarkdownEditorMsg {
   UpdateFormatPaletteQuery(String)
   ApplyFirstFormatPaletteAction
   ApplyFormatPaletteAction(String)
+  SetFontFamily(MarkdownEditorFontFamily)
+  SetWritingAppearance(String)
   CycleWritingAppearance
   OpenFind
   OpenFindReplace

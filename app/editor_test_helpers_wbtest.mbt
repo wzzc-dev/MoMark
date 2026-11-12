@@ -713,6 +713,7 @@ fn MarkdownEditorApp::editor_content_x(
   )
   let sidebars_width = markdown_editor_sidebar_total_width(
     show_source, show_outline, show_files, show_info,
+    sidebar_width=self.sidebar_width,
   )
   let mut gaps = 0
   if show_files {
@@ -736,8 +737,8 @@ fn MarkdownEditorApp::editor_content_x(
   } else {
     appearance.page_width
   }
-  let left_fixed = if show_files {
-    markdown_editor_file_sidebar_width() + metrics.island_gap
+  let left_fixed = if show_files || show_outline {
+    self.sidebar_width + metrics.island_gap
   } else {
     0.0
   }

@@ -262,11 +262,70 @@ fn MarkdownEditorApp::markdown_settings_panel(
       .font(theme.typography.caption)
       .foreground(tokens.text_muted),
       markdown_shell_choice(
-        self.appearance_label(),
-        false,
-        CycleWritingAppearance,
+        "Paper",
+        self.appearance_label() == "Paper",
+        SetWritingAppearance("Paper"),
         metrics,
-        width=132.0,
+      ),
+      markdown_shell_choice(
+        "Warm",
+        self.appearance_label() == "Warm",
+        SetWritingAppearance("Warm"),
+        metrics,
+      ),
+      markdown_shell_choice(
+        "Wide",
+        self.appearance_label() == "Wide",
+        SetWritingAppearance("Wide"),
+        metrics,
+      ),
+    ],
+    spacing=theme.spacing_scale.xs,
+    align=@views.CrossAlign::Center,
+  )
+  let font_row = row(
+    [
+      text("Font", width=96.0, height=metrics.control_height)
+      .font(theme.typography.caption)
+      .foreground(tokens.text_muted),
+      markdown_shell_choice(
+        "Sans",
+        self.font_family is SansFont,
+        SetFontFamily(SansFont),
+        metrics,
+      ),
+      markdown_shell_choice(
+        "Serif",
+        self.font_family is SerifFont,
+        SetFontFamily(SerifFont),
+        metrics,
+      ),
+      markdown_shell_choice(
+        "Mono",
+        self.font_family is MonoFont,
+        SetFontFamily(MonoFont),
+        metrics,
+      ),
+    ],
+    spacing=theme.spacing_scale.xs,
+    align=@views.CrossAlign::Center,
+  )
+  let sidebar_row = row(
+    [
+      text("Sidebar", width=96.0, height=metrics.control_height)
+      .font(theme.typography.caption)
+      .foreground(tokens.text_muted),
+      markdown_shell_choice(
+        "Files",
+        self.sidebar_panel is FilesPanel && self.file_sidebar_visible,
+        SetSidebarPanel(FilesPanel),
+        metrics,
+      ),
+      markdown_shell_choice(
+        "Outline",
+        self.sidebar_panel is OutlinePanel && self.outline_visible,
+        SetSidebarPanel(OutlinePanel),
+        metrics,
       ),
     ],
     spacing=theme.spacing_scale.xs,
@@ -294,6 +353,8 @@ fn MarkdownEditorApp::markdown_settings_panel(
       layout_row,
       scheme_row,
       look_row,
+      font_row,
+      sidebar_row,
     ],
     spacing=theme.spacing_scale.md,
     align=@views.CrossAlign::Start,
@@ -307,7 +368,7 @@ fn MarkdownEditorApp::markdown_settings_panel(
       left=theme.spacing_scale.lg,
     ),
     width=560.0,
-    height=260.0,
+    height=360.0,
     variant=@views.ContainerVariant::Overlay,
     background=tokens.card,
     border=Some(
@@ -319,4 +380,32 @@ fn MarkdownEditorApp::markdown_settings_panel(
     corner_radius=metrics.island_radius,
     padding=0.0,
   ).shadow(theme.shadow_scale.lg)
+}
+
+///|
+/// Pin a floating bar/card below the top bar and center it horizontally
+/// without letting its intrinsic size push the shell layout. Stack children
+/// are stretched to the window, so a column with a fixed top spacer, a
+/// centering row, and a flex bottom spacer is an exact overlay.
+fn markdown_top_overlay(
+  child : @moui.View[MarkdownEditorMsg],
+  top~ : Double,
+) -> @moui.View[MarkdownEditorMsg] {
+  @views.column(
+    [
+      @views.spacer(min_length=top, weight=0.0),
+      @views.row(
+        [
+          @views.spacer(min_length=0.0, weight=1.0),
+          child,
+          @views.spacer(min_length=0.0, weight=1.0),
+        ],
+        spacing=0.0,
+        align=@views.CrossAlign::Center,
+      ),
+      @views.spacer(min_length=0.0, weight=1.0),
+    ],
+    spacing=0.0,
+    align=@views.CrossAlign::Stretch,
+  )
 }

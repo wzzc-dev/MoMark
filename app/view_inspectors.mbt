@@ -142,8 +142,9 @@ fn files_inspector(
   session : MarkdownDocumentSession,
   theme : @moui.Theme,
   height~ : Double,
+  width~ : Double = markdown_editor_file_sidebar_width(),
 ) -> @moui.View[MarkdownEditorMsg] {
-  let content_width = markdown_editor_file_sidebar_content_width()
+  let content_width = markdown_editor_max_double(0.0, width - 28.0)
   let recent_paths = app.recent_document_paths
   let file_filter_query = app.file_filter_query
   let filtered_recent_paths = markdown_editor_filter_file_paths(
@@ -328,6 +329,7 @@ fn files_inspector(
       scroll_view(
         file_sidebar_recent_rows(
           filtered_recent_paths,
+          width=content_width,
           current_path=app.document_path,
           theme,
         ),
@@ -378,12 +380,12 @@ fn files_inspector(
     ).on_secondary_tap(
       ContextMenuTargeted(MarkdownEditorContextTarget::ExplorerBackground),
     ),
-    width=markdown_editor_file_sidebar_width(),
+    width~,
     height~,
   )
   container(
     pinned_content,
-    width=markdown_editor_file_sidebar_width(),
+    width~,
     height~,
     variant=@views.ContainerVariant::Base,
     background=theme.palette.surface,
@@ -481,7 +483,13 @@ fn document_info_inspector(
     height~,
     variant=@views.ContainerVariant::Base,
     background=theme.palette.surface,
-    corner_radius=theme.radius_scale.sm,
+    border=Some(
+      @core.BorderStyle::new(
+        brush=@graphics.Brush::solid(theme.palette.outline),
+        width=1.0,
+      ),
+    ),
+    corner_radius=theme.radius_scale.lg,
     padding=0.0,
   )
 }
@@ -547,11 +555,14 @@ fn file_sidebar_recent_rows(
   paths : Array[String],
   current_path~ : String,
   theme : @moui.Theme,
+  width~ : Double = markdown_editor_file_sidebar_content_width(),
 ) -> @moui.View[MarkdownEditorMsg] {
   let rows : Array[@moui.View[MarkdownEditorMsg]] = []
   for path in paths {
     rows.push(
-      file_sidebar_recent_row(path, current=path == current_path),
+      file_sidebar_recent_row(
+        path, current=path == current_path, width~,
+      ),
     )
   }
   column(rows, spacing=theme.spacing_scale.xs, align=@views.CrossAlign::Start)
@@ -561,6 +572,7 @@ fn file_sidebar_recent_rows(
 fn file_sidebar_recent_row(
   path : String,
   current~ : Bool,
+  width~ : Double = markdown_editor_file_sidebar_content_width(),
 ) -> @moui.View[MarkdownEditorMsg] {
   button(
     markdown_editor_file_sidebar_recent_label(path),
@@ -570,7 +582,7 @@ fn file_sidebar_recent_row(
     } else {
       @views.ButtonVariant::Ghost
     },
-    width=markdown_editor_file_sidebar_content_width(),
+    width~,
     height=30.0,
   )
   // Recent rows are files the tree may not contain; the menu's Open action
@@ -640,7 +652,13 @@ fn source_inspector(
     height~,
     variant=@views.ContainerVariant::Base,
     background=theme.palette.surface,
-    corner_radius=theme.radius_scale.sm,
+    border=Some(
+      @core.BorderStyle::new(
+        brush=@graphics.Brush::solid(theme.palette.outline),
+        width=1.0,
+      ),
+    ),
+    corner_radius=theme.radius_scale.lg,
     padding=0.0,
   )
 }
@@ -652,7 +670,9 @@ fn outline_inspector(
   selection : MarkdownEditorSelection,
   theme : @moui.Theme,
   height~ : Double,
+  width~ : Double = markdown_editor_outline_inspector_width(),
 ) -> @moui.View[MarkdownEditorMsg] {
+  let content_width = markdown_editor_max_double(0.0, width - 28.0)
   let visible_outline = markdown_editor_folded_outline(
     session.outline,
     app.folded_headings,
@@ -664,7 +684,7 @@ fn outline_inspector(
   let content = if visible_outline.length() == 0 {
     text(
       "No headings",
-      width=markdown_editor_outline_content_width(),
+      width=content_width,
       height=28.0,
     )
     .font(theme.typography.caption)
@@ -672,7 +692,7 @@ fn outline_inspector(
   } else {
     scroll_view(
       outline_rows(app, session.outline, visible_outline, active_index, theme),
-      width=markdown_editor_outline_content_width(),
+      width=content_width,
       height=markdown_editor_max_double(0.0, height - 52.0),
     )
   }
@@ -682,7 +702,7 @@ fn outline_inspector(
         [
           text(
             "Outline",
-            width=markdown_editor_outline_content_width(),
+            width=content_width,
             height=24.0,
           )
           .font(theme.typography.caption)
@@ -697,11 +717,11 @@ fn outline_inspector(
       bottom=theme.spacing_scale.md,
       left=theme.spacing_scale.sm,
     ),
-    width=markdown_editor_outline_inspector_width(),
+    width~,
     height~,
     variant=@views.ContainerVariant::Base,
     background=theme.palette.surface,
-    corner_radius=0.0,
+    corner_radius=theme.radius_scale.lg,
     padding=0.0,
   )
 }

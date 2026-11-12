@@ -319,6 +319,8 @@ pub enum MarkdownEditorMsg {
   UpdateFormatPaletteQuery(String)
   ApplyFirstFormatPaletteAction
   ApplyFormatPaletteAction(String)
+  SetFontFamily(MarkdownEditorFontFamily)
+  SetWritingAppearance(String)
   CycleWritingAppearance
   OpenFind
   OpenFindReplace
@@ -542,7 +544,7 @@ fn MarkdownEditorApp::update_in_place(
       self.follow_system_scheme = false
     }
     SetFollowSystemScheme(follow) => self.follow_system_scheme = follow
-    OpenSettings => self.settings_visible = true
+    OpenSettings => self.settings_visible = !self.settings_visible
     CloseSettings => self.settings_visible = false
     ToggleFind => self.toggle_find()
     ToggleFocusMode => self.toggle_focus_mode()
@@ -552,6 +554,12 @@ fn MarkdownEditorApp::update_in_place(
     UpdateFormatPaletteQuery(value) => self.format_palette_query = value
     ApplyFirstFormatPaletteAction => self.apply_first_format_palette_action()
     ApplyFormatPaletteAction(action) => self.apply_format_palette_action(action)
+    SetFontFamily(family) => self.font_family = family
+    SetWritingAppearance(label) => self.set_writing_appearance(match label {
+      "Warm" => WarmAppearance
+      "Wide" => WideAppearance
+      _ => PaperAppearance
+    })
     CycleWritingAppearance => self.cycle_writing_appearance()
     OpenFind => self.open_find()
     OpenFindReplace => self.open_find()
@@ -725,6 +733,8 @@ fn MarkdownEditorApp::update_with_services(
     | ToggleFocusMode
     | ToggleTypewriterMode
     | ToggleZenMode
+    | SetFontFamily(_)
+    | SetWritingAppearance(_)
     | CycleWritingAppearance
     | ToggleSourcePreview => {
       self.update_in_place(message)

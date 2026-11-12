@@ -29,6 +29,7 @@ fn MarkdownEditorApp::editor_scroll_max_offset(
     self.document_info_visible,
     appearance,
     viewport_width~,
+    sidebar_width=self.sidebar_width,
   )
   let content_height = markdown_editor_max_double(
     viewport_height,

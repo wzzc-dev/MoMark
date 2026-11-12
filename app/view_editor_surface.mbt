@@ -429,16 +429,19 @@ fn markdown_editor_sidebar_total_width(
   show_outline : Bool,
   show_files : Bool,
   show_info : Bool,
+  sidebar_width~ : Double = markdown_editor_file_sidebar_width(),
 ) -> Double {
   let mut width = 0.0
-  if show_files {
-    width = width + markdown_editor_file_sidebar_width()
+  // Files and outline share one left card; showing both puts the outline on
+  // the right at its usual inspector width.
+  if show_files || show_outline {
+    width = width + sidebar_width
+  }
+  if show_files && show_outline {
+    width = width + markdown_editor_outline_inspector_width()
   }
   if show_info {
     width = width + markdown_editor_info_inspector_width()
-  }
-  if show_outline {
-    width = width + markdown_editor_outline_inspector_width()
   }
   if show_source {
     width = width + markdown_editor_source_inspector_width()
@@ -454,12 +457,13 @@ fn markdown_editor_primary_editor_width_for_viewport(
   show_info : Bool,
   appearance : MarkdownEditorAppearanceSpec,
   viewport_width~ : Double,
+  sidebar_width~ : Double = markdown_editor_file_sidebar_width(),
 ) -> Double {
   let preferred = markdown_editor_primary_editor_width(
     show_source, show_outline, show_files, show_info, appearance,
   )
   let sidebars_width = markdown_editor_sidebar_total_width(
-    show_source, show_outline, show_files, show_info,
+    show_source, show_outline, show_files, show_info, sidebar_width~,
   )
   let available = markdown_editor_max_double(
     0.0,
@@ -580,11 +584,12 @@ fn editor_source_layout(
   viewport_width~ : Double = 1120.0,
   viewport_height~ : Double = 520.0,
   card_gap~ : Double = 0.0,
+  sidebar_width~ : Double = markdown_editor_file_sidebar_width(),
   page_shadow? : @graphics.ShadowStyle,
   page_radius~ : Double = 4.0,
 ) -> @moui.View[MarkdownEditorMsg] {
   let sidebars_width = markdown_editor_sidebar_total_width(
-    show_source, show_outline, show_files, show_info,
+    show_source, show_outline, show_files, show_info, sidebar_width~,
   )
   let mut card_gaps = 0
   if show_files {
@@ -709,7 +714,9 @@ fn editor_source_layout(
   let side_children : Array[@moui.View[MarkdownEditorMsg]] = []
   if show_files {
     side_children.push(
-      files_inspector(app, session, theme, height=viewport_height),
+      files_inspector(
+        app, session, theme, height=viewport_height, width=sidebar_width,
+      ),
     )
     side_children.push(spacer(min_length=card_gap, weight=0.0))
   }
@@ -725,7 +732,14 @@ fn editor_source_layout(
   if show_outline {
     side_children.push(spacer(min_length=card_gap, weight=0.0))
     side_children.push(
-      outline_inspector(app, session, selection, theme, height=viewport_height),
+      outline_inspector(
+        app, session, selection, theme, height=viewport_height,
+        width=if show_files {
+          markdown_editor_outline_inspector_width()
+        } else {
+          sidebar_width
+        },
+      ),
     )
   }
   if show_source {

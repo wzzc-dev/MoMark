@@ -164,7 +164,7 @@ test "markdown editor toggles quick format palette from action" {
   let commands = app.runtime(width=980.0, height=640.0).draw_commands()
   assert_true(
     commands.any(command => {
-      command is @core.DrawCommand::DrawText({ text: "Quick Format", .. })
+      command is @core.DrawCommand::DrawText({ text: "Commands", .. })
     }),
   )
   assert_true(
