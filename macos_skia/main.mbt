@@ -29,6 +29,12 @@ async fn main {
     initial_document_path=initial_document_from_args(),
   )
   let menus = @momark.application_menus()
+  let window_background = if @macos_backend.macos_system_theme()
+    is @core.ColorScheme::Dark {
+    @core.Color::rgba(r=0.090, g=0.094, b=0.106)
+  } else {
+    @core.Color::rgba(r=0.949, g=0.953, b=0.961)
+  }
   let window_task : async () -> Unit = async fn() {
     @apphost.run_app("MoMark", runtime)
     .render_all(
@@ -46,6 +52,7 @@ async fn main {
           // up first and fill the document in afterwards; the cost is a brief
           // uninitialised surface, which the first frame overwrites.
           show_after_first_present=false,
+          window_background=Some(window_background),
           on_ready=Some(
             @macos_backend.application_menu_on_ready(menus, runtime),
           ),
