@@ -714,9 +714,17 @@ fn MarkdownEditorApp::editor_content_x(
     0.0,
     window_width - metrics.island_margin * 2.0,
   )
+  let panel_anim = self.panel_anim_fraction()
+  let animated_sidebar_width = self.sidebar_width * panel_anim
+  let show_files = show_files || (self.panel_anim_enabled &&
+    self.sidebar_panel is FilesPanel &&
+    self.panel_anim_progress > 0.0)
+  let show_outline = show_outline || (self.panel_anim_enabled &&
+    self.sidebar_panel is OutlinePanel &&
+    self.panel_anim_progress > 0.0)
   let sidebars_width = markdown_editor_sidebar_total_width(
     show_source, show_outline, show_files, show_info,
-    sidebar_width=self.sidebar_width,
+    sidebar_width=animated_sidebar_width,
   )
   let mut gaps = 0
   if show_files {
@@ -741,7 +749,7 @@ fn MarkdownEditorApp::editor_content_x(
     appearance.page_width
   }
   let left_fixed = if show_files || show_outline {
-    self.sidebar_width + metrics.island_gap
+    animated_sidebar_width + metrics.island_gap
   } else {
     0.0
   }

@@ -56,6 +56,12 @@ pub struct MarkdownEditorApp {
   mut editor_zoom : Double
   // 0..12 frames for the 150ms overlay entrance; 12 means settled.
   mut overlay_anim_frame : Int32
+  // Sidebar panel width/opacity transition: 0 collapsed, 1 expanded. The
+  // logical visible booleans flip immediately; progress keeps the card
+  // rendered while it animates out.
+  mut panel_anim_progress : Double
+  mut panel_anim_target : Double
+  mut panel_anim_enabled : Bool
   mut focus_mode_enabled : Bool
   mut typewriter_mode_enabled : Bool
   mut zen_mode_enabled : Bool
@@ -342,6 +348,7 @@ pub enum MarkdownEditorMsg {
   ZoomOut
   ResetZoom
   OverlayAnimTick
+  PanelAnimTick
   ResolvePendingConfirm(MarkdownEditorConfirmResolution)
   ApplyEditorTransaction(MarkdownEditTransaction)
   UpdateFindQuery(String)
@@ -426,6 +433,9 @@ pub fn MarkdownEditorApp::new() -> MarkdownEditorApp {
     caret_blink_visible: true,
     editor_zoom: 1.0,
     overlay_anim_frame: 12,
+    panel_anim_progress: 0.0,
+    panel_anim_target: 0.0,
+    panel_anim_enabled: false,
     focus_mode_enabled: false,
     typewriter_mode_enabled: false,
     zen_mode_enabled: false,
@@ -598,6 +608,7 @@ fn MarkdownEditorApp::update_in_place(
       if self.overlay_anim_frame < 12 {
         self.overlay_anim_frame = self.overlay_anim_frame + 1
       }
+    PanelAnimTick => self.advance_panel_anim()
     ResolvePendingConfirm(resolution) =>
       self.resolve_pending_confirm(resolution)
     ApplyEditorTransaction(transaction) =>
@@ -795,6 +806,16 @@ fn MarkdownEditorApp::subscriptions(
           ),
         )
       }
+      if self.panel_anim_progress != self.panel_anim_target {
+        subscriptions.push(
+          source.subscription(
+            interval_ms=16.0,
+            key="markdown-editor:panel-anim",
+            label="Sidebar panel transition",
+            map=_ => PanelAnimTick,
+          ),
+        )
+      }
       if self.overlay_anim_frame < 12 {
         subscriptions.push(
           source.subscription(
@@ -860,6 +881,7 @@ pub fn MarkdownEditorApp::program(
 ) -> @moui.Program[MarkdownEditorApp, MarkdownEditorMsg] {
   let services = environment.services()
   let timer_source = environment.timer()
+  self.panel_anim_enabled = timer_source is Some(_)
   @moui.Program::new_with_environment(
     init=() => {
       (

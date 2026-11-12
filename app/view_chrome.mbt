@@ -27,11 +27,15 @@ fn MarkdownEditorApp::root(
   let appearance = self.appearance_spec(dark=dark)
   let editor_font = markdown_editor_appearance_font(appearance)
   let zen = self.zen_mode_enabled
-  // Both shells use the same inline panel layout in M1: the page keeps its
-  // full width and panels push it instead of covering text. The minimal
-  // floating drawer arrives with the M2 motion pass.
-  let show_files = !zen && self.file_sidebar_visible
-  let show_outline = !zen && self.outline_visible
+  let panel_anim = self.panel_anim_fraction()
+  let panel_animating = self.panel_anim_enabled &&
+    self.panel_anim_progress > 0.0
+  let show_files = !zen &&
+    (self.file_sidebar_visible ||
+      (self.sidebar_panel is FilesPanel && panel_animating))
+  let show_outline = !zen &&
+    (self.outline_visible ||
+      (self.sidebar_panel is OutlinePanel && panel_animating))
   let show_source = !zen && self.source_preview_visible
   let show_info = !zen && self.document_info_visible
   let content_width = markdown_editor_max_double(
@@ -80,6 +84,7 @@ fn MarkdownEditorApp::root(
       viewport_height~,
       card_gap=metrics.island_gap,
       sidebar_width=self.sidebar_width,
+      sidebar_anim=panel_anim,
       page_shadow=tokens.page_shadow,
       page_radius=metrics.island_radius,
     )

@@ -467,7 +467,8 @@ fn markdown_editor_primary_editor_width_for_viewport(
     show_source, show_outline, show_files, show_info, appearance,
   )
   let sidebars_width = markdown_editor_sidebar_total_width(
-    show_source, show_outline, show_files, show_info, sidebar_width~,
+    show_source, show_outline, show_files, show_info,
+    sidebar_width~,
   )
   let available = markdown_editor_max_double(
     0.0,
@@ -589,6 +590,7 @@ fn editor_source_layout(
   viewport_height~ : Double = 520.0,
   card_gap~ : Double = 0.0,
   sidebar_width~ : Double = markdown_editor_file_sidebar_width(),
+  sidebar_anim~ : Double = 1.0,
   page_shadow? : @graphics.ShadowStyle,
   page_radius~ : Double = 4.0,
 ) -> @moui.View[MarkdownEditorMsg] {
@@ -598,8 +600,10 @@ fn editor_source_layout(
     markdown_editor_tab_strip_height()
   }
   let body_height = markdown_editor_max_double(0.0, viewport_height - tab_height)
+  let animated_sidebar_width = sidebar_width * sidebar_anim
   let sidebars_width = markdown_editor_sidebar_total_width(
-    show_source, show_outline, show_files, show_info, sidebar_width~,
+    show_source, show_outline, show_files, show_info,
+    sidebar_width=animated_sidebar_width,
   )
   let mut card_gaps = 0
   if show_files {
@@ -746,8 +750,9 @@ fn editor_source_layout(
   if show_files {
     side_children.push(
       files_inspector(
-        app, session, theme, height=viewport_height, width=sidebar_width,
-      ),
+        app, session, theme, height=viewport_height,
+        width=animated_sidebar_width,
+      ).clip().opacity(sidebar_anim),
     )
     side_children.push(spacer(min_length=card_gap, weight=0.0))
   }
@@ -768,9 +773,9 @@ fn editor_source_layout(
         width=if show_files {
           markdown_editor_outline_inspector_width()
         } else {
-          sidebar_width
+          animated_sidebar_width
         },
-      ),
+      ).clip().opacity(sidebar_anim),
     )
   }
   if show_source {

@@ -11,7 +11,7 @@ fn MarkdownEditorApp::toggle_source_mode(self : MarkdownEditorApp) -> Unit {
 ///|
 fn MarkdownEditorApp::toggle_outline(self : MarkdownEditorApp) -> Unit {
   if self.sidebar_panel is OutlinePanel && self.outline_visible {
-    self.outline_visible = false
+    self.hide_sidebar_panel()
   } else {
     self.set_sidebar_panel(OutlinePanel)
   }
@@ -20,7 +20,7 @@ fn MarkdownEditorApp::toggle_outline(self : MarkdownEditorApp) -> Unit {
 ///|
 fn MarkdownEditorApp::toggle_file_sidebar(self : MarkdownEditorApp) -> Unit {
   if self.sidebar_panel is FilesPanel && self.file_sidebar_visible {
-    self.file_sidebar_visible = false
+    self.hide_sidebar_panel()
   } else {
     self.set_sidebar_panel(FilesPanel)
   }
@@ -34,6 +34,7 @@ fn MarkdownEditorApp::set_sidebar_panel(
   self : MarkdownEditorApp,
   panel : MarkdownSidebarPanel,
 ) -> Unit {
+  let was_visible = self.sidebar_visible()
   self.sidebar_panel = panel
   match panel {
     FilesPanel => {
@@ -44,6 +45,49 @@ fn MarkdownEditorApp::set_sidebar_panel(
       self.outline_visible = true
       self.file_sidebar_visible = false
     }
+  }
+  self.panel_anim_target = 1.0
+  if !was_visible && self.panel_anim_enabled {
+    self.panel_anim_progress = 0.0
+  } else {
+    self.panel_anim_progress = 1.0
+  }
+}
+
+///|
+fn MarkdownEditorApp::hide_sidebar_panel(self : MarkdownEditorApp) -> Unit {
+  self.file_sidebar_visible = false
+  self.outline_visible = false
+  self.panel_anim_target = 0.0
+  if !self.panel_anim_enabled {
+    self.panel_anim_progress = 0.0
+  }
+}
+
+///|
+fn MarkdownEditorApp::advance_panel_anim(self : MarkdownEditorApp) -> Unit {
+  let step = 1.0 / 12.0
+  if self.panel_anim_progress < self.panel_anim_target {
+    self.panel_anim_progress = markdown_editor_min_double(
+      self.panel_anim_target,
+      self.panel_anim_progress + step,
+    )
+  } else if self.panel_anim_progress > self.panel_anim_target {
+    self.panel_anim_progress = markdown_editor_max_double(
+      self.panel_anim_target,
+      self.panel_anim_progress - step,
+    )
+  }
+}
+
+///|
+fn MarkdownEditorApp::panel_anim_fraction(self : MarkdownEditorApp) -> Double {
+  if self.panel_anim_enabled {
+    self.panel_anim_progress
+  } else if self.file_sidebar_visible || self.outline_visible {
+    1.0
+  } else {
+    0.0
   }
 }
 

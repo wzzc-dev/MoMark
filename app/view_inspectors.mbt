@@ -337,10 +337,13 @@ fn files_inspector(
             corner_radius=6.0,
             padding=0.0,
           ),
-          text(
+          button(
             markdown_editor_file_name(working_directory),
+            on_click=ToggleFileTree,
+            variant=@views.ButtonVariant::Ghost,
             width=content_width - 62.0,
             height=24.0,
+            label_align=@text.TextAlign::TextStart,
           )
           .font(theme.typography.label)
           .foreground(theme.palette.foreground),

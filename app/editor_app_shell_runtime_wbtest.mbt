@@ -200,3 +200,30 @@ test "find regex compilation is cached per query" {
   assert_true(markdown_editor_compile_regex("a+", true) is Some(_))
   inspect(markdown_editor_regex_cache.val.length(), content="2")
 }
+
+///|
+test "sidebar panel animates open and closed over twelve ticks" {
+  let app = MarkdownEditorApp::new()
+  app.panel_anim_enabled = true
+  app.set_sidebar_panel(FilesPanel)
+  inspect(app.panel_anim_progress, content="0")
+  for _ in 0..<6 {
+    app.update_in_place(PanelAnimTick)
+  }
+  let mid = app.panel_anim_progress
+  assert_true(mid > 0.0 && mid < 1.0)
+  let mid_x = app.editor_content_x(1120.0)
+  for _ in 0..<6 {
+    app.update_in_place(PanelAnimTick)
+  }
+  inspect(app.panel_anim_progress, content="1")
+  let full_x = app.editor_content_x(1120.0)
+  assert_true(mid_x < full_x)
+  app.update_in_place(ToggleFileSidebar)
+  assert_false(app.file_sidebar_visible)
+  inspect(app.panel_anim_progress, content="1")
+  for _ in 0..<12 {
+    app.update_in_place(PanelAnimTick)
+  }
+  inspect(app.panel_anim_progress, content="0")
+}

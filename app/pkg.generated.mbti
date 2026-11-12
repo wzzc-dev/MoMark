@@ -40,6 +40,9 @@ pub struct MarkdownEditorApp {
   mut caret_blink_visible : Bool
   mut editor_zoom : Double
   mut overlay_anim_frame : Int32
+  mut panel_anim_progress : Double
+  mut panel_anim_target : Double
+  mut panel_anim_enabled : Bool
   mut focus_mode_enabled : Bool
   mut typewriter_mode_enabled : Bool
   mut zen_mode_enabled : Bool
@@ -181,6 +184,7 @@ pub enum MarkdownEditorMsg {
   ZoomOut
   ResetZoom
   OverlayAnimTick
+  PanelAnimTick
   ResolvePendingConfirm(MarkdownEditorConfirmResolution)
   ApplyEditorTransaction(@moui_richtext.MarkdownEditTransaction)
   UpdateFindQuery(String)
