@@ -642,8 +642,10 @@ fn editor_source_layout(
       on_command_click=Some(offset => CommandClickAt(offset)),
       accepts_tab_input=true,
       scroll_request~,
-      on_scroll_settled=Some(y => EditorScrollSettled(y)),
-      transient_scroll=true,
+      scroll_mode=Element(
+        MarkdownScrollGlide::settled(0.0),
+        Some(y => EditorScrollSettled(y)),
+      ),
       visible_viewport_height=viewport_height,
       visible_overscan=markdown_editor_visible_overscan(viewport_height),
     )
