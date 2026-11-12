@@ -1,0 +1,19 @@
+// MoMark workspace: the app itself plus the vendored MoUI/window sources.
+//
+// Workspace members override the registry versions declared in `moon.mod`, so
+// `moon build`/`moon test` run against `vendor/MoUI` (including its window
+// submodule) instead of the published packages. Run workspace commands from
+// this repository root.
+members = [
+  ".",
+  "./vendor/MoUI/moui",
+  "./vendor/MoUI/moui_richtext",
+  "./vendor/MoUI/moui_skia",
+  "./vendor/MoUI/moui_skia_renderer",
+  "./vendor/MoUI/moui_wgpu_renderer",
+  "./vendor/MoUI/moui_sun",
+  "./vendor/MoUI/moui_sun_renderer",
+  "./vendor/MoUI/moui_text_providers",
+  "./vendor/MoUI/window/modules/window",
+  "./vendor/MoUI/window/modules/windowing",
+]
