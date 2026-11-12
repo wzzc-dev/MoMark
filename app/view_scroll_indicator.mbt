@@ -98,6 +98,11 @@ impl @core.ViewNode for MarkdownEditorScrollIndicator with fn layout(self, ctx) 
 }
 
 ///|
+/// Last painted thumb offset and the time it last moved, for the idle fade.
+/// The scrollbar is a single-window overlay, so one slot is enough.
+let markdown_scrollbar_motion : Ref[(Double, Double)] = Ref((0.0, 0.0))
+
+///|
 impl @core.ViewNode for MarkdownEditorScrollIndicator with fn paint(self, ctx) {
   // The editor paints before this sibling (it is earlier in the stack) and
   // publishes the frame-local scroll snapshot. While that snapshot is
@@ -113,7 +118,20 @@ impl @core.ViewNode for MarkdownEditorScrollIndicator with fn paint(self, ctx) {
       scale=ctx.environment.scale_factor,
     )
   }
-  let animating = live || self.glide.is_animating(ctx.now_ms)
+  let now = ctx.now_ms
+  let (last_offset, last_motion) = markdown_scrollbar_motion.val
+  if offset_y != last_offset {
+    markdown_scrollbar_motion.val = (offset_y, now)
+  }
+  let idle_ms = now - last_motion
+  let fade = if idle_ms <= 600.0 {
+    1.0
+  } else {
+    markdown_editor_max_double(0.0, 1.0 - (idle_ms - 600.0) / 600.0)
+  }
+  let animating = live ||
+    self.glide.is_animating(now) ||
+    (offset_y > 0.0 && idle_ms < 1200.0)
   let commands : Array[@core.DrawCommand] = []
   // Hide entirely while at the top (no content scrolled past); the glide
   // still reports animating so a scroll back to the top keeps drawing.
@@ -142,11 +160,11 @@ impl @core.ViewNode for MarkdownEditorScrollIndicator with fn paint(self, ctx) {
       max_scroll
     let thumb_y = track.origin.y + scroll_fraction * (viewport - thumb_height)
     // Fade in from the top so the page edge stays clean when unscrolled.
-    let indicator_alpha = if offset_y > 40.0 {
+    let indicator_alpha = (if offset_y > 40.0 {
       0.65
     } else {
       offset_y / 40.0 * 0.65
-    }
+    }) * fade
     commands.push(
       @core.DrawCommand::FillRect(track, self.muted.multiply_alpha(0.28)),
     )
