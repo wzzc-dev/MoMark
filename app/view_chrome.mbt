@@ -5,7 +5,9 @@ fn MarkdownEditorApp::root(
   viewport_height~ : Double = 520.0,
 ) -> @moui.View[MarkdownEditorMsg] {
   let theme = self.chrome_theme()
-  let session = self.document_session
+  let session = self.document_session.with_rich_text_palette(
+    Some(markdown_editor_rich_text_palette(self.dark_mode_enabled)),
+  )
   let document = session.source()
   let appearance = self.appearance_spec()
   let editor_font = markdown_editor_appearance_font(appearance)

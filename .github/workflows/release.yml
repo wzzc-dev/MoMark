@@ -3,11 +3,11 @@ name: Release
 # 发布 MoMark（Markdown 编辑器）三平台二进制。
 # 触发：打 `v*` tag（正式发布）或手动 workflow_dispatch（滚动 prerelease 快照）。
 #
-# MoMark 的应用代码跟随 MoUI main 演进，快于 mooncakes 已发布版本，
-# 单独仓库构建会因注册表版本过旧而编译失败。与本地开发（md_editor 根
-# workspace 用 vendor/MoUI 成员覆盖发布版）一致，CI 把 MoUI（main 分支）
-# 与 MoMark 放进同一个合成 workspace 从源码构建。MoUI main 的破坏性变更
-# 会直接反映到发布构建，与本地开发行为相同。
+# MoMark 的应用代码跟随 MoUI main 演进，快于 mooncakes 已发布版本。
+# `vendor/MoUI` 是 git submodule（含 window 子模块），仓库根的 `moon.work`
+# 把这些成员和 MoMark 放进同一个 workspace；member 源码覆盖 `moon.mod`
+# 里的 registry 版本。CI 与本地开发因此使用同一套依赖来源，MoUI main 的
+# 破坏性变更会直接反映到发布构建。
 #
 # 平台构建差异：
 # - macOS arm64：build 后用 bundle.sh 把可执行文件包进带 Info.plist 的
@@ -54,37 +54,12 @@ jobs:
       run:
         shell: bash
     steps:
-      - name: Checkout MoMark
+      - name: Checkout MoMark (with vendored MoUI and window)
         uses: actions/checkout@v4
         with:
-          path: momark
-
-      - name: Checkout MoUI (main)
-        uses: actions/checkout@v4
-        with:
-          repository: wzzc-dev/MoUI
-          ref: main
-          path: MoUI
-          # window 模块以 submodule 引入（公开仓库，匿名可拉）；合成
-          # workspace 引用 window/windowing 成员，必须先递归初始化。
+          # vendor/MoUI is a submodule; its window submodule is nested, so
+          # recursive initialization is required for the workspace members.
           submodules: recursive
-
-      - name: Compose build workspace
-        run: |
-          cat > moon.work <<'EOF'
-          members = [
-            "./MoUI/moui",
-            "./MoUI/moui_richtext",
-            "./MoUI/moui_skia",
-            "./MoUI/moui_skia_renderer",
-            "./MoUI/moui_wgpu_renderer",
-            "./MoUI/moui_sun",
-            "./MoUI/moui_sun_renderer",
-            "./MoUI/window/modules/window",
-            "./MoUI/window/modules/windowing",
-            "./momark",
-          ]
-          EOF
 
       # MoUI main 按它自己的 .moonbit-toolchain 开发与验证（三平台 CI 全绿），
       # 构建它的下游必须用同一版本：latest 工具链会在 Windows MSVC 的 C stub
@@ -93,7 +68,7 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          version="$(node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).moonc)' MoUI/.moonbit-toolchain)"
+          version="$(node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).moonc)' vendor/MoUI/.moonbit-toolchain)"
           echo "Installing MoonBit toolchain $version (pinned by MoUI)"
           curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s "$version"
           echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
@@ -102,7 +77,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $toolchain = Get-Content -LiteralPath "MoUI/.moonbit-toolchain" -Raw | ConvertFrom-Json
+          $toolchain = Get-Content -LiteralPath "vendor/MoUI/.moonbit-toolchain" -Raw | ConvertFrom-Json
           if ([string]::IsNullOrWhiteSpace($toolchain.moonc)) { throw "MoUI .moonbit-toolchain is missing a moonc version" }
           Write-Host "Installing MoonBit toolchain $($toolchain.moonc) (pinned by MoUI)"
           $env:MOONBIT_INSTALL_VERSION = $toolchain.moonc
@@ -131,11 +106,11 @@ jobs:
 
       - name: Build (native release, macOS)
         if: runner.os == 'macOS'
-        run: moon build momark/macos_skia --target native --release
+        run: moon build macos_skia --target native --release
 
       - name: Build (native release, Linux)
         if: runner.os == 'Linux'
-        run: moon build momark/linux_skia --target native --release
+        run: moon build linux_skia --target native --release
 
       # vcvarsall 提供 cl/link；moon build 必须与 vcvars 在同一个 cmd 进程里
       # 执行，导入的环境变量才能被 moon 驱动的编译器看见。
@@ -147,7 +122,7 @@ jobs:
           $vsPath = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
           if (-not $vsPath) { throw "Visual Studio C++ build tools were not found" }
           $vcvars = Join-Path $vsPath "VC\Auxiliary\Build\vcvarsall.bat"
-          cmd /c "call `"$vcvars`" x64 && moon build momark/windows_skia --target native --release"
+          cmd /c "call `"$vcvars`" x64 && moon build windows_skia --target native --release"
 
       - name: Resolve release tag
         run: |
@@ -160,8 +135,8 @@ jobs:
       - name: Package app bundle (macOS)
         if: runner.os == 'macOS'
         run: |
-          ./momark/bundle.sh
-          app="momark/dist/MoMark.app"
+          ./bundle.sh
+          app="dist/MoMark.app"
           test -x "$app/Contents/MacOS/MoMark" || {
             echo "bundle.sh did not produce $app/Contents/MacOS/MoMark" >&2
             exit 1

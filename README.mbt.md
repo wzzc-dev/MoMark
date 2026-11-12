@@ -27,19 +27,39 @@ former `examples/markdown_editor` app and the primary proof of the `@moui_richte
 
 ## Dependencies
 
+The published versions are declared in `moon.mod`:
+
 ```toml
 import {
-  "wzzc-dev/moui@0.2.0",
-  "wzzc-dev/moui_richtext@0.2.0",
-  "wzzc-dev/window@0.5.4-0.2.0",
-  "wzzc-dev/moui_skia_renderer@0.2.0",
-  "wzzc-dev/moui_wgpu_renderer@0.2.0",
+  "wzzc-dev/moui@0.6.1",
+  "wzzc-dev/moui_richtext@0.6.1",
+  "wzzc-dev/window@0.5.4-0.2.9",
+  "wzzc-dev/moui_skia_renderer@0.6.1",
+  "wzzc-dev/moui_wgpu_renderer@0.6.1",
+  "wzzc-dev/moui_text_providers@0.6.1",
 }
 ```
 
-`wzzc-dev/window` is resolved from mooncakes.io by default. To edit window
-source locally, clone the [MoUI](https://github.com/wzzc-dev/MoUI) repository
-and use its `scripts/window-dev-mode.sh` there.
+For development the repository vendors the current MoUI sources instead:
+
+- `vendor/MoUI` is a git submodule pointing at
+  [wzzc-dev/MoUI](https://github.com/wzzc-dev/MoUI) (`main`), including its
+  `window` submodule.
+- The root `moon.work` lists `vendor/MoUI`'s packages as workspace members.
+  Members override the registry versions, so `moon build` / `moon test` run
+  against the vendored source.
+- Workspace commands (including `moon test` and `moon run`) must be executed
+  from this repository root.
+
+Initialize or refresh the vendored source:
+
+```sh
+git submodule update --init --recursive
+# after upstream changes:
+git -C vendor/MoUI fetch origin
+git -C vendor/MoUI checkout <commit>
+git -C vendor/MoUI submodule update --init --recursive
+```
 
 ## Running
 
@@ -70,6 +90,16 @@ moon run linux_wgpu --target native
 
 ```sh
 moon test app --target native
+```
+
+The vendored framework packages have their own suites:
+
+```sh
+moon test vendor/MoUI/moui/core --target native
+moon test vendor/MoUI/moui/runtime --target native
+moon test vendor/MoUI/moui/views --target native
+moon test vendor/MoUI/moui_richtext --target native
+(cd vendor/MoUI/window && moon test --release)
 ```
 
 The app package ships an extensive runtime whitebox suite covering keyboard

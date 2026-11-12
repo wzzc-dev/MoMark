@@ -1,0 +1,4 @@
+[submodule "vendor/MoUI"]
+	path = vendor/MoUI
+	url = https://github.com/wzzc-dev/MoUI.git
+	branch = main
