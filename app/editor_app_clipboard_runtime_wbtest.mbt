@@ -8,7 +8,7 @@ test "markdown editor copy exports visual text without hidden markdown markers" 
       @core.PointerEvent::new(
         position=@geometry.Point::new(
           x=app.editor_content_x(980.0, inner_x=2.0),
-          y=84.0,
+          y=102.0,
         ),
         phase=@core.PointerPhase::Down,
       ),
@@ -40,7 +40,7 @@ test "markdown editor cut exports visual text and deletes source selection" {
       @core.PointerEvent::new(
         position=@geometry.Point::new(
           x=app.editor_content_x(980.0, inner_x=2.0),
-          y=84.0,
+          y=102.0,
         ),
         phase=@core.PointerPhase::Down,
       ),
@@ -82,7 +82,7 @@ test "markdown editor paste command continues list context" {
       @core.PointerEvent::new(
         position=@geometry.Point::new(
           x=app.editor_content_x(980.0, inner_x=2.0),
-          y=84.0,
+          y=102.0,
         ),
         phase=@core.PointerPhase::Down,
       ),
@@ -110,7 +110,7 @@ test "markdown editor runtime unicode paste participates in undo redo" {
       @core.PointerEvent::new(
         position=@geometry.Point::new(
           x=app.editor_content_x(980.0, inner_x=2.0),
-          y=84.0,
+          y=102.0,
         ),
         phase=@core.PointerPhase::Down,
       ),
@@ -146,7 +146,7 @@ test "markdown editor paste command links selected text with url" {
       @core.PointerEvent::new(
         position=@geometry.Point::new(
           x=app.editor_content_x(980.0, inner_x=2.0),
-          y=84.0,
+          y=102.0,
         ),
         phase=@core.PointerPhase::Down,
       ),
@@ -196,7 +196,7 @@ test "markdown editor paste command links selected text with email" {
       @core.PointerEvent::new(
         position=@geometry.Point::new(
           x=app.editor_content_x(980.0, inner_x=2.0),
-          y=84.0,
+          y=102.0,
         ),
         phase=@core.PointerPhase::Down,
       ),
@@ -243,7 +243,7 @@ test "markdown editor paste command inserts image from selected alt text" {
       @core.PointerEvent::new(
         position=@geometry.Point::new(
           x=app.editor_content_x(980.0, inner_x=2.0),
-          y=84.0,
+          y=102.0,
         ),
         phase=@core.PointerPhase::Down,
       ),
@@ -290,7 +290,7 @@ test "markdown editor runtime paste and typing complete autolinks" {
       @core.PointerEvent::new(
         position=@geometry.Point::new(
           x=app.editor_content_x(980.0, inner_x=2.0),
-          y=84.0,
+          y=102.0,
         ),
         phase=@core.PointerPhase::Down,
       ),

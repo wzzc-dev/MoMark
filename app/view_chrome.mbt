@@ -3,26 +3,48 @@ fn MarkdownEditorApp::root(
   self : MarkdownEditorApp,
   viewport_width~ : Double = 1120.0,
   viewport_height~ : Double = 520.0,
+  window_height? : Double,
+  dark? : Bool,
 ) -> @moui.View[MarkdownEditorMsg] {
-  let theme = self.chrome_theme()
-  let session = self.document_session.with_rich_text_palette(
-    Some(markdown_editor_rich_text_palette(self.dark_mode_enabled)),
+  let dark = match dark {
+    Some(value) => value
+    None => self.dark_mode_enabled
+  }
+  let scheme = if dark {
+    @core.ColorScheme::Dark
+  } else {
+    @core.ColorScheme::Light
+  }
+  let tokens = markdown_ui_tokens(scheme)
+  let theme = markdown_ui_theme(tokens)
+  let metrics = markdown_shell_metrics(
+    self.layout_mode,
+    sidebar_width=self.sidebar_width,
   )
-  let document = session.source()
-  let appearance = self.appearance_spec()
+  let session = self.document_session.with_rich_text_palette(
+    Some(tokens.rich_text),
+  )
+  let appearance = self.appearance_spec(dark=dark)
   let editor_font = markdown_editor_appearance_font(appearance)
   let zen = self.zen_mode_enabled
-  let show_source = if zen { false } else { self.source_preview_visible }
-  let show_outline = if zen { false } else { self.outline_visible }
-  let show_files = if zen { false } else { self.file_sidebar_visible }
-  let show_info = if zen { false } else { self.document_info_visible }
+  // Both shells use the same inline panel layout in M1: the page keeps its
+  // full width and panels push it instead of covering text. The minimal
+  // floating drawer arrives with the M2 motion pass.
+  let show_files = !zen && self.file_sidebar_visible
+  let show_outline = !zen && self.outline_visible
+  let show_source = !zen && self.source_preview_visible
+  let show_info = !zen && self.document_info_visible
+  let content_width = markdown_editor_max_double(
+    0.0,
+    viewport_width - metrics.island_margin * 2.0,
+  )
   let workspace_width = markdown_editor_workspace_width(
     show_source,
     show_outline,
     show_files,
     show_info,
     appearance,
-    viewport_width~,
+    viewport_width=content_width,
   )
   let target_bar = self.target_bar(theme)
   let selection = self.selection
@@ -34,7 +56,6 @@ fn MarkdownEditorApp::root(
   } else {
     PlainSelection
   }
-  let block_label = self.block_label
   let scroll_request = self.editor_scroll_request
   let children : Array[@moui.View[MarkdownEditorMsg]] = []
   if !zen && self.find_visible {
@@ -60,43 +81,80 @@ fn MarkdownEditorApp::root(
       scroll_request,
       (caret, selection) => SetSelection(caret, selection),
       offset => ToggleTaskAt(offset),
-      viewport_width~,
+      viewport_width=content_width,
       viewport_height~,
-    ),
+      page_shadow=tokens.page_shadow,
+      page_radius=metrics.island_radius,
+    )
+    .expanded(),
   )
-  let workspace = column(
+  let workspace = @views.column(
     children,
     spacing=theme.spacing_scale.sm,
     align=@views.CrossAlign::Stretch,
   )
-  // The chrome (title bar) lives in the same column as the centered
-  // workspace.  Because it is OUTSIDE the workspace's padding edges, its
-  // right-side buttons reach the window edge (Typora style).  The
-  // centered layout only centers horizontally; the window-background fill
-  // is handled by a sibling `fill` view so `centered` does not need
-  // `constraints.max` and can live happily inside a column.
-  let outer_children : Array[@moui.View[MarkdownEditorMsg]] = []
-  if !zen {
-    outer_children.push(self.chrome(theme))
+  let top_bar = if zen {
+    @views.empty()
+  } else {
+    self.markdown_shell_top_bar(tokens, metrics, theme)
   }
-  // Use a spacer for bottom padding instead of padding_edges, because
-  // padding_layout clamps child frame width to min(available, intrinsic),
-  // which would prevent the workspace from filling the window width.
-  outer_children.push(workspace.expanded())
-  outer_children.push(spacer(min_length=1.0, weight=0.0))
-  if !zen {
-    outer_children.push(
-      self.bottom_status_bar(
-        theme, session, block_label, document, selection, workspace_width,
-      ),
+  let status_bar = if zen {
+    @views.empty()
+  } else {
+    self.markdown_shell_status_bar(
+      tokens, metrics, theme, session, selection,
+      viewport_width~,
     )
   }
-  let outer = column(
-    outer_children,
+  let shell_children : Array[@moui.View[MarkdownEditorMsg]] = [
+    top_bar,
+    workspace.expanded(),
+    status_bar,
+  ]
+  let mut auxiliary_height = 0.0
+  let mut auxiliary_count = 0
+  if !zen && self.find_visible {
+    auxiliary_height = auxiliary_height + 42.0
+    auxiliary_count = auxiliary_count + 1
+  }
+  if !zen && self.format_palette_visible {
+    auxiliary_height = auxiliary_height + 240.0
+    auxiliary_count = auxiliary_count + 1
+  }
+  let bars_height = if zen {
+    0.0
+  } else {
+    metrics.top_bar_height + metrics.status_bar_height
+  }
+  let total_height = match window_height {
+    Some(value) => value
+    None =>
+      viewport_height + bars_height + auxiliary_height +
+      metrics.island_margin * 2.0 +
+      theme.spacing_scale.sm * auxiliary_count.to_double()
+  }
+  let shell = @views.column(
+    shell_children,
     spacing=0.0,
     align=@views.CrossAlign::Stretch,
+  ).frame(
+    width=markdown_editor_max_double(
+      0.0,
+      viewport_width - metrics.island_margin * 2.0,
+    ),
+    height=markdown_editor_max_double(
+      0.0,
+      total_height - metrics.island_margin * 2.0,
+    ),
   )
-  // Stack: background fill → outer column (chrome + workspace) → overlays.
+  let inset = @views.padding_edges(
+    shell,
+    top=metrics.island_margin,
+    right=metrics.island_margin,
+    bottom=metrics.island_margin,
+    left=metrics.island_margin,
+  )
+  // Stack: frame fill → island shell → minimal overlays → dialogs.
   let no_views : Array[@moui.View[MarkdownEditorMsg]] = []
   let window_bg = @views.custom_children_layout(
     children=no_views,
@@ -105,10 +163,18 @@ fn MarkdownEditorApp::root(
       let rects : Array[@geometry.Rect] = []
       rects
     },
-    paint=(ctx, bounds) => fill_rect(ctx, bounds, appearance.window_background),
+    paint=(ctx, bounds) => fill_rect(ctx, bounds, tokens.frame),
     semantics_label="Window background",
   )
-  let layers : Array[@moui.View[MarkdownEditorMsg]] = [window_bg, outer]
+  let layers : Array[@moui.View[MarkdownEditorMsg]] = [window_bg, inset]
+  if !zen && self.settings_visible {
+    layers.push(
+      @views.align(
+        self.markdown_settings_panel(tokens, metrics, theme),
+        alignment=@geometry.Alignment::center(),
+      ),
+    )
+  }
   layers.push(
     @views.align(
       self.toast_layer(),
@@ -138,11 +204,22 @@ fn MarkdownEditorApp::root_with_environment(
   view_environment : @core.ViewEnvironment,
 ) -> @moui.View[MarkdownEditorMsg] {
   let viewport = view_environment.viewport_size()
-  let theme = self.chrome_theme()
+  let system_scheme = view_environment.environment().system_scheme
+  let dark = if self.follow_system_scheme {
+    system_scheme is @core.ColorScheme::Dark
+  } else {
+    self.dark_mode_enabled
+  }
+  let metrics = markdown_shell_metrics(
+    self.layout_mode,
+    sidebar_width=self.sidebar_width,
+  )
   let zen = self.zen_mode_enabled
-  let mut fixed_height = 4.0
+  let mut fixed_height = metrics.island_margin * 2.0
   if !zen {
-    fixed_height = fixed_height + 28.0 + 20.0
+    fixed_height = fixed_height +
+      metrics.top_bar_height +
+      metrics.status_bar_height
     let mut auxiliary_count = 0
     if self.find_visible {
       fixed_height = fixed_height + 42.0
@@ -153,27 +230,26 @@ fn MarkdownEditorApp::root_with_environment(
       auxiliary_count = auxiliary_count + 1
     }
     fixed_height = fixed_height +
-      theme.spacing_scale.sm * auxiliary_count.to_double()
+      markdown_ui_theme(markdown_ui_tokens(if dark {
+        @core.ColorScheme::Dark
+      } else {
+        @core.ColorScheme::Light
+      })).spacing_scale.sm *
+      auxiliary_count.to_double()
   }
   let viewport_height = markdown_editor_max_double(
     320.0,
     viewport.height - fixed_height,
   )
-  self.root(viewport_width=viewport.width, viewport_height~)
+  self.root(
+    viewport_width=viewport.width,
+    viewport_height~,
+    window_height=viewport.height,
+    dark=dark,
+  )
 }
 
 ///|
-/// Resolve the chrome theme from the dark-mode toggle. The framework ships a
-/// full dark theme (`@views.dark_theme()`), so toggling is a one-liner here;
-/// the editor surface and panels inherit the theme via the environment.
-fn MarkdownEditorApp::chrome_theme(self : MarkdownEditorApp) -> @moui.Theme {
-  if self.dark_mode_enabled {
-    @views.dark_theme()
-  } else {
-    @views.light_theme()
-  }
-}
-
 ///|
 fn markdown_editor_workspace_width(
   show_source : Bool,
@@ -195,135 +271,6 @@ fn markdown_editor_workspace_width(
     show_source, show_outline, show_files, show_info,
   )
   markdown_editor_min_double(viewport_width, editor_width + sidebars_width)
-}
-
-///|
-/// Typora-style title bar: sits inside the transparent 28px macOS titlebar
-/// region. Left: traffic-light space. Center: file name + chevron.
-/// Right: outline toggle, sidebar toggle.
-///
-/// Rendered as a stack overlay pinned to the top edge (alignment x=0, y=0).
-/// The width is unconstrained — it inherits the full window width from the
-/// stack frame — so right-side buttons reach the window edge like Typora.
-/// `frame(height=28.0)` fixes the vertical size.
-fn MarkdownEditorApp::chrome(
-  self : MarkdownEditorApp,
-  theme : @moui.Theme,
-) -> @moui.View[MarkdownEditorMsg] {
-  let title = markdown_editor_document_title(
-    path=self.document_path,
-    fallback="Untitled",
-  )
-  let dirty = self.is_dirty()
-  let unsaved_dot = if dirty {
-    text("·", width=8.0, height=16.0)
-    .font(theme.typography.caption)
-    .foreground(theme.palette.primary)
-  } else {
-    empty()
-  }
-
-  // Center: clickable title + chevron (toggles document info)
-  let title_button = button(
-      title,
-      on_click=ToggleDocumentInfo,
-      variant=@views.ButtonVariant::Ghost,
-      height=22.0,
-    )
-    .font(theme.typography.caption)
-    .foreground(theme.palette.muted)
-
-  let outline_btn = button(
-    "",
-    on_click=ToggleOutline,
-    variant=if self.outline_visible {
-      @views.ButtonVariant::Tonal
-    } else {
-      @views.ButtonVariant::Ghost
-    },
-    icon=Some(@views.IconName::ListBullet),
-    width=26.0,
-    height=22.0,
-  )
-
-  let right_group = row(
-    [outline_btn],
-    spacing=2.0,
-    align=@views.CrossAlign::Center,
-  )
-
-  frame(
-    row(
-      [
-        spacer(min_length=78.0, weight=1.0),
-        title_button,
-        unsaved_dot,
-        spacer(min_length=0.0, weight=1.0),
-        right_group,
-      ],
-      spacing=theme.spacing_scale.xs,
-      align=@views.CrossAlign::Center,
-    ),
-    height=28.0,
-  ).repaint_boundary()
-}
-
-///|
-/// Minimal bottom status bar: tree toggle + concise status + word count.
-fn MarkdownEditorApp::bottom_status_bar(
-  self : MarkdownEditorApp,
-  theme : @moui.Theme,
-  session : MarkdownDocumentSession,
-  block_label : String,
-  _source : String,
-  selection : MarkdownEditorSelection,
-  width : Double,
-) -> @moui.View[MarkdownEditorMsg] {
-  let show_files = self.file_sidebar_visible
-  // Sidebar toggle as a clickable sphere dot (replaces the old 26x20 icon
-  // button). Inset 10px from the left so it clears the window's rounded
-  // corner; gray when closed, medium gray when the file sidebar is open.
-  let sphere = if show_files {
-    sphere_dot(
-      size=15.0,
-      fill=@graphics.Color::rgba(r=0.80, g=0.80, b=0.80),
-      ring=@graphics.Color::rgba(r=0.55, g=0.55, b=0.55),
-    )
-  } else {
-    sphere_dot(size=15.0)
-  }
-  let tree_button = padding_edges(sphere, left=8.0, bottom=8.0).on_tap(
-    ToggleFileSidebar,
-  )
-
-  // Save state lives in the sidebar's current-document footer; transfer
-  // completions surface as toasts, so the bar keeps only document context.
-  let status = markdown_editor_session_status_label(
-    block_label, session, selection,
-  )
-
-  // 状态文字宽度自适应：最小 160px，最大撑满窗口宽度（减去 sphere 区域 24px），
-  // 不再限制 500px 上限，长状态也能完整显示。
-  let status_width = markdown_editor_max_double(160.0, width - 24.0)
-  let status_frame = frame(
-    row(
-      [
-        spacer(min_length=0.0, weight=1.0),
-        text(status, width=status_width, height=15.0)
-        .font(theme.typography.caption)
-        .foreground(theme.palette.muted.multiply_alpha(0.7)),
-        spacer(min_length=0.0, weight=1.0),
-      ],
-      spacing=theme.spacing_scale.xs,
-      align=@views.CrossAlign::Center,
-    ),
-    height=20.0,
-  ).repaint_boundary()
-  let tree_aligned = @views.align(
-    tree_button,
-    alignment=@geometry.Alignment::new(x=-1.0, y=1.0),
-  )
-  @views.stack([status_frame, tree_aligned])
 }
 
 ///|

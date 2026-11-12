@@ -260,8 +260,13 @@ fn editor_find_toggle(
 ///|
 fn MarkdownEditorApp::appearance_spec(
   self : MarkdownEditorApp,
+  dark? : Bool,
 ) -> MarkdownEditorAppearanceSpec {
-  let base = self.writing_appearance.spec(dark=self.dark_mode_enabled)
+  let dark = match dark {
+    Some(value) => value
+    None => self.dark_mode_enabled
+  }
+  let base = self.writing_appearance.spec(dark~)
   { ..base, font_family: markdown_editor_font_family_stack(self.font_family), }
 }
 
@@ -323,7 +328,6 @@ fn MarkdownEditorAppearance::spec(
           foreground: @graphics.Color::rgba(r=0.90, g=0.90, b=0.90),
           placeholder: @graphics.Color::white().multiply_alpha(0.32),
           page_background: @graphics.Color::rgba(r=0.13, g=0.14, b=0.16),
-          window_background: @graphics.Color::rgba(r=0.13, g=0.14, b=0.16),
           font_family: @text.FontFamilyStack::sans_serif(),
         }
       } else {
@@ -335,7 +339,6 @@ fn MarkdownEditorAppearance::spec(
           foreground: @graphics.Color::rgba(r=0.12, g=0.12, b=0.12),
           placeholder: @graphics.Color::black().multiply_alpha(0.35),
           page_background: @graphics.Color::white(),
-          window_background: @graphics.Color::white(),
           font_family: @text.FontFamilyStack::sans_serif(),
         }
       }
@@ -349,7 +352,6 @@ fn MarkdownEditorAppearance::spec(
           foreground: @graphics.Color::rgba(r=0.92, g=0.88, b=0.80),
           placeholder: @graphics.Color::rgba(r=0.80, g=0.72, b=0.60, a=0.40),
           page_background: @graphics.Color::rgba(r=0.16, g=0.14, b=0.11),
-          window_background: @graphics.Color::rgba(r=0.16, g=0.14, b=0.11),
           font_family: @text.FontFamilyStack::sans_serif(),
         }
       } else {
@@ -361,7 +363,6 @@ fn MarkdownEditorAppearance::spec(
           foreground: @graphics.Color::rgba(r=0.18, g=0.14, b=0.10),
           placeholder: @graphics.Color::rgba(r=0.38, g=0.28, b=0.18, a=0.46),
           page_background: @graphics.Color::rgba(r=1.0, g=0.984, b=0.936),
-          window_background: @graphics.Color::rgba(r=1.0, g=0.984, b=0.936),
           font_family: @text.FontFamilyStack::sans_serif(),
         }
       }
@@ -375,7 +376,6 @@ fn MarkdownEditorAppearance::spec(
           foreground: @graphics.Color::rgba(r=0.86, g=0.90, b=0.94),
           placeholder: @graphics.Color::rgba(r=0.60, g=0.70, b=0.80, a=0.40),
           page_background: @graphics.Color::rgba(r=0.11, g=0.13, b=0.16),
-          window_background: @graphics.Color::rgba(r=0.11, g=0.13, b=0.16),
           font_family: @text.FontFamilyStack::sans_serif(),
         }
       } else {
@@ -387,7 +387,6 @@ fn MarkdownEditorAppearance::spec(
           foreground: @graphics.Color::rgba(r=0.10, g=0.12, b=0.15),
           placeholder: @graphics.Color::rgba(r=0.16, g=0.20, b=0.26, a=0.36),
           page_background: @graphics.Color::rgba(r=0.986, g=0.990, b=0.994),
-          window_background: @graphics.Color::rgba(r=0.986, g=0.990, b=0.994),
           font_family: @text.FontFamilyStack::sans_serif(),
         }
       }
@@ -402,20 +401,6 @@ fn markdown_editor_appearance_font(
     size=appearance.editor_font_size,
     families=appearance.font_family,
   )
-}
-
-///|
-/// Markdown block colors for the active color scheme. The rich-text
-/// projection bakes colors into runs/blocks, so the editor session carries
-/// this palette; a scheme switch re-projects through the conversion cache.
-fn markdown_editor_rich_text_palette(
-  dark : Bool,
-) -> @moui_richtext.MarkdownRichTextPalette {
-  if dark {
-    @moui_richtext.MarkdownRichTextPalette::dark()
-  } else {
-    @moui_richtext.MarkdownRichTextPalette::light()
-  }
 }
 
 ///|
@@ -594,6 +579,8 @@ fn editor_source_layout(
   on_prefix_click : (Int32) -> MarkdownEditorMsg,
   viewport_width~ : Double = 1120.0,
   viewport_height~ : Double = 520.0,
+  page_shadow? : @graphics.ShadowStyle,
+  page_radius~ : Double = 4.0,
 ) -> @moui.View[MarkdownEditorMsg] {
   let editor_width = markdown_editor_primary_editor_width_for_viewport(
     show_source,
@@ -647,7 +634,7 @@ fn editor_source_layout(
       border=None,
       focused_border=None,
       cursor_color=editor_style.cursor_color(),
-      corner_radius=theme.radius_scale.md,
+      corner_radius=page_radius,
       source_mode~,
       focus_mode=app.focus_mode_enabled,
       base_dir=markdown_editor_document_base_dir(app.document_path),
@@ -671,7 +658,15 @@ fn editor_source_layout(
       ContextMenuTargeted(MarkdownEditorContextTarget::EditorSurface),
     )
     .key("markdown-editor")
-  let editor = editor_page(editor_control, theme, appearance).on_file_drop((
+  let page_shadow = match page_shadow {
+    Some(shadow) => shadow
+    None => markdown_editor_page_shadow()
+  }
+  let editor = editor_page(
+    editor_control,
+    shadow=page_shadow,
+    page_radius~,
+  ).on_file_drop((
     paths,
     _position,
   ) => {
@@ -750,12 +745,12 @@ fn editor_source_layout(
 ///|
 fn editor_page(
   editor : @moui.View[MarkdownEditorMsg],
-  theme : @moui.Theme,
-  _appearance : MarkdownEditorAppearanceSpec,
+  shadow~ : @graphics.ShadowStyle,
+  page_radius~ : Double = 4.0,
 ) -> @moui.View[MarkdownEditorMsg] {
   editor
-  .shadow(markdown_editor_page_shadow())
-  .corner_radius(theme.radius_scale.sm)
+  .shadow(shadow)
+  .corner_radius(page_radius)
   .repaint_boundary()
 }
 

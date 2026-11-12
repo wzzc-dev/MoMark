@@ -10,12 +10,72 @@ fn MarkdownEditorApp::toggle_source_mode(self : MarkdownEditorApp) -> Unit {
 
 ///|
 fn MarkdownEditorApp::toggle_outline(self : MarkdownEditorApp) -> Unit {
-  self.outline_visible = !self.outline_visible
+  if self.sidebar_panel is OutlinePanel && self.outline_visible {
+    self.outline_visible = false
+  } else {
+    self.set_sidebar_panel(OutlinePanel)
+  }
 }
 
 ///|
 fn MarkdownEditorApp::toggle_file_sidebar(self : MarkdownEditorApp) -> Unit {
-  self.file_sidebar_visible = !self.file_sidebar_visible
+  if self.sidebar_panel is FilesPanel && self.file_sidebar_visible {
+    self.file_sidebar_visible = false
+  } else {
+    self.set_sidebar_panel(FilesPanel)
+  }
+}
+
+///|
+/// Pick the persistent sidebar's panel. The two panels share one left card,
+/// so selecting one hides the other; document info/source remain independent
+/// right-hand inspectors.
+fn MarkdownEditorApp::set_sidebar_panel(
+  self : MarkdownEditorApp,
+  panel : MarkdownSidebarPanel,
+) -> Unit {
+  self.sidebar_panel = panel
+  match panel {
+    FilesPanel => {
+      self.file_sidebar_visible = true
+      self.outline_visible = false
+    }
+    OutlinePanel => {
+      self.outline_visible = true
+      self.file_sidebar_visible = false
+    }
+  }
+}
+
+///|
+fn MarkdownEditorApp::set_layout_mode(
+  self : MarkdownEditorApp,
+  mode : MarkdownEditorLayoutMode,
+) -> Unit {
+  self.layout_mode = mode
+  // Entering the workspace with no panel selected would leave an empty
+  // sidebar card; pick the file panel so the layout always reads as intended.
+  if mode is WorkspaceMode &&
+    !self.file_sidebar_visible &&
+    !self.outline_visible {
+    self.set_sidebar_panel(FilesPanel)
+  }
+}
+
+///|
+fn MarkdownEditorApp::set_sidebar_width(
+  self : MarkdownEditorApp,
+  width : Double,
+) -> Unit {
+  self.sidebar_width = markdown_editor_clamp_double(width, 230.0, 420.0)
+}
+
+///|
+fn MarkdownEditorApp::sidebar_visible(self : MarkdownEditorApp) -> Bool {
+  match self.sidebar_panel {
+    FilesPanel => self.file_sidebar_visible
+    OutlinePanel => self.outline_visible
+  }
 }
 
 ///|
@@ -42,6 +102,7 @@ fn MarkdownEditorApp::toggle_zen_mode(self : MarkdownEditorApp) -> Unit {
     self.zen_mode_enabled = true
     self.close_find()
     self.reset_format_palette()
+    self.settings_visible = false
     self.file_sidebar_visible = false
     self.document_info_visible = false
     self.outline_visible = false
@@ -148,6 +209,7 @@ fn MarkdownEditorApp::dismiss_auxiliary_panels(
   } else if self.find_visible {
     self.close_find()
   } else if self.format_palette_visible ||
+    self.settings_visible ||
     self.file_sidebar_visible ||
     self.document_info_visible ||
     self.outline_visible ||
@@ -155,6 +217,7 @@ fn MarkdownEditorApp::dismiss_auxiliary_panels(
     self.more_menu_visible ||
     self.active_menu != "" {
     self.reset_format_palette()
+    self.settings_visible = false
     self.file_sidebar_visible = false
     self.document_info_visible = false
     self.outline_visible = false

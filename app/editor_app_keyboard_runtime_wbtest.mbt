@@ -309,7 +309,7 @@ test "markdown editor runtime tab indents focused line" {
       @core.PointerEvent::new(
         position=@geometry.Point::new(
           x=app.editor_content_x(980.0, inner_x=2.0),
-          y=84.0,
+          y=102.0,
         ),
         phase=@core.PointerPhase::Down,
       ),
@@ -412,7 +412,7 @@ test "markdown editor runtime undo restores input transform caret" {
       @core.PointerEvent::new(
         position=@geometry.Point::new(
           x=app.editor_content_x(980.0, inner_x=2.0),
-          y=84.0,
+          y=102.0,
         ),
         phase=@core.PointerPhase::Down,
       ),

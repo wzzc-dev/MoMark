@@ -42,6 +42,13 @@ pub struct MarkdownEditorApp {
   mut outline_visible : Bool
   mut file_sidebar_visible : Bool
   mut document_info_visible : Bool
+  // Shell presentation state. `layout_mode` selects the Winc-like workspace
+  // or the Typora-style minimal page; `sidebar_panel` decides which panel the
+  // shared left sidebar shows; `sidebar_width` is the persisted drag width.
+  mut layout_mode : MarkdownEditorLayoutMode
+  mut sidebar_panel : MarkdownSidebarPanel
+  mut sidebar_width : Double
+  mut settings_visible : Bool
   mut focus_mode_enabled : Bool
   mut typewriter_mode_enabled : Bool
   mut zen_mode_enabled : Bool
@@ -52,6 +59,9 @@ pub struct MarkdownEditorApp {
   mut toasts : @views.ToastQueue[MarkdownEditorMsg]
   mut autosave_draft : String
   mut dark_mode_enabled : Bool
+  // When true, the resolved appearance follows the host color scheme and
+  // `dark_mode_enabled` is only the fallback for hosts that do not report one.
+  mut follow_system_scheme : Bool
   mut font_family : MarkdownEditorFontFamily
   mut folded_headings : Array[Int32]
   priv mut pending_confirm : MarkdownEditorConfirmRequest?
@@ -185,7 +195,6 @@ priv struct MarkdownEditorAppearanceSpec {
   foreground : @graphics.Color
   placeholder : @graphics.Color
   page_background : @graphics.Color
-  window_background : @graphics.Color
   font_family : @text.FontFamilyStack
 }
 
@@ -294,6 +303,14 @@ pub enum MarkdownEditorMsg {
   ToggleOutline
   ToggleFileSidebar
   ToggleDocumentInfo
+  SetLayoutMode(MarkdownEditorLayoutMode)
+  SetSidebarPanel(MarkdownSidebarPanel)
+  SetSidebarWidth(Double)
+  ToggleDarkMode
+  SetDarkMode(Bool)
+  SetFollowSystemScheme(Bool)
+  OpenSettings
+  CloseSettings
   ToggleFind
   ToggleFocusMode
   ToggleTypewriterMode
@@ -387,6 +404,10 @@ pub fn MarkdownEditorApp::new() -> MarkdownEditorApp {
     expanded_tree_paths: [],
     directory_tree_items: [],
     document_info_visible: false,
+    layout_mode: WorkspaceMode,
+    sidebar_panel: FilesPanel,
+    sidebar_width: 300.0,
+    settings_visible: false,
     focus_mode_enabled: false,
     typewriter_mode_enabled: false,
     zen_mode_enabled: false,
@@ -397,6 +418,7 @@ pub fn MarkdownEditorApp::new() -> MarkdownEditorApp {
     toasts: @views.ToastQueue::new(),
     autosave_draft: "",
     dark_mode_enabled: false,
+    follow_system_scheme: false,
     font_family: SansFont,
     folded_headings: [],
     pending_confirm: None,
@@ -508,6 +530,20 @@ fn MarkdownEditorApp::update_in_place(
     ToggleFileSidebar => self.toggle_file_sidebar()
     ToggleFileTree => self.file_tree_expanded = !self.file_tree_expanded
     ToggleDocumentInfo => self.toggle_document_info()
+    SetLayoutMode(mode) => self.set_layout_mode(mode)
+    SetSidebarPanel(panel) => self.set_sidebar_panel(panel)
+    SetSidebarWidth(width) => self.set_sidebar_width(width)
+    ToggleDarkMode => {
+      self.dark_mode_enabled = !self.dark_mode_enabled
+      self.follow_system_scheme = false
+    }
+    SetDarkMode(enabled) => {
+      self.dark_mode_enabled = enabled
+      self.follow_system_scheme = false
+    }
+    SetFollowSystemScheme(follow) => self.follow_system_scheme = follow
+    OpenSettings => self.settings_visible = true
+    CloseSettings => self.settings_visible = false
     ToggleFind => self.toggle_find()
     ToggleFocusMode => self.toggle_focus_mode()
     ToggleTypewriterMode => self.toggle_typewriter_mode()
@@ -680,6 +716,12 @@ fn MarkdownEditorApp::update_with_services(
     ToggleOutline
     | ToggleFileSidebar
     | ToggleDocumentInfo
+    | SetLayoutMode(_)
+    | SetSidebarPanel(_)
+    | SetSidebarWidth(_)
+    | ToggleDarkMode
+    | SetDarkMode(_)
+    | SetFollowSystemScheme(_)
     | ToggleFocusMode
     | ToggleTypewriterMode
     | ToggleZenMode
