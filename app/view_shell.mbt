@@ -29,6 +29,49 @@ fn markdown_shell_icon_button(
 }
 
 ///|
+/// One segment inside the sidebar-view control: a ghost icon button, raised
+/// onto a card-colored pill when active (the Winc segmented-control look)
+/// instead of the accent-tinted tonal fill.
+fn markdown_shell_segment(
+  icon : @views.IconName,
+  label : String,
+  message : MarkdownEditorMsg,
+  tokens : MarkdownUiTokens,
+  metrics : MarkdownShellMetrics,
+  active~ : Bool = false,
+) -> @moui.View[MarkdownEditorMsg] {
+  let segment = tooltip(
+    button(
+      "",
+      on_click=message,
+      variant=@views.ButtonVariant::Ghost,
+      icon=Some(icon),
+      width=metrics.control_height,
+      height=metrics.control_height,
+    ),
+    label,
+  )
+  if active {
+    @views.container(
+      segment,
+      variant=@views.ContainerVariant::Base,
+      background=tokens.card,
+      border=Some(
+        @core.BorderStyle::new(
+          brush=@graphics.Brush::solid(tokens.page_border),
+          width=1.0,
+        ),
+      ),
+      corner_radius=6.0,
+      padding=0.0,
+    )
+  } else {
+    segment
+  }
+}
+
+///|
+///|
 /// The shared top bar for both shells. The workspace variant is 40px tall and
 /// the minimal one 32px; both keep the traffic-light inset, a sidebar toggle,
 /// a centered-ish document title, and the action cluster inset from the
@@ -44,20 +87,126 @@ fn MarkdownEditorApp::markdown_shell_top_bar(
     fallback="Untitled",
   )
   let unsaved = if self.is_dirty() {
-    text("•", width=10.0, height=metrics.control_height)
+    text("•", width=10.0, height=20.0)
     .font(theme.typography.caption)
     .foreground(tokens.dirty_dot)
   } else {
     empty()
   }
-  let title_button = button(
-      title,
-      on_click=ToggleDocumentInfo,
+  let files_active = self.sidebar_panel is FilesPanel &&
+    self.file_sidebar_visible
+  let outline_active = self.sidebar_panel is OutlinePanel &&
+    self.outline_visible
+  let segmented = @views.container(
+    @views.row(
+      [
+        markdown_shell_segment(
+          @views.IconName::Folder,
+          "Files",
+          SetSidebarPanel(FilesPanel),
+          tokens,
+          metrics,
+          active=files_active,
+        ),
+        markdown_shell_segment(
+          @views.IconName::ListBullet,
+          "Outline",
+          SetSidebarPanel(OutlinePanel),
+          tokens,
+          metrics,
+          active=outline_active,
+        ),
+      ],
+      spacing=2.0,
+      align=@views.CrossAlign::Center,
+    ),
+    variant=@views.ContainerVariant::Base,
+    background=tokens.hover,
+    corner_radius=8.0,
+    padding=2.0,
+  )
+  let sidebar_toggle = markdown_shell_icon_button(
+    @views.IconName::Sidebar,
+    "Toggle sidebar",
+    ToggleFileSidebar,
+    tokens,
+    metrics,
+    active=self.sidebar_visible(),
+  )
+  let left_width = markdown_editor_max_double(180.0, metrics.sidebar_width)
+  let left_cluster = @views.frame(
+    @views.row(
+      [
+        spacer(min_length=78.0, weight=0.0),
+        sidebar_toggle,
+        spacer(min_length=6.0, weight=0.0),
+        segmented,
+        spacer(min_length=0.0, weight=1.0),
+      ],
+      spacing=0.0,
+      align=@views.CrossAlign::Center,
+    ),
+    width=left_width,
+  )
+  let close_tab = tooltip(
+    button(
+      "",
+      on_click=NewDocument,
       variant=@views.ButtonVariant::Ghost,
-      height=metrics.control_height,
-    )
-    .font(theme.typography.caption)
-    .foreground(tokens.text)
+      icon=Some(@views.IconName::Close),
+      width=20.0,
+      height=20.0,
+    ),
+    "Close tab",
+  )
+  let tab = @views.container(
+    @views.padding_edges(
+      @views.row(
+        [
+          @views.icon(
+            @views.IconName::FileMarkdown,
+            size=14.0,
+            color=tokens.accent,
+          ),
+          button(
+            title,
+            on_click=ToggleDocumentInfo,
+            variant=@views.ButtonVariant::Ghost,
+            width=150.0,
+            height=20.0,
+            label_align=@text.TextAlign::TextStart,
+          )
+          .font(theme.typography.caption)
+          .foreground(tokens.text),
+          unsaved,
+          close_tab,
+        ],
+        spacing=6.0,
+        align=@views.CrossAlign::Center,
+      ),
+      top=2.0,
+      right=6.0,
+      bottom=2.0,
+      left=10.0,
+    ),
+    variant=@views.ContainerVariant::Base,
+    background=tokens.hover,
+    border=Some(
+      @core.BorderStyle::new(
+        brush=@graphics.Brush::solid(tokens.page_border),
+        width=1.0,
+      ),
+    ),
+    corner_radius=8.0,
+    padding=0.0,
+  )
+  let new_tab = markdown_shell_icon_button(
+    @views.IconName::FileNew,
+    "New document",
+    NewDocument,
+    tokens,
+    metrics,
+  )
   let actions = row(
     [
       markdown_shell_icon_button(
@@ -91,23 +240,15 @@ fn MarkdownEditorApp::markdown_shell_top_bar(
   frame(
     row(
       [
-        spacer(min_length=78.0, weight=0.0),
-        markdown_shell_icon_button(
-          @views.IconName::Sidebar,
-          "Toggle sidebar",
-          ToggleFileSidebar,
-          tokens,
-          metrics,
-          active=self.sidebar_visible(),
-        ),
-        spacer(min_length=4.0, weight=0.0),
-        title_button,
-        unsaved,
+        left_cluster,
+        spacer(min_length=6.0, weight=0.0),
+        tab,
+        new_tab,
         spacer(min_length=0.0, weight=1.0),
         actions,
         spacer(min_length=metrics.bar_inset, weight=0.0),
       ],
-      spacing=0.0,
+      spacing=4.0,
       align=@views.CrossAlign::Center,
     ),
     height=metrics.top_bar_height,
@@ -141,29 +282,27 @@ fn MarkdownEditorApp::markdown_shell_status_bar(
   let context = markdown_editor_session_status_label(
     self.block_label, session, selection,
   )
-  let left_width = 220.0
-  let center_width = 90.0
+  let folder = if self.working_directory != "" {
+    markdown_editor_file_name(self.working_directory)
+  } else {
+    "MoMark"
+  }
+  let breadcrumb = folder + "  ›  " + title
+  let left_width = 320.0
   let right_width = markdown_editor_max_double(
     180.0,
-    viewport_width - left_width - center_width - 260.0,
+    viewport_width - left_width - 220.0,
   )
+  let right_text = saved + " · " + context
   frame(
     row(
       [
         spacer(min_length=metrics.bar_inset, weight=0.0),
-        text(title, width=left_width, height=metrics.status_bar_height)
+        text(breadcrumb, width=left_width, height=metrics.status_bar_height)
         .font(theme.typography.caption)
         .foreground(tokens.text_muted),
         spacer(min_length=0.0, weight=1.0),
-        text(saved, width=center_width, height=metrics.status_bar_height)
-        .font(theme.typography.caption)
-        .foreground(if self.is_dirty() {
-          tokens.dirty_dot
-        } else {
-          tokens.text_muted
-        }),
-        spacer(min_length=0.0, weight=1.0),
-        text(context, width=right_width, height=metrics.status_bar_height)
+        text(right_text, width=right_width, height=metrics.status_bar_height)
         .font(theme.typography.caption)
         .foreground(tokens.text_muted),
         spacer(min_length=metrics.bar_inset, weight=0.0),

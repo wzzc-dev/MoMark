@@ -316,13 +316,63 @@ fn MarkdownEditorApp::apply_directory_listing(
 }
 
 ///|
+/// File/folder glyph and tint for a tree row. The colors are intentionally
+/// stable per kind (not theme-derived) so the tree reads like a file list;
+/// folders use a warm tint and markdown/JSON/images/code each get a hue.
+fn markdown_editor_tree_icon_for_name(
+  name : String,
+) -> (@views.IconName, @graphics.Color) {
+  let lower = name.to_lower()
+  if lower.has_suffix(".md") ||
+    lower.has_suffix(".markdown") ||
+    lower.has_suffix(".mbt.md") {
+    (@views.IconName::FileMarkdown, @graphics.Color::rgba(r=0.18, g=0.45, b=0.85))
+  } else if lower.has_suffix(".json") ||
+    lower.has_suffix(".toml") ||
+    lower.has_suffix(".yaml") ||
+    lower.has_suffix(".yml") {
+    (@views.IconName::FileJson, @graphics.Color::rgba(r=0.78, g=0.52, b=0.18))
+  } else if lower.has_suffix(".png") ||
+    lower.has_suffix(".jpg") ||
+    lower.has_suffix(".jpeg") ||
+    lower.has_suffix(".gif") ||
+    lower.has_suffix(".svg") ||
+    lower.has_suffix(".webp") {
+    (@views.IconName::FileImage, @graphics.Color::rgba(r=0.55, g=0.35, b=0.75))
+  } else if lower.has_suffix(".rs") ||
+    lower.has_suffix(".go") ||
+    lower.has_suffix(".py") ||
+    lower.has_suffix(".ts") ||
+    lower.has_suffix(".tsx") ||
+    lower.has_suffix(".js") ||
+    lower.has_suffix(".jsx") ||
+    lower.has_suffix(".mbt") ||
+    lower.has_suffix(".c") ||
+    lower.has_suffix(".h") ||
+    lower.has_suffix(".cpp") ||
+    lower.has_suffix(".java") ||
+    lower.has_suffix(".sh") {
+    (@views.IconName::FileCode, @graphics.Color::rgba(r=0.20, g=0.62, b=0.55))
+  } else {
+    (@views.IconName::File, @graphics.Color::rgba(r=0.55, g=0.57, b=0.62))
+  }
+}
+
+///|
+///|
 fn markdown_editor_root_tree_item(
   path : String,
   children : Array[@views.TreeItem],
 ) -> @views.TreeItem {
   let root_name = markdown_editor_file_name(path)
   let label = if root_name == "" { path } else { root_name }
-  @views.tree_item(id=path, label~, children~)
+  @views.tree_item(
+    id=path,
+    label~,
+    children~,
+    icon=Some(@views.IconName::Folder),
+    icon_color=Some(@graphics.Color::rgba(r=0.72, g=0.55, b=0.25)),
+  )
 }
 
 ///|
@@ -337,7 +387,15 @@ fn markdown_editor_tree_children_from_listing(
         markdown_editor_directory_tree_item(path=entry.path, label=entry.name),
       )
     } else {
-      child_items.push(@views.tree_item(id=entry.path, label=entry.name))
+      let (icon, icon_color) = markdown_editor_tree_icon_for_name(entry.name)
+      child_items.push(
+        @views.tree_item(
+          id=entry.path,
+          label=entry.name,
+          icon=Some(icon),
+          icon_color=Some(icon_color),
+        ),
+      )
     }
   }
   if child_items.length() == 0 {
@@ -345,6 +403,8 @@ fn markdown_editor_tree_children_from_listing(
       @views.tree_item(
         id=markdown_editor_tree_empty_placeholder_id(path),
         label="Empty folder",
+        icon=Some(@views.IconName::File),
+        icon_color=Some(@graphics.Color::rgba(r=0.55, g=0.57, b=0.62)),
       ),
     )
   }
@@ -419,12 +479,20 @@ fn markdown_editor_directory_tree_item(
   path~ : String,
   label~ : String,
 ) -> @views.TreeItem {
-  @views.tree_item(id=path, label~, children=[
-    @views.tree_item(
-      id=markdown_editor_tree_loading_placeholder_id(path),
-      label="Loading...",
-    ),
-  ])
+  @views.tree_item(
+    id=path,
+    label~,
+    children=[
+      @views.tree_item(
+        id=markdown_editor_tree_loading_placeholder_id(path),
+        label="Loading...",
+        icon=Some(@views.IconName::File),
+        icon_color=Some(@graphics.Color::rgba(r=0.55, g=0.57, b=0.62)),
+      ),
+    ],
+    icon=Some(@views.IconName::Folder),
+    icon_color=Some(@graphics.Color::rgba(r=0.72, g=0.55, b=0.25)),
+  )
 }
 
 ///|
@@ -577,7 +645,15 @@ fn markdown_editor_replace_tree_item_children(
   let next : Array[@views.TreeItem] = []
   for item in items {
     if item.id == path {
-      next.push(@views.tree_item(id=item.id, label=item.label, children~))
+      next.push(
+        @views.tree_item(
+          id=item.id,
+          label=item.label,
+          children~,
+          icon=item.icon,
+          icon_color=item.icon_color,
+        ),
+      )
     } else {
       next.push(
         @views.tree_item(
@@ -588,6 +664,8 @@ fn markdown_editor_replace_tree_item_children(
             path,
             children,
           ),
+          icon=item.icon,
+          icon_color=item.icon_color,
         ),
       )
     }
