@@ -326,7 +326,10 @@ fn markdown_editor_tree_icon_for_name(
   if lower.has_suffix(".md") ||
     lower.has_suffix(".markdown") ||
     lower.has_suffix(".mbt.md") {
-    (@views.IconName::FileMarkdown, @graphics.Color::rgba(r=0.18, g=0.45, b=0.85))
+    (
+      @views.IconName::FileMarkdown,
+      @graphics.Color::rgba(r=0.18, g=0.45, b=0.85),
+    )
   } else if lower.has_suffix(".json") ||
     lower.has_suffix(".toml") ||
     lower.has_suffix(".yaml") ||
@@ -359,6 +362,7 @@ fn markdown_editor_tree_icon_for_name(
 }
 
 ///|
+
 ///|
 fn markdown_editor_root_tree_item(
   path : String,
@@ -394,6 +398,7 @@ fn markdown_editor_tree_children_from_listing(
           label=entry.name,
           icon=Some(icon),
           icon_color=Some(icon_color),
+          dimmed=entry.name.has_prefix("."),
         ),
       )
     }
@@ -492,6 +497,7 @@ fn markdown_editor_directory_tree_item(
     ],
     icon=Some(@views.IconName::Folder),
     icon_color=Some(@graphics.Color::rgba(r=0.72, g=0.55, b=0.25)),
+    dimmed=label.has_prefix("."),
   )
 }
 
@@ -1148,6 +1154,9 @@ fn markdown_editor_status_label(
 }
 
 ///|
+/// The compact status bar now shows line/column and word context; this fuller
+/// block/section label stays for tests and future detail surfaces.
+#warnings("-unused_value")
 fn markdown_editor_session_status_label(
   block_label : String,
   session : MarkdownDocumentSession,

@@ -24,18 +24,16 @@ fn MarkdownEditorApp::root(
   let session = self.document_session.with_rich_text_palette(
     Some(tokens.rich_text),
   )
-  let appearance = self.appearance_spec(dark=dark)
+  let appearance = self.appearance_spec(dark~)
   let editor_font = markdown_editor_appearance_font(appearance)
   let zen = self.zen_mode_enabled
   let panel_anim = self.panel_anim_fraction()
   let panel_animating = self.panel_anim_enabled &&
     self.panel_anim_progress > 0.0
-  let show_files = !zen &&
-    (self.file_sidebar_visible ||
-      (self.sidebar_panel is FilesPanel && panel_animating))
-  let show_outline = !zen &&
-    (self.outline_visible ||
-      (self.sidebar_panel is OutlinePanel && panel_animating))
+  // The outline is a section inside the file sidebar card, not a separate
+  // right-hand inspector; the layout only ever needs the file card flag.
+  let show_files = !zen && (self.file_sidebar_visible || panel_animating)
+  let show_outline = false
   let show_source = !zen && self.source_preview_visible
   let show_info = !zen && self.document_info_visible
   let content_width = markdown_editor_max_double(
@@ -62,6 +60,49 @@ fn MarkdownEditorApp::root(
     PlainSelection
   }
   let scroll_request = self.editor_scroll_request
+  // Single slim chrome band, Winc-style: the workspace shell hosts the sidebar
+  // toggle + view switch on the sidebar card's header; the minimal shell has
+  // no persistent sidebar, so the same controls ride at the left edge of the
+  // editor tab strip (with the traffic-light inset).
+  let workspace_shell = self.layout_mode is WorkspaceMode
+  let sidebar_visible = self.sidebar_visible()
+  let has_sidebar_header = !zen && workspace_shell && sidebar_visible
+  let sidebar_header = if has_sidebar_header {
+    self.markdown_shell_sidebar_header(tokens, metrics, theme)
+  } else {
+    @views.empty()
+  }
+  // Collapsing the persistent sidebar must keep a way back: Winc leaves the
+  // sidebar toggle at the left of the tab strip in that state, while the
+  // segments only make sense with a sidebar card to switch.
+  let tab_leading : Array[@moui.View[MarkdownEditorMsg]] = if zen {
+    []
+  } else if workspace_shell {
+    if sidebar_visible {
+      []
+    } else {
+      [
+        markdown_shell_icon_button(
+          @views.IconName::Sidebar,
+          "Toggle sidebar",
+          ToggleFileSidebar,
+          theme,
+        ),
+      ]
+    }
+  } else {
+    self.markdown_shell_sidebar_controls(tokens, theme)
+  }
+  let tab_left_inset = if tab_leading.length() > 0 { 78.0 } else { 8.0 }
+  // Toggle (22) alone when the workspace sidebar is collapsed; minimal adds
+  // the segmented track (2 x 20 + spacing + container padding = 46).
+  let tab_leading_width = if tab_leading.length() == 0 {
+    0.0
+  } else if workspace_shell {
+    22.0
+  } else {
+    72.0
+  }
   let children : Array[@moui.View[MarkdownEditorMsg]] = []
   children.push(
     editor_source_layout(
@@ -85,31 +126,38 @@ fn MarkdownEditorApp::root(
       card_gap=metrics.island_gap,
       sidebar_width=self.sidebar_width,
       sidebar_anim=panel_anim,
-      page_shadow=tokens.page_shadow,
+      sidebar_header~,
+      sidebar_header_height=if has_sidebar_header {
+        metrics.top_bar_height
+      } else {
+        0.0
+      },
+      tab_leading~,
+      tab_leading_width~,
+      tab_left_inset~,
       page_radius=metrics.island_radius,
-    )
-    .expanded(),
+    ).expanded(),
   )
   let workspace = @views.column(
     children,
     spacing=theme.spacing_scale.sm,
     align=@views.CrossAlign::Stretch,
   )
-  let top_bar = if zen {
-    @views.empty()
-  } else {
-    self.markdown_shell_top_bar(tokens, metrics, theme)
-  }
   let status_bar = if zen {
     @views.empty()
   } else {
     self.markdown_shell_status_bar(
-      tokens, metrics, theme, session, selection,
+      tokens,
+      metrics,
+      theme,
+      session,
+      selection,
       viewport_width~,
     )
   }
+  // No full-width top bar: the cards start at the island margin and carry
+  // their own half of the chrome band.
   let shell_children : Array[@moui.View[MarkdownEditorMsg]] = [
-    top_bar,
     workspace.expanded(),
   ]
   let mut auxiliary_height = 0.0
@@ -122,15 +170,14 @@ fn MarkdownEditorApp::root(
     auxiliary_height = auxiliary_height + 240.0
     auxiliary_count = auxiliary_count + 1
   }
-  let bars_height = if zen {
-    0.0
-  } else {
-    metrics.top_bar_height + metrics.status_bar_height
-  }
   let total_height = match window_height {
     Some(value) => value
     None =>
-      viewport_height + bars_height + metrics.island_margin * 2.0
+      if zen {
+        viewport_height + metrics.island_margin * 2.0
+      } else {
+        viewport_height + metrics.status_bar_height + metrics.island_margin
+      }
   }
   // Winc's status bar is flush with the window bottom; only the top and the
   // sides get the island margin. The cards therefore meet the status bar
@@ -149,10 +196,7 @@ fn MarkdownEditorApp::root(
       0.0,
       viewport_width - metrics.island_margin * 2.0,
     ),
-    height=markdown_editor_max_double(
-      0.0,
-      body_height - metrics.island_margin,
-    ),
+    height=markdown_editor_max_double(0.0, body_height - metrics.island_margin),
   )
   let inset = @views.padding_edges(
     shell_body,
@@ -183,18 +227,17 @@ fn MarkdownEditorApp::root(
   let overlay_progress = self.overlay_anim_progress()
   let overlay_spec = @core.TransitionSpec::new(
     from=@core.TransitionStyle::identity()
-    .with_opacity(0.0)
-    .with_scale(sx=0.98, sy=0.98),
+      .with_opacity(0.0)
+      .with_scale(sx=0.98, sy=0.98),
     to=@core.TransitionStyle::identity(),
     duration_ms=150.0,
   )
   if !zen && self.find_visible {
     layers.push(
       markdown_top_overlay(
-        self.find_bar(theme, selection, workspace_width).transition(
-          spec=overlay_spec,
-          progress=overlay_progress,
-        ),
+        self
+        .find_bar(theme, selection, workspace_width)
+        .transition(spec=overlay_spec, progress=overlay_progress),
         top=overlay_top,
       ),
     )
@@ -202,10 +245,9 @@ fn MarkdownEditorApp::root(
   if !zen && self.format_palette_visible {
     layers.push(
       markdown_top_overlay(
-        self.format_palette(theme, workspace_width).transition(
-          spec=overlay_spec,
-          progress=overlay_progress,
-        ),
+        self
+        .format_palette(theme, workspace_width)
+        .transition(spec=overlay_spec, progress=overlay_progress),
         top=overlay_top,
       ),
     )
@@ -213,10 +255,9 @@ fn MarkdownEditorApp::root(
   if !zen && self.settings_visible {
     layers.push(
       @views.align(
-        self.markdown_settings_panel(tokens, metrics, theme).transition(
-          spec=overlay_spec,
-          progress=overlay_progress,
-        ),
+        self
+        .markdown_settings_panel(tokens, metrics, theme)
+        .transition(spec=overlay_spec, progress=overlay_progress),
         alignment=@geometry.Alignment::center(),
       ),
     )
@@ -263,9 +304,9 @@ fn MarkdownEditorApp::root_with_environment(
   let zen = self.zen_mode_enabled
   let mut fixed_height = metrics.island_margin * 2.0
   if !zen {
-    fixed_height = fixed_height +
-      metrics.top_bar_height +
-      metrics.status_bar_height
+    // Top island margin + flush status bar; the chrome band lives on the
+    // cards themselves, so it no longer reserves viewport height here.
+    fixed_height = metrics.island_margin + metrics.status_bar_height
   }
   let viewport_height = markdown_editor_max_double(
     320.0,
@@ -275,11 +316,12 @@ fn MarkdownEditorApp::root_with_environment(
     viewport_width=viewport.width,
     viewport_height~,
     window_height=viewport.height,
-    dark=dark,
+    dark~,
   )
 }
 
 ///|
+
 ///|
 fn markdown_editor_workspace_width(
   show_source : Bool,
@@ -300,7 +342,11 @@ fn markdown_editor_workspace_width(
     sidebar_width~,
   )
   let sidebars_width = markdown_editor_sidebar_total_width(
-    show_source, show_outline, show_files, show_info, sidebar_width~,
+    show_source,
+    show_outline,
+    show_files,
+    show_info,
+    sidebar_width~,
   )
   markdown_editor_min_double(viewport_width, editor_width + sidebars_width)
 }
@@ -399,10 +445,7 @@ fn MarkdownEditorApp::format_palette(
   width : Double,
 ) -> @moui.View[MarkdownEditorMsg] {
   let panel_width = markdown_editor_min_double(580.0, width)
-  let content_width = markdown_editor_max_double(
-    160.0,
-    panel_width - 32.0,
-  )
+  let content_width = markdown_editor_max_double(160.0, panel_width - 32.0)
   let query = self.format_palette_query
   let rows : Array[@moui.View[MarkdownEditorMsg]] = []
   for item in markdown_editor_format_palette_filtered_items(query) {
@@ -448,11 +491,7 @@ fn MarkdownEditorApp::format_palette(
             align=@views.CrossAlign::Center,
           ),
           scroll_view(
-            column(
-              rows,
-              spacing=2.0,
-              align=@views.CrossAlign::Start,
-            ),
+            column(rows, spacing=2.0, align=@views.CrossAlign::Start),
             width=content_width,
             height=286.0,
           ),
@@ -494,9 +533,7 @@ fn MarkdownEditorApp::format_palette(
 }
 
 ///|
-fn markdown_editor_format_palette_icon(
-  group : String,
-) -> @views.IconName {
+fn markdown_editor_format_palette_icon(group : String) -> @views.IconName {
   match group {
     "Inline" => @views.IconName::Bold
     "View" => @views.IconName::Eye
@@ -511,7 +548,10 @@ fn markdown_editor_format_palette_row(
   theme : @moui.Theme,
   width~ : Double,
 ) -> @moui.View[MarkdownEditorMsg] {
-  let label_width = markdown_editor_max_double(140.0, width - 78.0 - 150.0 - 16.0)
+  let label_width = markdown_editor_max_double(
+    140.0,
+    width - 78.0 - 150.0 - 16.0,
+  )
   row(
     [
       button(

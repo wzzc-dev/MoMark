@@ -9,11 +9,19 @@ fn MarkdownEditorApp::toggle_source_mode(self : MarkdownEditorApp) -> Unit {
 }
 
 ///|
+/// The outline now lives inside the file sidebar card, docked under the tree.
+/// Toggling it opens the sidebar if needed, otherwise it expands/collapses the
+/// section without hiding the tree.
 fn MarkdownEditorApp::toggle_outline(self : MarkdownEditorApp) -> Unit {
-  if self.sidebar_panel is OutlinePanel && self.outline_visible {
-    self.hide_sidebar_panel()
-  } else {
+  if !self.file_sidebar_visible {
     self.set_sidebar_panel(OutlinePanel)
+  } else {
+    self.outline_visible = !self.outline_visible
+    self.sidebar_panel = if self.outline_visible {
+      OutlinePanel
+    } else {
+      FilesPanel
+    }
   }
 }
 
@@ -27,25 +35,16 @@ fn MarkdownEditorApp::toggle_file_sidebar(self : MarkdownEditorApp) -> Unit {
 }
 
 ///|
-/// Pick the persistent sidebar's panel. The two panels share one left card,
-/// so selecting one hides the other; document info/source remain independent
-/// right-hand inspectors.
+/// Pick the persistent sidebar's content: the file tree, or the file tree with
+/// the outline section expanded beneath it. Both share one left card.
 fn MarkdownEditorApp::set_sidebar_panel(
   self : MarkdownEditorApp,
   panel : MarkdownSidebarPanel,
 ) -> Unit {
-  let was_visible = self.sidebar_visible()
+  let was_visible = self.file_sidebar_visible
   self.sidebar_panel = panel
-  match panel {
-    FilesPanel => {
-      self.file_sidebar_visible = true
-      self.outline_visible = false
-    }
-    OutlinePanel => {
-      self.outline_visible = true
-      self.file_sidebar_visible = false
-    }
-  }
+  self.file_sidebar_visible = true
+  self.outline_visible = panel is OutlinePanel
   self.panel_anim_target = 1.0
   if !was_visible && self.panel_anim_enabled {
     self.panel_anim_progress = 0.0
@@ -84,7 +83,7 @@ fn MarkdownEditorApp::advance_panel_anim(self : MarkdownEditorApp) -> Unit {
 fn MarkdownEditorApp::panel_anim_fraction(self : MarkdownEditorApp) -> Double {
   if self.panel_anim_enabled {
     self.panel_anim_progress
-  } else if self.file_sidebar_visible || self.outline_visible {
+  } else if self.file_sidebar_visible {
     1.0
   } else {
     0.0
@@ -99,9 +98,7 @@ fn MarkdownEditorApp::set_layout_mode(
   self.layout_mode = mode
   // Entering the workspace with no panel selected would leave an empty
   // sidebar card; pick the file panel so the layout always reads as intended.
-  if mode is WorkspaceMode &&
-    !self.file_sidebar_visible &&
-    !self.outline_visible {
+  if mode is WorkspaceMode && !self.file_sidebar_visible {
     self.set_sidebar_panel(FilesPanel)
   }
 }
@@ -116,10 +113,7 @@ fn MarkdownEditorApp::set_sidebar_width(
 
 ///|
 fn MarkdownEditorApp::sidebar_visible(self : MarkdownEditorApp) -> Bool {
-  match self.sidebar_panel {
-    FilesPanel => self.file_sidebar_visible
-    OutlinePanel => self.outline_visible
-  }
+  self.file_sidebar_visible
 }
 
 ///|
@@ -643,8 +637,5 @@ fn MarkdownEditorApp::set_editor_zoom(
 
 ///|
 fn MarkdownEditorApp::overlay_anim_progress(self : MarkdownEditorApp) -> Double {
-  markdown_editor_min_double(
-    1.0,
-    self.overlay_anim_frame.to_double() / 12.0,
-  )
+  markdown_editor_min_double(1.0, self.overlay_anim_frame.to_double() / 12.0)
 }

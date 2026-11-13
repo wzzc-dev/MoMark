@@ -5,7 +5,7 @@ test "island shell metrics keep the window inset and bar sizes" {
   assert_eq(workspace.island_gap, 6.0)
   assert_eq(workspace.island_radius, 10.0)
   assert_eq(workspace.bar_inset, 10.0)
-  assert_eq(workspace.top_bar_height, 40.0)
+  assert_eq(workspace.top_bar_height, 32.0)
   assert_eq(workspace.status_bar_height, 26.0)
   let minimal = markdown_shell_metrics(MinimalMode)
   assert_eq(minimal.island_margin, 4.0)
@@ -30,23 +30,30 @@ fn markdown_shell_fill_rects(
 }
 
 ///|
-test "island shell draws the top and status bars inside the window inset" {
+test "island cards start at the margin and meet the flush status bar" {
+  // Single chrome band: no full-width top bar; the editor card (with its tab
+  // header) starts at the island margin and runs down to the status bar.
   let app = MarkdownEditorApp::new()
   app.set_document("# Plan")
   let commands = app.runtime(width=980.0, height=640.0).draw_commands()
   let rects = markdown_shell_fill_rects(commands)
   let workspace = markdown_shell_metrics(WorkspaceMode)
-  let top_left = workspace.island_margin
-  let bar_width = 980.0 - workspace.island_margin * 2.0
-  let status_y = 640.0 - workspace.status_bar_height
+  let card_height = 640.0 -
+    workspace.status_bar_height -
+    workspace.island_margin
+  // With no sidebar the editor card fills the row; the document measure is
+  // centered inside it.
+  let card_width = 972.0
+  let card_x = workspace.island_margin
   assert_true(
     rects.any(rect => {
-      rect.origin.x == top_left &&
-      rect.origin.y == top_left &&
-      rect.size.width == bar_width &&
-      rect.size.height == workspace.top_bar_height
+      rect.origin.x == card_x &&
+      rect.origin.y == workspace.island_margin &&
+      rect.size.width == card_width &&
+      rect.size.height == card_height
     }),
   )
+  let status_y = 640.0 - workspace.status_bar_height
   assert_true(
     rects.any(rect => {
       rect.origin.x == 0.0 &&
@@ -55,22 +62,23 @@ test "island shell draws the top and status bars inside the window inset" {
       rect.size.height == workspace.status_bar_height
     }),
   )
-  // Minimal: 8px outer margin, 32px top bar, 24px status bar.
+  // Minimal: 4px outer margin, same card band, 24px status bar.
   app.set_layout_mode(MinimalMode)
   let minimal_commands = app.runtime(width=980.0, height=640.0).draw_commands()
   let minimal_rects = markdown_shell_fill_rects(minimal_commands)
   let minimal = markdown_shell_metrics(MinimalMode)
-  let minimal_top = minimal.island_margin
-  let minimal_width = 980.0 - minimal.island_margin * 2.0
-  let minimal_status_y = 640.0 - minimal.status_bar_height
+  let minimal_card_height = 640.0 -
+    minimal.status_bar_height -
+    minimal.island_margin
   assert_true(
     minimal_rects.any(rect => {
-      rect.origin.x == minimal_top &&
-      rect.origin.y == minimal_top &&
-      rect.size.width == minimal_width &&
-      rect.size.height == minimal.top_bar_height
+      rect.origin.x == card_x &&
+      rect.origin.y == minimal.island_margin &&
+      rect.size.width == card_width &&
+      rect.size.height == minimal_card_height
     }),
   )
+  let minimal_status_y = 640.0 - minimal.status_bar_height
   assert_true(
     minimal_rects.any(rect => {
       rect.origin.x == 0.0 &&
@@ -85,7 +93,7 @@ test "island shell draws the top and status bars inside the window inset" {
 test "switching shells keeps the document and selection" {
   let app = MarkdownEditorApp::new()
   app.set_document("# Plan\n\nBody")
-  app.selection = { caret: 3, selection: None }
+  app.selection = { caret: 3, selection: None, }
   app.set_layout_mode(MinimalMode)
   assert_true(app.layout_mode is MinimalMode)
   assert_eq(app.document(), "# Plan\n\nBody")
@@ -97,14 +105,44 @@ test "switching shells keeps the document and selection" {
 }
 
 ///|
+test "restored panel settings start fully open" {
+  let app = MarkdownEditorApp::new()
+  app.panel_anim_enabled = true
+  app.apply_settings(MarkdownEditorSettings::default())
+  assert_true(app.file_sidebar_visible)
+  inspect(app.panel_anim_fraction(), content="1")
+}
+
+///|
+test "line column label tracks source newlines and clamps the caret" {
+  inspect(
+    markdown_editor_line_column_label("alpha\nbeta", 0),
+    content="Ln 1, Col 1",
+  )
+  inspect(
+    markdown_editor_line_column_label("alpha\nbeta", 3),
+    content="Ln 1, Col 4",
+  )
+  inspect(
+    markdown_editor_line_column_label("alpha\nbeta", 6),
+    content="Ln 2, Col 1",
+  )
+  inspect(
+    markdown_editor_line_column_label("alpha\nbeta", 99),
+    content="Ln 2, Col 5",
+  )
+}
+
+///|
 test "sidebar panel selection keeps one left panel visible" {
   let app = MarkdownEditorApp::new()
   app.set_sidebar_panel(FilesPanel)
   assert_true(app.file_sidebar_visible)
   assert_false(app.outline_visible)
   assert_true(app.sidebar_panel is FilesPanel)
+  // The outline is a section under the file tree: both stay visible.
   app.set_sidebar_panel(OutlinePanel)
-  assert_false(app.file_sidebar_visible)
+  assert_true(app.file_sidebar_visible)
   assert_true(app.outline_visible)
   assert_true(app.sidebar_panel is OutlinePanel)
 }
@@ -226,4 +264,53 @@ test "sidebar panel animates open and closed over twelve ticks" {
     app.update_in_place(PanelAnimTick)
   }
   inspect(app.panel_anim_progress, content="0")
+}
+
+///|
+test "collapsed sidebar keeps a toggle in the tab strip" {
+  let app = MarkdownEditorApp::new()
+  app.set_file_sidebar_visible(false)
+  assert_false(app.sidebar_visible())
+  let runtime = app.runtime(width=980.0, height=640.0)
+  let commands = runtime.draw_commands()
+  guard markdown_editor_text_frame(commands, "Untitled") is Some(tab_frame) else {
+    fail("expected the document tab to render")
+  }
+  // The leading toggle (traffic-light inset + 26px button) pushes the tab
+  // right of where it sits when no chrome precedes it.
+  assert_true(tab_frame.origin.x > 80.0)
+  // Clicking that toggle brings the sidebar back.
+  let point = @geometry.Point::new(x=93.0, y=20.0)
+  runtime.dispatch_event(
+    @core.AppEvent::Pointer(
+      @core.PointerEvent::new(position=point, phase=@core.PointerPhase::Down),
+    ),
+  )
+  runtime.dispatch_event(
+    @core.AppEvent::Pointer(
+      @core.PointerEvent::new(position=point, phase=@core.PointerPhase::Up),
+    ),
+  )
+  assert_true(app.sidebar_visible())
+}
+
+///|
+test "dragging the gap between sidebar and editor resizes the sidebar" {
+  let app = MarkdownEditorApp::new()
+  app.set_file_sidebar_visible(true)
+  let runtime = app.runtime(width=980.0, height=640.0)
+  ignore(runtime.draw_frame())
+  let start = @geometry.Point::new(x=307.0, y=300.0)
+  runtime.dispatch_event(
+    @core.AppEvent::Pointer(
+      @core.PointerEvent::new(position=start, phase=@core.PointerPhase::Down),
+    ),
+  )
+  let moved = @geometry.Point::new(x=347.0, y=300.0)
+  runtime.dispatch_event(
+    @core.AppEvent::Pointer(
+      @core.PointerEvent::new(position=moved, phase=@core.PointerPhase::Move),
+    ),
+  )
+  assert_true(app.sidebar_width > 320.0)
 }

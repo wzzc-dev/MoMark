@@ -530,7 +530,7 @@ test "markdown editor snapshot preserves visible empty paragraph lines" {
       snapshot.rich_text,
       @core.FontSpec::new(),
     ).to_int(),
-    content="124",
+    content="137",
   )
 }
 
@@ -555,7 +555,7 @@ test "markdown editor caret geometry lands on inserted blank line" {
   inspect(heading.blocks.length(), content="2")
   inspect(paragraph.blocks.length(), content="2")
   assert_true(heading_blank.origin.y > content.origin.y + 20.0)
-  inspect(paragraph_blank.origin.y.to_int(), content="55")
+  inspect(paragraph_blank.origin.y.to_int(), content="58")
 }
 
 ///|
@@ -878,7 +878,7 @@ test "markdown editor click places caret after hidden heading marker" {
       @core.PointerEvent::new(
         position=@geometry.Point::new(
           x=app.editor_content_x(980.0, inner_x=2.0),
-          y=136.0,
+          y=102.0,
         ),
         phase=@core.PointerPhase::Down,
       ),
@@ -901,7 +901,7 @@ test "markdown editor click maps inline formatted text to source offset" {
       @core.PointerEvent::new(
         position=@geometry.Point::new(
           x=app.editor_content_x(980.0, inner_x=100.0),
-          y=136.0,
+          y=102.0,
         ),
         phase=@core.PointerPhase::Down,
       ),
@@ -920,7 +920,7 @@ test "markdown editor selection highlight uses formatted heading range" {
       @core.PointerEvent::new(
         position=@geometry.Point::new(
           x=app.editor_content_x(980.0, inner_x=2.0),
-          y=136.0,
+          y=102.0,
         ),
         phase=@core.PointerPhase::Down,
       ),
@@ -950,7 +950,7 @@ test "markdown editor drag selection tracks markdown source range" {
       @core.PointerEvent::new(
         position=@geometry.Point::new(
           x=app.editor_content_x(980.0, inner_x=2.0),
-          y=136.0,
+          y=102.0,
         ),
         phase=@core.PointerPhase::Down,
       ),
@@ -961,7 +961,7 @@ test "markdown editor drag selection tracks markdown source range" {
       @core.PointerEvent::new(
         position=@geometry.Point::new(
           x=app.editor_content_x(980.0, inner_x=434.0),
-          y=136.0,
+          y=102.0,
         ),
         phase=@core.PointerPhase::Move,
       ),

@@ -75,8 +75,11 @@ pub struct MarkdownUiTokens {
 /// Island and bar dimensions for one shell.
 ///
 /// `island_margin` is the window-edge inset, `island_gap` the space between
-/// cards, and `bar_inset` the horizontal padding inside the top/status bars.
-/// Controls never sit closer to the window edge than margin + inset.
+/// cards, and `bar_inset` the horizontal padding inside the bars. The chrome
+/// is one slim 32px band (`top_bar_height`) split across the two cards: the
+/// sidebar card's header carries the sidebar toggle and view segmented
+/// control, the editor card's header is the tab strip. Controls never sit
+/// closer to the window edge than margin + inset.
 pub struct MarkdownShellMetrics {
   layout_mode : MarkdownEditorLayoutMode
   island_margin : Double
@@ -109,7 +112,7 @@ fn markdown_shell_metrics(
         island_gap: 6.0,
         island_radius: 10.0,
         bar_inset: 10.0,
-        top_bar_height: 40.0,
+        top_bar_height: 32.0,
         status_bar_height: 26.0,
         sidebar_width,
         sidebar_min_width: 230.0,
@@ -118,7 +121,7 @@ fn markdown_shell_metrics(
         overlay_inspector_width: 240.0,
         page_width: markdown_editor_page_width(),
         side_page_width: markdown_editor_source_editor_width(),
-        tree_row_height: 28.0,
+        tree_row_height: 26.0,
         control_height: 28.0,
       }
     MinimalMode =>
@@ -137,16 +140,14 @@ fn markdown_shell_metrics(
         overlay_inspector_width: 240.0,
         page_width: markdown_editor_page_width(),
         side_page_width: markdown_editor_source_editor_width(),
-        tree_row_height: 28.0,
+        tree_row_height: 26.0,
         control_height: 26.0,
       }
   }
 }
 
 ///|
-fn markdown_ui_tokens(
-  scheme : @core.ColorScheme,
-) -> MarkdownUiTokens {
+fn markdown_ui_tokens(scheme : @core.ColorScheme) -> MarkdownUiTokens {
   match scheme {
     Light =>
       {
@@ -235,23 +236,23 @@ fn markdown_ui_theme(
     on_secondary: @graphics.Color::white(),
     focus: tokens.accent,
   }
-  let radius : @core.RadiusScale = {
-    sm: 6.0,
-    md: 8.0,
-    lg: 10.0,
-    pill: 999.0,
-  }
+  let radius : @core.RadiusScale = { sm: 6.0, md: 8.0, lg: 10.0, pill: 999.0, }
   let motion = if reduced_motion {
-    { ..@core.MotionScale::default(), fast_ms: 0.0, normal_ms: 0.0, slow_ms: 0.0, }
+    {
+      ..@core.MotionScale::default(),
+      fast_ms: 0.0,
+      normal_ms: 0.0,
+      slow_ms: 0.0,
+    }
   } else {
     @core.MotionScale::default()
   }
   @views.theme(
-    base=base,
+    base~,
     scheme=tokens.scheme,
-    palette=palette,
+    palette~,
     radius_scale=radius,
-    motion=motion,
+    motion~,
   )
 }
 
@@ -296,7 +297,5 @@ fn markdown_ui_divider(
   width~ : Double,
   height~ : Double = 1.0,
 ) -> @moui.View[MarkdownEditorMsg] {
-  @views.frame(@views.empty(), width=width, height=height).background(
-    tokens.divider,
-  )
+  @views.frame(@views.empty(), width~, height~).background(tokens.divider)
 }

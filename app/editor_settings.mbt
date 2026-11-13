@@ -1,6 +1,7 @@
 ///|
 /// Persisted editor preferences. Stored as JSON in a fixed settings path next
 /// to the app so appearance, theme and panel state survive restarts.
+#derive(Eq, Debug, ToJson, FromJson)
 pub struct MarkdownEditorSettings {
   dark_mode : Bool
   font_family : String
@@ -17,7 +18,7 @@ pub struct MarkdownEditorSettings {
   sidebar_panel : String
   sidebar_width : Double
   editor_zoom : Double
-} derive(Eq, Debug, ToJson, FromJson)
+}
 
 ///|
 pub extend MarkdownEditorSettings with Eq::{equal, not_equal}
@@ -35,6 +36,7 @@ pub extend MarkdownEditorSettings with @json.FromJson::{from_json}
 /// Settings as written before the workspace shell existed. Kept only to
 /// migrate an existing preferences file: those users keep the minimal shell
 /// they are used to instead of being switched to the workspace layout.
+#derive(FromJson)
 struct MarkdownEditorLegacySettings {
   dark_mode : Bool
   font_family : String
@@ -47,7 +49,7 @@ struct MarkdownEditorLegacySettings {
   files : Bool
   document_info : Bool
   editor_zoom : Double?
-} derive(FromJson)
+}
 
 ///|
 fn MarkdownEditorSettings::default() -> MarkdownEditorSettings {
@@ -123,7 +125,11 @@ fn markdown_editor_settings_from_legacy(
     document_info: legacy.document_info,
     layout_mode: "Minimal",
     follow_system_scheme: false,
-    sidebar_panel: if legacy.outline { "Outline" } else { "Files" },
+    sidebar_panel: if legacy.outline {
+      "Outline"
+    } else {
+      "Files"
+    },
     sidebar_width: 300.0,
     editor_zoom: 1.0,
   }
@@ -182,7 +188,7 @@ fn MarkdownEditorApp::apply_settings(
   self.zen_mode_enabled = settings.zen_mode
   self.source_preview_visible = settings.source_preview
   self.outline_visible = settings.outline
-  self.file_sidebar_visible = settings.files
+  self.file_sidebar_visible = settings.files || settings.outline
   self.document_info_visible = settings.document_info
   self.layout_mode = match settings.layout_mode {
     "Minimal" => MinimalMode
@@ -198,6 +204,15 @@ fn MarkdownEditorApp::apply_settings(
     230.0,
     420.0,
   )
+  // Restored panels are already open; starting the animation progress at 0
+  // would leave the sidebar clipped to zero width on launch.
+  if self.file_sidebar_visible || self.outline_visible {
+    self.panel_anim_target = 1.0
+    self.panel_anim_progress = 1.0
+  } else {
+    self.panel_anim_target = 0.0
+    self.panel_anim_progress = 0.0
+  }
   self.set_editor_zoom(settings.editor_zoom)
   match settings.writing_appearance {
     "Warm" => self.set_writing_appearance(WarmAppearance)

@@ -34,7 +34,9 @@ test "markdown editor page decoration keeps editor interactive" {
   app.set_document("")
   let runtime = app.runtime(width=980.0, height=640.0)
   let commands = runtime.draw_commands()
-  assert_true(
+  // The editor card is flat (no drop shadow); Winc keeps the page flush and
+  // shadows only floating overlays.
+  assert_false(
     commands.any(command => command is @core.DrawCommand::DrawShadow(_)),
   )
   runtime.dispatch_event(
@@ -42,7 +44,7 @@ test "markdown editor page decoration keeps editor interactive" {
       @core.PointerEvent::new(
         position=@geometry.Point::new(
           x=app.editor_content_x(980.0, inner_x=2.0),
-          y=136.0,
+          y=102.0,
         ),
         phase=@core.PointerPhase::Down,
       ),
@@ -64,7 +66,7 @@ test "markdown editor controlled runtime rebuilds after input" {
       @core.PointerEvent::new(
         position=@geometry.Point::new(
           x=app.editor_content_x(980.0, inner_x=2.0),
-          y=136.0,
+          y=102.0,
         ),
         phase=@core.PointerPhase::Down,
       ),

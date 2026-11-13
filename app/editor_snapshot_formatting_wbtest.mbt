@@ -408,7 +408,7 @@ test "markdown editor renders image preview while mapping alt text" {
       @core.PointerEvent::new(
         position=@geometry.Point::new(
           x=app.editor_content_x(980.0, inner_x=2.0),
-          y=136.0,
+          y=102.0,
         ),
         phase=@core.PointerPhase::Down,
       ),
@@ -447,7 +447,9 @@ test "markdown editor formatter keeps code block height stable when activated" {
       }),
       base,
     )
-    if inactive != active {
+    // Heights go through two different summation orders; compare with a
+    // tolerance instead of exact binary equality.
+    if inactive - active > 0.001 || active - inactive > 0.001 {
       fail("\{inactive} != \{active}")
     }
   }

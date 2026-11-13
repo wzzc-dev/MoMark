@@ -1,7 +1,7 @@
 ///|
 /// The Typora paragraph rhythm for blank source lines.
 ///
-/// Typora separates sibling blocks with a collapsed `p { margin: 0.8em 0 }`
+/// Typora separates sibling blocks with a collapsed `p { margin: 1.0em 0 }`
 /// (its stock Github theme measures 12.8px at the 16px root) and has no node
 /// at all for a blank line, so several blank lines between blocks render
 /// exactly like one. MoMark keeps the blank source line as a block — the
@@ -71,7 +71,7 @@ fn blank_line_gap_run_height(
 test "markdown editor blank line keeps the typora paragraph rhythm" {
   // One blank line between two paragraphs: the separator carries the
   // paragraph margin (0.4em of the 17px editor font) with no line box of its
-  // own, so the whole paragraph gap is Typora's 0.8em.
+  // own, so the whole paragraph gap is Typora's 1.0em.
   let app = MarkdownEditorApp::new()
   app.set_document("Alpha paragraph here.\n\nBeta paragraph here.")
   let gaps = blank_line_gap_blocks(app, 0)
@@ -97,12 +97,12 @@ test "markdown editor blank lines alternate separator and empty line" {
   inspect(gaps.length(), content="3")
   assert_true(blank_line_height_matches(gaps[0].line_height, 0.0))
   assert_true(blank_line_height_matches(Some(gaps[0].inset.top), 0.4))
-  assert_true(blank_line_height_matches(gaps[1].line_height, 1.55))
+  assert_true(blank_line_height_matches(gaps[1].line_height, 1.65))
   assert_true(blank_line_height_matches(gaps[2].line_height, 0.0))
   assert_true(blank_line_height_matches(Some(gaps[2].inset.top), 0.4))
-  // The run is separator + writing line + separator, 2.75em in total.
+  // The run is separator + writing line + separator, 2.85em in total.
   assert_true(
-    blank_line_height_matches(Some(blank_line_gap_run_height(gaps)), 2.75),
+    blank_line_height_matches(Some(blank_line_gap_run_height(gaps)), 2.85),
   )
 }
 
@@ -130,9 +130,9 @@ test "markdown editor blank line rhythm matches the typora reference" {
   // The reference document compared against Typora is
   // "123\n123\n\n123\n\n\n\n123": a soft-wrapped pair, then a paragraph
   // after one blank line, then a paragraph after three. Typora's stock Github
-  // theme renders 1.56em, 2.34em and 4.72em between the text tops; MoMark
-  // measures the same proportions in its own 17px body font, because a run
-  // alternates the paragraph separator with the empty lines Typora shows.
+  // theme renders 1.56em, 2.34em and 4.72em between the text tops; MoMark's
+  // 1.65em body leading runs one step airier (1.65 / 2.55 / 5.0em) because a
+  // run alternates the paragraph separator with the empty lines Typora shows.
   let app = MarkdownEditorApp::new()
   app.set_document("123\n123\n\n123\n\n\n\n123")
   let rows = blank_line_painted_rows(
@@ -145,9 +145,9 @@ test "markdown editor blank line rhythm matches the typora reference" {
     deltas.push(rows[index] - rows[index - 1])
   }
   // soft wrap, one blank line, three blank lines
-  assert_true(blank_line_height_matches(Some(deltas[0]), 1.55))
-  assert_true(blank_line_height_matches(Some(deltas[1]), 2.35))
-  assert_true(blank_line_height_matches(Some(deltas[2]), 4.7))
+  assert_true(blank_line_height_matches(Some(deltas[0]), 1.65))
+  assert_true(blank_line_height_matches(Some(deltas[1]), 2.55))
+  assert_true(blank_line_height_matches(Some(deltas[2]), 5.0))
 }
 
 ///|
@@ -164,7 +164,7 @@ test "markdown editor enter keeps a full writing line on the new blank line" {
       @core.PointerEvent::new(
         position=@geometry.Point::new(
           x=app.editor_content_x(980.0, inner_x=6.0),
-          y=136.0,
+          y=102.0,
         ),
         phase=@core.PointerPhase::Down,
       ),
@@ -184,18 +184,18 @@ test "markdown editor enter keeps a full writing line on the new blank line" {
   let gaps = blank_line_gap_blocks(app, caret)
   let mut writing_lines = 0
   for gap in gaps {
-    if blank_line_height_matches(gap.line_height, 1.55) {
+    if blank_line_height_matches(gap.line_height, 1.65) {
       writing_lines = writing_lines + 1
     }
   }
-  // Only the line the caret sits on stays a full 1.55em writing line; the
-  // blank line above it carries the run's 0.4em paragraph margin, and the
+  // Only the line the caret sits on stays a full 1.65em writing line; the
+  // blank line above it carries the run's 0.5em paragraph margin, and the
   // caret's line itself takes the writing line rather than that blank line's
-  // increment. The run is therefore the margin, the writing line and the
-  // spacing that follows it (0.4em + 1.55em + 0.4em).
+  // increment. The run is therefore the separator margin, the writing line
+  // and the spacing that follows it (0.4em + 1.65em + 0.4em).
   inspect(writing_lines, content="1")
   assert_true(
-    blank_line_height_matches(Some(blank_line_gap_run_height(gaps)), 2.35),
+    blank_line_height_matches(Some(blank_line_gap_run_height(gaps)), 2.45),
   )
   let font = @text.FontSpec::new(size=17.0)
   match
@@ -244,7 +244,7 @@ test "markdown editor one blank line is no caret target, three show one line" {
     fail("expected the second paragraph to render")
   }
   // "Alpha paragraph here." occupies 0..21, so the blank line is offset 22.
-  let band_top = frame.origin.y + frame.size.height + 17.0 * 0.4
+  let band_top = frame.origin.y + frame.size.height + 17.0 * 0.5
   let click = fn(y : Double) -> Unit {
     let point = @geometry.Point::new(x=frame.origin.x + 4.0, y~)
     runtime.dispatch_event(
@@ -276,8 +276,8 @@ test "markdown editor one blank line is no caret target, three show one line" {
     fail("expected the second paragraph to render")
   }
   // Above the second paragraph sit its separator (0.4em) and the empty line
-  // (1.55em), so the middle of that line is 0.4em + half a line above Beta.
-  let empty_line_center = beta_frame.origin.y - 17.0 * 0.4 - 17.0 * 1.55 / 2.0
+  // (1.65em), so the middle of that line is 0.5em + half a line above Beta.
+  let empty_line_center = beta_frame.origin.y - 17.0 * 0.5 - 17.0 * 1.65 / 2.0
   let point = @geometry.Point::new(
     x=beta_frame.origin.x + 4.0,
     y=empty_line_center,
@@ -344,7 +344,7 @@ test "markdown editor enter leaves the caret where the typed line lands" {
       @core.PointerEvent::new(
         position=@geometry.Point::new(
           x=app.editor_content_x(980.0, inner_x=6.0),
-          y=136.0,
+          y=102.0,
         ),
         phase=@core.PointerPhase::Down,
       ),
@@ -357,14 +357,14 @@ test "markdown editor enter leaves the caret where the typed line lands" {
     @core.AppEvent::Keyboard(@core.KeyboardEvent::new(key="Enter")),
   )
   let caret_line_top = blank_line_caret_block_top(app, app.selection_caret())
-  // The whole gap is the paragraph's 0.8em, i.e. the paragraph line box plus
-  // Typora's collapsed paragraph margin (1.55em + 0.8em = 2.35em).
-  assert_true(blank_line_height_matches(Some(caret_line_top), 2.35))
+  // The whole gap is the paragraph's 1.0em, i.e. the paragraph line box plus
+  // Typora's collapsed paragraph margin (1.65em + 1.0em = 2.55em).
+  assert_true(blank_line_height_matches(Some(caret_line_top), 2.55))
   runtime.dispatch_event(
     @core.AppEvent::TextInput(@core.TextInputEvent::InsertText("456")),
   )
   let typed_line_top = blank_line_caret_block_top(app, app.selection_caret())
-  assert_true(blank_line_height_matches(Some(typed_line_top), 2.35))
+  assert_true(blank_line_height_matches(Some(typed_line_top), 2.55))
   assert_true(
     blank_line_height_matches(Some(caret_line_top - typed_line_top), 0.0),
   )

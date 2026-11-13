@@ -139,17 +139,15 @@ test "markdown editor files sidebar shows current and recent documents" {
   let commands = app.runtime(width=1180.0, height=640.0).draw_commands()
   assert_true(
     commands.any(command => {
-      command is @core.DrawCommand::DrawText({ text: "Files", .. })
-    }),
-  )
-  assert_true(
-    commands.any(command => {
       command is @core.DrawCommand::DrawText({ text: "Recent", .. })
     }),
   )
   assert_true(
     commands.any(command => {
-      command is @core.DrawCommand::DrawText({ text: "draft.md / Saved", .. })
+      match command {
+        @core.DrawCommand::DrawText({ text, .. }) => text.contains("Saved")
+        _ => false
+      }
     }),
   )
   assert_true(
@@ -368,15 +366,14 @@ test "markdown editor chrome renders document workflow state" {
       }
     }),
   )
-  // Opening the file sidebar pins the current-document footer, which carries
-  // the save state next to the status bar's sphere toggle.
+  // The sidebar footer no longer duplicates the save state; the tab title and
+  // status bar carry it.
   app.toggle_file_sidebar()
   let sidebar_commands = app.runtime(width=980.0, height=640.0).draw_commands()
   assert_true(
     sidebar_commands.any(command => {
       match command {
-        @core.DrawCommand::DrawText({ text, .. }) =>
-          text.contains("plan.md / Unsaved")
+        @core.DrawCommand::DrawText({ text, .. }) => text.contains("plan.md")
         _ => false
       }
     }),

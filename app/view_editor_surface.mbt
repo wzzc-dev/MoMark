@@ -467,7 +467,10 @@ fn markdown_editor_primary_editor_width_for_viewport(
     show_source, show_outline, show_files, show_info, appearance,
   )
   let sidebars_width = markdown_editor_sidebar_total_width(
-    show_source, show_outline, show_files, show_info,
+    show_source,
+    show_outline,
+    show_files,
+    show_info,
     sidebar_width~,
   )
   let available = markdown_editor_max_double(
@@ -520,15 +523,6 @@ fn markdown_editor_source_inspector_width() -> Double {
 ///|
 fn markdown_editor_viewport_height() -> Double {
   520.0
-}
-
-///|
-fn markdown_editor_page_shadow() -> @graphics.ShadowStyle {
-  @graphics.ShadowStyle::new(
-    color=@graphics.Color::white().multiply_alpha(0.12),
-    offset=@geometry.Point::new(x=0.0, y=2.0),
-    blur_radius=18.0,
-  )
 }
 
 ///|
@@ -591,7 +585,11 @@ fn editor_source_layout(
   card_gap~ : Double = 0.0,
   sidebar_width~ : Double = markdown_editor_file_sidebar_width(),
   sidebar_anim~ : Double = 1.0,
-  page_shadow? : @graphics.ShadowStyle,
+  sidebar_header~ : @moui.View[MarkdownEditorMsg] = @views.empty(),
+  sidebar_header_height~ : Double = 0.0,
+  tab_leading~ : Array[@moui.View[MarkdownEditorMsg]] = [],
+  tab_leading_width~ : Double = 0.0,
+  tab_left_inset~ : Double = 8.0,
   page_radius~ : Double = 4.0,
 ) -> @moui.View[MarkdownEditorMsg] {
   let tab_height = if app.zen_mode_enabled {
@@ -599,10 +597,25 @@ fn editor_source_layout(
   } else {
     markdown_editor_tab_strip_height()
   }
-  let body_height = markdown_editor_max_double(0.0, viewport_height - tab_height)
+  let body_height = markdown_editor_max_double(
+    0.0,
+    viewport_height - tab_height,
+  )
+  // Page breathing room inside the editor card: the document column starts
+  // with a generous top margin below the tab strip and stops short of the
+  // card's bottom edge (Typora/Winc page padding).
+  let page_padding = markdown_editor_page_padding_top() +
+    markdown_editor_page_padding_bottom()
+  let editor_height = markdown_editor_max_double(
+    0.0,
+    body_height - page_padding,
+  )
   let animated_sidebar_width = sidebar_width * sidebar_anim
   let sidebars_width = markdown_editor_sidebar_total_width(
-    show_source, show_outline, show_files, show_info,
+    show_source,
+    show_outline,
+    show_files,
+    show_info,
     sidebar_width=animated_sidebar_width,
   )
   let mut card_gaps = 0
@@ -612,9 +625,7 @@ fn editor_source_layout(
   if show_info {
     card_gaps = card_gaps + 1
   }
-  if show_outline {
-    card_gaps = card_gaps + 1
-  }
+
   if show_source {
     card_gaps = card_gaps + 1
   }
@@ -622,14 +633,16 @@ fn editor_source_layout(
     0.0,
     viewport_width - sidebars_width - card_gaps.to_double() * card_gap,
   )
-  let editor_width = if show_files || card_gaps > 0 {
-    markdown_editor_min_double(appearance.page_width, available_width)
-  } else {
-    appearance.page_width
-  }
+  // The card always fills the space next to the sidebars (Winc's editor pane);
+  // `page_width` only caps the document measure, which stays centered inside.
+  let card_width = available_width
+  let editor_width = markdown_editor_min_double(
+    appearance.page_width,
+    available_width,
+  )
   let source_mode = app.source_mode_enabled
   let content_height = markdown_editor_max_double(
-    body_height,
+    editor_height,
     session.estimated_content_height(
       base=editor_font,
       source_mode~,
@@ -668,7 +681,7 @@ fn editor_source_layout(
       selection~,
       on_transaction=transaction => ApplyEditorTransaction(transaction),
       placeholder="Start writing Markdown",
-      size=@geometry.Size::new(width=editor_width, height=body_height),
+      size=@geometry.Size::new(width=editor_width, height=editor_height),
       font=editor_style.font(),
       foreground=appearance.foreground,
       placeholder_color=editor_style.placeholder_color(),
@@ -689,8 +702,8 @@ fn editor_source_layout(
         MarkdownScrollGlide::settled(0.0),
         Some(y => EditorScrollSettled(y)),
       ),
-      visible_viewport_height=body_height,
-      visible_overscan=markdown_editor_visible_overscan(body_height),
+      visible_viewport_height=editor_height,
+      visible_overscan=markdown_editor_visible_overscan(editor_height),
     )
     // The document surface owns its own menu (clipboard, formatting, document
     // actions); the root view keeps a broader menu for the surrounding chrome.
@@ -700,34 +713,41 @@ fn editor_source_layout(
       ContextMenuTargeted(MarkdownEditorContextTarget::EditorSurface),
     )
     .key("markdown-editor")
-  let page_shadow = match page_shadow {
-    Some(shadow) => shadow
-    None => markdown_editor_page_shadow()
-  }
   let tab_strip = if tab_height <= 0.0 {
     empty()
   } else {
     markdown_editor_tab_strip(
       app,
       theme,
-      width=editor_width,
+      width=card_width,
       height=tab_height,
-      background=appearance.page_background,
+      leading=tab_leading,
+      leading_width=tab_leading_width,
+      left_inset=tab_left_inset,
     )
   }
+  let centered_editor = @views.row(
+    [
+      @views.spacer(min_length=0.0, weight=1.0),
+      padding_edges(
+        editor_control,
+        top=markdown_editor_page_padding_top(),
+        bottom=markdown_editor_page_padding_bottom(),
+      ),
+      @views.spacer(min_length=0.0, weight=1.0),
+    ],
+    spacing=0.0,
+    align=@views.CrossAlign::Center,
+  )
   let editor = editor_page(
-    editor_control,
+    centered_editor,
     tab_strip~,
     background=appearance.page_background,
     border_color=theme.palette.outline,
-    shadow=page_shadow,
     page_radius~,
-    width=editor_width,
+    width=card_width,
     height=viewport_height,
-  ).on_file_drop((
-    paths,
-    _position,
-  ) => {
+  ).on_file_drop((paths, _position) => {
     match paths {
       [path, ..] if path != "" => InsertMediaFromFileDrop(path)
       _ => DismissAuxiliaryPanels
@@ -750,11 +770,38 @@ fn editor_source_layout(
   if show_files {
     side_children.push(
       files_inspector(
-        app, session, theme, height=viewport_height,
+        app,
+        session,
+        selection,
+        theme,
+        height=viewport_height,
         width=animated_sidebar_width,
-      ).clip().opacity(sidebar_anim),
+        header=sidebar_header,
+        header_height=sidebar_header_height,
+        outline_expanded=app.outline_visible,
+      )
+      .clip()
+      .opacity(sidebar_anim),
     )
-    side_children.push(spacer(min_length=card_gap, weight=0.0))
+    // Drag the gap between the cards to resize the sidebar. The pointer x is
+    // mapped back to a width relative to the card's left edge, so the handle
+    // keeps following the pointer even as the card re-lays out.
+    if card_gap > 0.0 {
+      side_children.push(
+        @views.canvas(
+          measure=_ctx => {
+            @core.Size::new(width=card_gap, height=viewport_height)
+          },
+          draw=(_ctx, _frame) => (),
+          semantics_label="Resize sidebar",
+        ).on_drag_with_frame((event, frame) => {
+          let base = frame.origin.x - animated_sidebar_width
+          SetSidebarWidth(event.position.x - base - card_gap * 0.5)
+        }),
+      )
+    } else {
+      side_children.push(spacer(min_length=card_gap, weight=0.0))
+    }
   }
   side_children.push(spacer(min_length=0.0, weight=1.0))
   side_children.push(editor_view)
@@ -763,19 +810,6 @@ fn editor_source_layout(
     side_children.push(spacer(min_length=card_gap, weight=0.0))
     side_children.push(
       document_info_inspector(session, theme, height=viewport_height),
-    )
-  }
-  if show_outline {
-    side_children.push(spacer(min_length=card_gap, weight=0.0))
-    side_children.push(
-      outline_inspector(
-        app, session, selection, theme, height=viewport_height,
-        width=if show_files {
-          markdown_editor_outline_inspector_width()
-        } else {
-          animated_sidebar_width
-        },
-      ).clip().opacity(sidebar_anim),
     )
   }
   if show_source {
@@ -799,7 +833,7 @@ fn editor_source_layout(
     @views.align(
       markdown_editor_scroll_indicator(
         MarkdownScrollGlide::settled(app.editor_scroll_settled_y),
-        viewport_height=body_height,
+        viewport_height=editor_height,
         content_height~,
         theme,
       ),
@@ -818,29 +852,90 @@ fn editor_source_layout(
 }
 
 ///|
+
 ///|
 fn markdown_editor_tab_strip_height() -> Double {
-  34.0
+  32.0
+}
+
+///|
+/// Top page padding inside the editor card, below the tab strip header.
+fn markdown_editor_page_padding_top() -> Double {
+  20.0
+}
+
+///|
+/// Bottom page padding between the document column and the card's lower edge.
+fn markdown_editor_page_padding_bottom() -> Double {
+  16.0
+}
+
+///|
+/// Approximate intrinsic width of a tab title, clamped so short names do not
+/// leave a wide empty pill and long paths stop growing before they crowd the
+/// strip's right actions.
+fn markdown_editor_tab_title_width(title : String) -> Double {
+  let width = markdown_editor_text_length(title).to_double() * 7.2 + 8.0
+  markdown_editor_clamp_double(width, 96.0, 160.0)
+}
+
+///|
+/// Total width of the tab pill: padding, file icon, title button, dirty dot,
+/// close button, and the row spacing between them.
+fn markdown_editor_tab_pill_width(title : String, dirty : Bool) -> Double {
+  let dot = if dirty { 10.0 } else { 0.0 }
+  68.0 + markdown_editor_tab_title_width(title) + dot
+}
+
+///|
+/// One compact action on the tab strip's right edge. Active views use the
+/// tonal fill so the current source/preview state reads at a glance.
+fn markdown_editor_tab_action(
+  icon : @views.IconName,
+  label : String,
+  message : MarkdownEditorMsg,
+  theme : @moui.Theme,
+  active : Bool,
+) -> @moui.View[MarkdownEditorMsg] {
+  tooltip(
+    button(
+      "",
+      on_click=message,
+      variant=if active {
+        @views.ButtonVariant::Tonal
+      } else {
+        @views.ButtonVariant::Ghost
+      },
+      icon=Some(icon),
+      theme=markdown_shell_compact_theme(theme),
+      width=22.0,
+      height=22.0,
+    ),
+    label,
+  )
 }
 
 ///|
 /// The tab strip inside the editor card: one document tab with its file icon,
-/// dirty dot, and close affordance, plus new-tab and view actions. The top bar
-/// keeps only the sidebar/view controls; the document tab belongs to the
-/// editor card, Winc-style.
+/// dirty dot, and close affordance, plus new-tab and view actions. Together
+/// with the sidebar card's header it forms the single 32px chrome band; in the
+/// minimal shell, which has no persistent sidebar, the sidebar controls ride
+/// along at the strip's left edge (`leading` + a traffic-light `left_inset`).
 fn markdown_editor_tab_strip(
   app : MarkdownEditorApp,
   theme : @moui.Theme,
   width~ : Double,
   height~ : Double,
-  background~ : @graphics.Color,
+  leading~ : Array[@moui.View[MarkdownEditorMsg]] = [],
+  leading_width~ : Double = 0.0,
+  left_inset~ : Double = 8.0,
 ) -> @moui.View[MarkdownEditorMsg] {
   let title = markdown_editor_document_title(
     path=app.document_path,
     fallback="Untitled",
   )
   let unsaved = if app.is_dirty() {
-    text("•", width=10.0, height=18.0)
+    text("•", width=10.0, height=16.0)
     .font(theme.typography.caption)
     .foreground(theme.palette.primary)
   } else {
@@ -852,6 +947,7 @@ fn markdown_editor_tab_strip(
       on_click=NewDocument,
       variant=@views.ButtonVariant::Ghost,
       icon=Some(@views.IconName::Close),
+      theme=markdown_shell_compact_theme(theme),
       width=20.0,
       height=20.0,
     ),
@@ -870,7 +966,8 @@ fn markdown_editor_tab_strip(
             title,
             on_click=ToggleDocumentInfo,
             variant=@views.ButtonVariant::Ghost,
-            width=150.0,
+            theme=markdown_shell_compact_theme(theme),
+            width=markdown_editor_tab_title_width(title),
             height=20.0,
             label_align=@text.TextAlign::TextStart,
           )
@@ -888,7 +985,7 @@ fn markdown_editor_tab_strip(
       left=10.0,
     ),
     variant=@views.ContainerVariant::Base,
-    background=theme.palette.surface_variant,
+    background=theme.palette.primary_container,
     border=Some(
       @core.BorderStyle::new(
         brush=@graphics.Brush::solid(theme.palette.outline),
@@ -904,57 +1001,72 @@ fn markdown_editor_tab_strip(
       on_click=NewDocument,
       variant=@views.ButtonVariant::Ghost,
       icon=Some(@views.IconName::FileNew),
-      width=26.0,
-      height=26.0,
+      theme=markdown_shell_compact_theme(theme),
+      width=22.0,
+      height=22.0,
     ),
     "New document",
   )
   let view_actions = row(
     [
-      tooltip(
-        button(
-          "",
-          on_click=ToggleSourceMode,
-          variant=@views.ButtonVariant::Ghost,
-          icon=Some(@views.IconName::FileCode),
-          width=26.0,
-          height=26.0,
-        ),
-        "Source mode",
+      markdown_editor_tab_action(
+        @views.IconName::Search,
+        "Find",
+        ToggleFind,
+        theme,
+        app.find_visible,
       ),
-      tooltip(
-        button(
-          "",
-          on_click=ToggleSourcePreview,
-          variant=@views.ButtonVariant::Ghost,
-          icon=Some(@views.IconName::Columns),
-          width=26.0,
-          height=26.0,
-        ),
+      markdown_editor_tab_action(
+        @views.IconName::FileCode,
+        "Source mode",
+        ToggleSourceMode,
+        theme,
+        app.source_mode_enabled,
+      ),
+      markdown_editor_tab_action(
+        @views.IconName::Columns,
         "Source preview",
+        ToggleSourcePreview,
+        theme,
+        app.source_preview_visible,
       ),
     ],
     spacing=2.0,
     align=@views.CrossAlign::Center,
   )
-  let strip = row(
-    [tab, new_tab, spacer(min_length=0.0, weight=1.0), view_actions],
-    spacing=4.0,
-    align=@views.CrossAlign::Center,
+  let strip_children : Array[@moui.View[MarkdownEditorMsg]] = []
+  for control in leading {
+    strip_children.push(control)
+  }
+  if leading.length() > 0 {
+    strip_children.push(spacer(min_length=8.0, weight=0.0))
+  }
+  strip_children.push(tab)
+  strip_children.push(new_tab)
+  let left_row = padding_edges(
+    row(strip_children, spacing=4.0, align=@views.CrossAlign::Center),
+    top=markdown_editor_max_double(0.0, (height - 24.0) / 2.0),
+    bottom=markdown_editor_max_double(0.0, (height - 24.0) / 2.0),
+    left=left_inset,
   )
-  let divider = frame(empty(), height=1.0).background(theme.palette.outline)
-  column(
-    [
-      frame(
-        padding_edges(strip, left=8.0, right=8.0),
-        width~,
-        height=height - 1.0,
-      ).background(background),
-      divider,
-    ],
-    spacing=0.0,
-    align=@views.CrossAlign::Stretch,
+  let left_layer = @views.align(
+    left_row,
+    alignment=@geometry.Alignment::new(x=-1.0, y=0.0),
   )
+  // Absolute right inset: padding shifts the action row from the strip's left
+  // edge by the remaining width, so it lands on the card edge regardless of
+  // how the enclosing layout measures intrinsic widths.
+  let right_layer = padding_edges(
+    view_actions,
+    left=markdown_editor_max_double(0.0, width - 8.0 - 70.0),
+  )
+  // One continuous card surface (no divider), and a stack instead of a row:
+  // the stack hands its children the card's width, so the right-aligned
+  // action cluster actually lands on the card's edge.
+  // The sizing layer stays transparent: the editor card paints its own
+  // rounded background, and a rectangular strip background would cover the
+  // card's top-left/top-right corner radius.
+  @views.stack([frame(empty(), width~, height~), left_layer, right_layer])
 }
 
 ///|
@@ -963,21 +1075,16 @@ fn editor_page(
   tab_strip~ : @moui.View[MarkdownEditorMsg],
   background~ : @graphics.Color,
   border_color~ : @graphics.Color,
-  shadow~ : @graphics.ShadowStyle,
   page_radius~ : Double = 4.0,
   width~ : Double,
   height~ : Double,
 ) -> @moui.View[MarkdownEditorMsg] {
   container(
-    column(
-      [tab_strip, editor],
-      spacing=0.0,
-      align=@views.CrossAlign::Stretch,
-    ),
+    column([tab_strip, editor], spacing=0.0, align=@views.CrossAlign::Stretch),
     width~,
     height~,
     variant=@views.ContainerVariant::Base,
-    background=background,
+    background~,
     border=Some(
       @core.BorderStyle::new(
         brush=@graphics.Brush::solid(border_color),
@@ -986,7 +1093,7 @@ fn editor_page(
     ),
     corner_radius=page_radius,
     padding=0.0,
-  ).shadow(shadow)
+  )
 }
 
 ///|

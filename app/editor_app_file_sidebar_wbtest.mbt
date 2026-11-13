@@ -66,7 +66,7 @@ test "markdown editor file sidebar renders optional directory tree" {
   let commands = app.runtime(width=1120.0, height=640.0).draw_commands()
   assert_true(
     commands.any(command => {
-      command is @core.DrawCommand::DrawText({ text: "Files", .. })
+      command is @core.DrawCommand::DrawText({ text: "No folder open", .. })
     }),
   )
   assert_false(
@@ -107,7 +107,7 @@ test "markdown editor file sidebar renders optional directory tree" {
   let expanded = app.runtime(width=1120.0, height=640.0).draw_commands()
   assert_true(
     expanded.any(command => {
-      command is @core.DrawCommand::DrawText({ text: "Files", .. })
+      command is @core.DrawCommand::DrawText({ text: "project", .. })
     }),
   )
   assert_true(
@@ -119,20 +119,31 @@ test "markdown editor file sidebar renders optional directory tree" {
 
 ///|
 test "markdown editor file sidebar pins empty folder prompt to top" {
-  // The folder actions head the panel, above the Files header they act on:
-  // they used to sit in a footer cramped against the window edge.
+  // The empty-state header and its primary action head the panel; Recent
+  // follows below (Winc-style header, no separate "Files" caption row).
   let app = MarkdownEditorApp::new()
   app.set_file_sidebar_visible(true)
   let commands = app.runtime(width=1120.0, height=640.0).draw_commands()
-  guard markdown_editor_text_frame(commands, "Pick folder")
+  guard markdown_editor_text_frame(commands, "Open folder")
     is Some(actions_frame) else {
     fail("expected the empty folder prompt")
   }
-  guard markdown_editor_text_frame(commands, "Files") is Some(files_frame) else {
-    fail("expected files sidebar title")
+  guard markdown_editor_text_frame(commands, "Recent") is Some(recent_frame) else {
+    fail("expected the Recent section")
   }
-  assert_true(actions_frame.origin.y < 80.0)
-  assert_true(files_frame.origin.y > actions_frame.origin.y)
+  assert_true(actions_frame.origin.y < 120.0)
+  assert_true(recent_frame.origin.y > actions_frame.origin.y)
+}
+
+///|
+test "empty file sidebar pins the outline footer to the bottom" {
+  let app = MarkdownEditorApp::new()
+  app.set_file_sidebar_visible(true)
+  let commands = app.runtime(width=980.0, height=640.0).draw_commands()
+  guard markdown_editor_text_frame(commands, "Outline") is Some(outline_frame) else {
+    fail("expected the sidebar outline footer")
+  }
+  assert_true(outline_frame.origin.y > 500.0)
 }
 
 ///|
@@ -431,4 +442,63 @@ test "markdown editor toggle file tree fold hides tree" {
   inspect(@debug.to_string(app.file_tree_expanded), content="false")
   app.update_in_place(ToggleFileTree)
   inspect(@debug.to_string(app.file_tree_expanded), content="true")
+}
+
+///|
+test "markdown editor tree dims dot-directories" {
+  // Winc renders ignored/hidden entries one step quieter: the label drops to
+  // the muted color while normal rows keep the foreground color.
+  let app = MarkdownEditorApp::new()
+  app.set_file_sidebar_visible(true)
+  let entries = [
+    @host.HostDirectoryEntry::new(
+      name=".cache",
+      path="/tmp/project/.cache",
+      is_directory=true,
+    ),
+    @host.HostDirectoryEntry::new(
+      name="readme.md",
+      path="/tmp/project/readme.md",
+    ),
+  ]
+  let bridge = @host.HostServiceBridge::new(
+    capabilities=@host.HostServiceCapabilities::new(
+      file_access=true,
+      file_dialogs=true,
+    ),
+    handle=request => {
+      match request {
+        @host.HostServiceRequest::FileDialog(_) =>
+          @host.HostServiceResponse::FileDialogSelection(["/tmp/project"])
+        @host.HostServiceRequest::ListDirectory(_) =>
+          @host.HostServiceResponse::DirectoryListing("/tmp/project", entries)
+        _ => @host.HostServiceResponse::Unavailable("unexpected request")
+      }
+    },
+  )
+  app.pick_working_directory_for_test(
+    @backend_common_services.app_services(bridge~),
+  )
+  app.file_tree_expanded = true
+  let commands = app.runtime(width=1120.0, height=640.0).draw_commands()
+  let tokens = markdown_ui_tokens(@core.ColorScheme::Light)
+  let mut saw_hidden = false
+  let mut saw_regular = false
+  for command in commands {
+    match command {
+      @core.DrawCommand::DrawText({ text, color, .. }) =>
+        if text == ".cache" {
+          assert_true(color == tokens.text_muted)
+          saw_hidden = true
+        } else if text == "readme.md" {
+          // Regular rows keep the control-theme label color; what matters is
+          // that they are NOT the muted dim color.
+          assert_true(color != tokens.text_muted)
+          saw_regular = true
+        }
+      _ => ()
+    }
+  }
+  assert_true(saw_hidden)
+  assert_true(saw_regular)
 }

@@ -432,7 +432,11 @@ fn MarkdownEditorApp::set_outline_visible(
   self : MarkdownEditorApp,
   visible : Bool,
 ) -> Unit {
+  // The outline section lives inside the file sidebar card.
   self.outline_visible = visible
+  if visible {
+    self.file_sidebar_visible = true
+  }
 }
 
 ///|
@@ -716,14 +720,23 @@ fn MarkdownEditorApp::editor_content_x(
   )
   let panel_anim = self.panel_anim_fraction()
   let animated_sidebar_width = self.sidebar_width * panel_anim
-  let show_files = show_files || (self.panel_anim_enabled &&
-    self.sidebar_panel is FilesPanel &&
-    self.panel_anim_progress > 0.0)
-  let show_outline = show_outline || (self.panel_anim_enabled &&
-    self.sidebar_panel is OutlinePanel &&
-    self.panel_anim_progress > 0.0)
+  let show_files = show_files ||
+    (
+      self.panel_anim_enabled &&
+      self.sidebar_panel is FilesPanel &&
+      self.panel_anim_progress > 0.0
+    )
+  let show_outline = show_outline ||
+    (
+      self.panel_anim_enabled &&
+      self.sidebar_panel is OutlinePanel &&
+      self.panel_anim_progress > 0.0
+    )
   let sidebars_width = markdown_editor_sidebar_total_width(
-    show_source, show_outline, show_files, show_info,
+    show_source,
+    show_outline,
+    show_files,
+    show_info,
     sidebar_width=animated_sidebar_width,
   )
   let mut gaps = 0
@@ -760,6 +773,7 @@ fn MarkdownEditorApp::editor_content_x(
 }
 
 ///|
+
 ///|
 fn markdown_editor_apply_command(
   source : String,

@@ -49,6 +49,8 @@ pub struct MarkdownEditorApp {
   mut sidebar_panel : MarkdownSidebarPanel
   mut sidebar_width : Double
   mut settings_visible : Bool
+  // Active settings pane: 0 appearance, 1 editor, 2 about.
+  mut settings_section : Int32
   // 530ms caret blink phase. Edits/selection reset it to visible; the editor
   // paints the caret with a transparent cursor color while false.
   mut caret_blink_visible : Bool
@@ -324,6 +326,7 @@ pub enum MarkdownEditorMsg {
   SetFollowSystemScheme(Bool)
   OpenSettings
   CloseSettings
+  SetSettingsSection(Int32)
   ToggleFind
   ToggleFocusMode
   ToggleTypewriterMode
@@ -430,6 +433,7 @@ pub fn MarkdownEditorApp::new() -> MarkdownEditorApp {
     sidebar_panel: FilesPanel,
     sidebar_width: 300.0,
     settings_visible: false,
+    settings_section: 0,
     caret_blink_visible: true,
     editor_zoom: 1.0,
     overlay_anim_frame: 12,
@@ -577,6 +581,7 @@ fn MarkdownEditorApp::update_in_place(
       self.settings_visible = !self.settings_visible
     }
     CloseSettings => self.settings_visible = false
+    SetSettingsSection(section) => self.settings_section = section
     ToggleFind => self.toggle_find()
     ToggleFocusMode => self.toggle_focus_mode()
     ToggleTypewriterMode => self.toggle_typewriter_mode()
@@ -586,11 +591,14 @@ fn MarkdownEditorApp::update_in_place(
     ApplyFirstFormatPaletteAction => self.apply_first_format_palette_action()
     ApplyFormatPaletteAction(action) => self.apply_format_palette_action(action)
     SetFontFamily(family) => self.font_family = family
-    SetWritingAppearance(label) => self.set_writing_appearance(match label {
-      "Warm" => WarmAppearance
-      "Wide" => WideAppearance
-      _ => PaperAppearance
-    })
+    SetWritingAppearance(label) =>
+      self.set_writing_appearance(
+        match label {
+          "Warm" => WarmAppearance
+          "Wide" => WideAppearance
+          _ => PaperAppearance
+        },
+      )
     CycleWritingAppearance => self.cycle_writing_appearance()
     OpenFind => self.open_find()
     OpenFindReplace => self.open_find()
