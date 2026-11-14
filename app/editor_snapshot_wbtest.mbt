@@ -878,7 +878,7 @@ test "markdown editor click places caret after hidden heading marker" {
       @core.PointerEvent::new(
         position=@geometry.Point::new(
           x=app.editor_content_x(980.0, inner_x=2.0),
-          y=84.0,
+          y=136.0,
         ),
         phase=@core.PointerPhase::Down,
       ),
@@ -901,7 +901,7 @@ test "markdown editor click maps inline formatted text to source offset" {
       @core.PointerEvent::new(
         position=@geometry.Point::new(
           x=app.editor_content_x(980.0, inner_x=100.0),
-          y=84.0,
+          y=136.0,
         ),
         phase=@core.PointerPhase::Down,
       ),
@@ -920,7 +920,7 @@ test "markdown editor selection highlight uses formatted heading range" {
       @core.PointerEvent::new(
         position=@geometry.Point::new(
           x=app.editor_content_x(980.0, inner_x=2.0),
-          y=84.0,
+          y=136.0,
         ),
         phase=@core.PointerPhase::Down,
       ),
@@ -950,7 +950,7 @@ test "markdown editor drag selection tracks markdown source range" {
       @core.PointerEvent::new(
         position=@geometry.Point::new(
           x=app.editor_content_x(980.0, inner_x=2.0),
-          y=84.0,
+          y=136.0,
         ),
         phase=@core.PointerPhase::Down,
       ),
@@ -961,7 +961,7 @@ test "markdown editor drag selection tracks markdown source range" {
       @core.PointerEvent::new(
         position=@geometry.Point::new(
           x=app.editor_content_x(980.0, inner_x=434.0),
-          y=84.0,
+          y=136.0,
         ),
         phase=@core.PointerPhase::Move,
       ),

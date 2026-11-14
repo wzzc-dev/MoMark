@@ -349,8 +349,9 @@ test "markdown editor chrome renders document workflow state" {
   app.load_document_for_test("# Plan", path="/tmp/plan.md")
   app.edit_document("# Plan\n\nNext")
   let commands = app.runtime(width=980.0, height=640.0).draw_commands()
-  // Chrome renders the document title (filename) in the title bar; the status
-  // bar keeps only document context (save state lives in the sidebar footer).
+  // Chrome renders the document title (filename) in the title bar. The new
+  // status bar also carries the save state, so a dirty document shows
+  // "Unsaved" there.
   assert_true(
     commands.any(command => {
       match command {
@@ -359,7 +360,7 @@ test "markdown editor chrome renders document workflow state" {
       }
     }),
   )
-  assert_false(
+  assert_true(
     commands.any(command => {
       match command {
         @core.DrawCommand::DrawText({ text, .. }) => text.contains("Unsaved")

@@ -300,12 +300,6 @@ test "markdown editor file tree refresh reloads picked folder" {
       command is @core.DrawCommand::DrawText({ text: "old.md", .. })
     }),
   )
-  assert_true(
-    initial.any(command => {
-      command is @core.DrawCommand::DrawText({ text: "Refresh", .. })
-    }),
-  )
-
   version.val = 1
   app.dispatch_message_for_test(services, RefreshFileTree)
   inspect(listed_paths.length(), content="2")
@@ -393,13 +387,6 @@ test "markdown editor file sidebar filters tree and recent files" {
       command is @core.DrawCommand::DrawText({ text: "No matching files", .. })
     }),
   )
-  assert_true(
-    missing.any(command => {
-      command
-      is @core.DrawCommand::DrawText({ text: "No matching recent files", .. })
-    }),
-  )
-
   app.update_in_place(UpdateFileFilterQuery(""))
   let cleared = app.runtime(width=1120.0, height=640.0).draw_commands()
   assert_true(

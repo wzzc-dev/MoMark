@@ -42,6 +42,26 @@ pub struct MarkdownEditorApp {
   mut outline_visible : Bool
   mut file_sidebar_visible : Bool
   mut document_info_visible : Bool
+  // Shell presentation state. `layout_mode` selects the Winc-like workspace
+  // or the Typora-style minimal page; `sidebar_panel` decides which panel the
+  // shared left sidebar shows; `sidebar_width` is the persisted drag width.
+  mut layout_mode : MarkdownEditorLayoutMode
+  mut sidebar_panel : MarkdownSidebarPanel
+  mut sidebar_width : Double
+  mut settings_visible : Bool
+  // 530ms caret blink phase. Edits/selection reset it to visible; the editor
+  // paints the caret with a transparent cursor color while false.
+  mut caret_blink_visible : Bool
+  // Multiplier over the writing look's base font size (Cmd+= / Cmd+-).
+  mut editor_zoom : Double
+  // 0..12 frames for the 150ms overlay entrance; 12 means settled.
+  mut overlay_anim_frame : Int32
+  // Sidebar panel width/opacity transition: 0 collapsed, 1 expanded. The
+  // logical visible booleans flip immediately; progress keeps the card
+  // rendered while it animates out.
+  mut panel_anim_progress : Double
+  mut panel_anim_target : Double
+  mut panel_anim_enabled : Bool
   mut focus_mode_enabled : Bool
   mut typewriter_mode_enabled : Bool
   mut zen_mode_enabled : Bool
@@ -52,6 +72,9 @@ pub struct MarkdownEditorApp {
   mut toasts : @views.ToastQueue[MarkdownEditorMsg]
   mut autosave_draft : String
   mut dark_mode_enabled : Bool
+  // When true, the resolved appearance follows the host color scheme and
+  // `dark_mode_enabled` is only the fallback for hosts that do not report one.
+  mut follow_system_scheme : Bool
   mut font_family : MarkdownEditorFontFamily
   mut folded_headings : Array[Int32]
   priv mut pending_confirm : MarkdownEditorConfirmRequest?
@@ -185,7 +208,6 @@ priv struct MarkdownEditorAppearanceSpec {
   foreground : @graphics.Color
   placeholder : @graphics.Color
   page_background : @graphics.Color
-  window_background : @graphics.Color
   font_family : @text.FontFamilyStack
 }
 
@@ -294,6 +316,14 @@ pub enum MarkdownEditorMsg {
   ToggleOutline
   ToggleFileSidebar
   ToggleDocumentInfo
+  SetLayoutMode(MarkdownEditorLayoutMode)
+  SetSidebarPanel(MarkdownSidebarPanel)
+  SetSidebarWidth(Double)
+  ToggleDarkMode
+  SetDarkMode(Bool)
+  SetFollowSystemScheme(Bool)
+  OpenSettings
+  CloseSettings
   ToggleFind
   ToggleFocusMode
   ToggleTypewriterMode
@@ -302,6 +332,8 @@ pub enum MarkdownEditorMsg {
   UpdateFormatPaletteQuery(String)
   ApplyFirstFormatPaletteAction
   ApplyFormatPaletteAction(String)
+  SetFontFamily(MarkdownEditorFontFamily)
+  SetWritingAppearance(String)
   CycleWritingAppearance
   OpenFind
   OpenFindReplace
@@ -311,6 +343,12 @@ pub enum MarkdownEditorMsg {
   ToggleSourceMode
   DismissToastTick
   AutosaveTick
+  CaretBlinkTick
+  ZoomIn
+  ZoomOut
+  ResetZoom
+  OverlayAnimTick
+  PanelAnimTick
   ResolvePendingConfirm(MarkdownEditorConfirmResolution)
   ApplyEditorTransaction(MarkdownEditTransaction)
   UpdateFindQuery(String)
@@ -338,6 +376,7 @@ pub enum MarkdownEditorMsg {
   // One update per scroll gesture, not one per wheel tick. The editor element
   // owns the live glide and reports where it settled.
   EditorScrollSettled(Double)
+  EditorScrollDragTo(Double)
   RemoteImageMetricsChanged
   OpenRecentDocument(String)
   JumpToOutline(Int32)
@@ -387,6 +426,16 @@ pub fn MarkdownEditorApp::new() -> MarkdownEditorApp {
     expanded_tree_paths: [],
     directory_tree_items: [],
     document_info_visible: false,
+    layout_mode: WorkspaceMode,
+    sidebar_panel: FilesPanel,
+    sidebar_width: 300.0,
+    settings_visible: false,
+    caret_blink_visible: true,
+    editor_zoom: 1.0,
+    overlay_anim_frame: 12,
+    panel_anim_progress: 0.0,
+    panel_anim_target: 0.0,
+    panel_anim_enabled: false,
     focus_mode_enabled: false,
     typewriter_mode_enabled: false,
     zen_mode_enabled: false,
@@ -397,6 +446,7 @@ pub fn MarkdownEditorApp::new() -> MarkdownEditorApp {
     toasts: @views.ToastQueue::new(),
     autosave_draft: "",
     dark_mode_enabled: false,
+    follow_system_scheme: false,
     font_family: SansFont,
     folded_headings: [],
     pending_confirm: None,
@@ -508,6 +558,25 @@ fn MarkdownEditorApp::update_in_place(
     ToggleFileSidebar => self.toggle_file_sidebar()
     ToggleFileTree => self.file_tree_expanded = !self.file_tree_expanded
     ToggleDocumentInfo => self.toggle_document_info()
+    SetLayoutMode(mode) => self.set_layout_mode(mode)
+    SetSidebarPanel(panel) => self.set_sidebar_panel(panel)
+    SetSidebarWidth(width) => self.set_sidebar_width(width)
+    ToggleDarkMode => {
+      self.dark_mode_enabled = !self.dark_mode_enabled
+      self.follow_system_scheme = false
+    }
+    SetDarkMode(enabled) => {
+      self.dark_mode_enabled = enabled
+      self.follow_system_scheme = false
+    }
+    SetFollowSystemScheme(follow) => self.follow_system_scheme = follow
+    OpenSettings => {
+      if !self.settings_visible {
+        self.overlay_anim_frame = 0
+      }
+      self.settings_visible = !self.settings_visible
+    }
+    CloseSettings => self.settings_visible = false
     ToggleFind => self.toggle_find()
     ToggleFocusMode => self.toggle_focus_mode()
     ToggleTypewriterMode => self.toggle_typewriter_mode()
@@ -516,6 +585,12 @@ fn MarkdownEditorApp::update_in_place(
     UpdateFormatPaletteQuery(value) => self.format_palette_query = value
     ApplyFirstFormatPaletteAction => self.apply_first_format_palette_action()
     ApplyFormatPaletteAction(action) => self.apply_format_palette_action(action)
+    SetFontFamily(family) => self.font_family = family
+    SetWritingAppearance(label) => self.set_writing_appearance(match label {
+      "Warm" => WarmAppearance
+      "Wide" => WideAppearance
+      _ => PaperAppearance
+    })
     CycleWritingAppearance => self.cycle_writing_appearance()
     OpenFind => self.open_find()
     OpenFindReplace => self.open_find()
@@ -525,6 +600,15 @@ fn MarkdownEditorApp::update_in_place(
     ToggleSourceMode => self.toggle_source_mode()
     DismissToastTick => self.expire_toasts()
     AutosaveTick => self.maybe_autosave()
+    CaretBlinkTick => self.caret_blink_visible = !self.caret_blink_visible
+    ZoomIn => self.set_editor_zoom(self.editor_zoom + 0.1)
+    ZoomOut => self.set_editor_zoom(self.editor_zoom - 0.1)
+    ResetZoom => self.set_editor_zoom(1.0)
+    OverlayAnimTick =>
+      if self.overlay_anim_frame < 12 {
+        self.overlay_anim_frame = self.overlay_anim_frame + 1
+      }
+    PanelAnimTick => self.advance_panel_anim()
     ResolvePendingConfirm(resolution) =>
       self.resolve_pending_confirm(resolution)
     ApplyEditorTransaction(transaction) =>
@@ -559,6 +643,7 @@ fn MarkdownEditorApp::update_in_place(
     // path only records the target.
     OpenContextMenuTargetPath | OpenContextMenuTargetFolder => ()
     EditorScrollSettled(y) => self.editor_scroll_settled_y = y
+    EditorScrollDragTo(y) => self.editor_scroll_request_to_clamped(y)
     // A remote image's intrinsic size arrived after layout; re-rendering with
     // the cleared rich-text conversion cache re-projects the affected blocks
     // at their real aspect ratio.
@@ -680,9 +765,20 @@ fn MarkdownEditorApp::update_with_services(
     ToggleOutline
     | ToggleFileSidebar
     | ToggleDocumentInfo
+    | SetLayoutMode(_)
+    | SetSidebarPanel(_)
+    | SetSidebarWidth(_)
+    | ToggleDarkMode
+    | SetDarkMode(_)
+    | SetFollowSystemScheme(_)
     | ToggleFocusMode
     | ToggleTypewriterMode
     | ToggleZenMode
+    | SetFontFamily(_)
+    | SetWritingAppearance(_)
+    | ZoomIn
+    | ZoomOut
+    | ResetZoom
     | CycleWritingAppearance
     | ToggleSourcePreview => {
       self.update_in_place(message)
@@ -710,6 +806,34 @@ fn MarkdownEditorApp::subscriptions(
           ),
         )
       }
+      if self.panel_anim_progress != self.panel_anim_target {
+        subscriptions.push(
+          source.subscription(
+            interval_ms=16.0,
+            key="markdown-editor:panel-anim",
+            label="Sidebar panel transition",
+            map=_ => PanelAnimTick,
+          ),
+        )
+      }
+      if self.overlay_anim_frame < 12 {
+        subscriptions.push(
+          source.subscription(
+            interval_ms=16.0,
+            key="markdown-editor:overlay-anim",
+            label="Overlay entrance",
+            map=_ => OverlayAnimTick,
+          ),
+        )
+      }
+      subscriptions.push(
+        source.subscription(
+          interval_ms=530.0,
+          key="markdown-editor:caret-blink",
+          label="Caret blink",
+          map=_ => CaretBlinkTick,
+        ),
+      )
       if self.is_dirty() &&
         self.document_path != "" &&
         !self.transfer_in_progress() {
@@ -757,6 +881,7 @@ pub fn MarkdownEditorApp::program(
 ) -> @moui.Program[MarkdownEditorApp, MarkdownEditorMsg] {
   let services = environment.services()
   let timer_source = environment.timer()
+  self.panel_anim_enabled = timer_source is Some(_)
   @moui.Program::new_with_environment(
     init=() => {
       (

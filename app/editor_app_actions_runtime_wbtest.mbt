@@ -203,7 +203,7 @@ test "markdown editor runtime typing updates document" {
       @core.PointerEvent::new(
         position=@geometry.Point::new(
           x=app.editor_content_x(980.0, inner_x=6.0),
-          y=84.0,
+          y=136.0,
         ),
         phase=@core.PointerPhase::Down,
       ),
@@ -238,7 +238,7 @@ test "markdown editor runtime enter completes fenced code block" {
       @core.PointerEvent::new(
         position=@geometry.Point::new(
           x=app.editor_content_x(980.0, inner_x=6.0),
-          y=84.0,
+          y=136.0,
         ),
         phase=@core.PointerPhase::Down,
       ),

@@ -8,7 +8,7 @@ test "markdown editor runtime enter continues bullet list" {
       @core.PointerEvent::new(
         position=@geometry.Point::new(
           x=app.editor_content_x(980.0, inner_x=2.0),
-          y=84.0,
+          y=136.0,
         ),
         phase=@core.PointerPhase::Down,
       ),

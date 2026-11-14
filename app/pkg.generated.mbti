@@ -33,6 +33,16 @@ pub struct MarkdownEditorApp {
   mut outline_visible : Bool
   mut file_sidebar_visible : Bool
   mut document_info_visible : Bool
+  mut layout_mode : MarkdownEditorLayoutMode
+  mut sidebar_panel : MarkdownSidebarPanel
+  mut sidebar_width : Double
+  mut settings_visible : Bool
+  mut caret_blink_visible : Bool
+  mut editor_zoom : Double
+  mut overlay_anim_frame : Int32
+  mut panel_anim_progress : Double
+  mut panel_anim_target : Double
+  mut panel_anim_enabled : Bool
   mut focus_mode_enabled : Bool
   mut typewriter_mode_enabled : Bool
   mut zen_mode_enabled : Bool
@@ -43,6 +53,7 @@ pub struct MarkdownEditorApp {
   mut toasts : @feedback.ToastQueue[MarkdownEditorMsg]
   mut autosave_draft : String
   mut dark_mode_enabled : Bool
+  mut follow_system_scheme : Bool
   mut font_family : MarkdownEditorFontFamily
   mut folded_headings : Array[Int32]
   mut find_visible : Bool
@@ -114,6 +125,19 @@ pub fn MarkdownEditorHistoryEntry::not_equal(Self, Self) -> Bool
 pub fn MarkdownEditorHistoryEntry::to_json(Self) -> @json.Json
 pub fn MarkdownEditorHistoryEntry::to_repr(Self) -> @debug.Repr
 
+#derive(Eq, @debug.Debug, @json.ToJson)
+pub enum MarkdownEditorLayoutMode {
+  WorkspaceMode
+  MinimalMode
+}
+pub fn MarkdownEditorLayoutMode::equal(Self, Self) -> Bool
+pub fn MarkdownEditorLayoutMode::not_equal(Self, Self) -> Bool
+pub fn MarkdownEditorLayoutMode::to_json(Self) -> @json.Json
+pub fn MarkdownEditorLayoutMode::to_repr(Self) -> @debug.Repr
+
+#derive(@json.FromJson)
+type MarkdownEditorLegacySettings
+
 pub enum MarkdownEditorMsg {
   NewDocument
   SaveDocument
@@ -128,6 +152,14 @@ pub enum MarkdownEditorMsg {
   ToggleOutline
   ToggleFileSidebar
   ToggleDocumentInfo
+  SetLayoutMode(MarkdownEditorLayoutMode)
+  SetSidebarPanel(MarkdownSidebarPanel)
+  SetSidebarWidth(Double)
+  ToggleDarkMode
+  SetDarkMode(Bool)
+  SetFollowSystemScheme(Bool)
+  OpenSettings
+  CloseSettings
   ToggleFind
   ToggleFocusMode
   ToggleTypewriterMode
@@ -136,6 +168,8 @@ pub enum MarkdownEditorMsg {
   UpdateFormatPaletteQuery(String)
   ApplyFirstFormatPaletteAction
   ApplyFormatPaletteAction(String)
+  SetFontFamily(MarkdownEditorFontFamily)
+  SetWritingAppearance(String)
   CycleWritingAppearance
   OpenFind
   OpenFindReplace
@@ -145,6 +179,12 @@ pub enum MarkdownEditorMsg {
   ToggleSourceMode
   DismissToastTick
   AutosaveTick
+  CaretBlinkTick
+  ZoomIn
+  ZoomOut
+  ResetZoom
+  OverlayAnimTick
+  PanelAnimTick
   ResolvePendingConfirm(MarkdownEditorConfirmResolution)
   ApplyEditorTransaction(@moui_richtext.MarkdownEditTransaction)
   UpdateFindQuery(String)
@@ -170,6 +210,7 @@ pub enum MarkdownEditorMsg {
   CommandClickAt(Int32)
   SetSelection(Int32, @core.TextRange?)
   EditorScrollSettled(Double)
+  EditorScrollDragTo(Double)
   RemoteImageMetricsChanged
   OpenRecentDocument(String)
   JumpToOutline(Int32)
@@ -219,6 +260,11 @@ pub struct MarkdownEditorSettings {
   outline : Bool
   files : Bool
   document_info : Bool
+  layout_mode : String
+  follow_system_scheme : Bool
+  sidebar_panel : String
+  sidebar_width : Double
+  editor_zoom : Double
 }
 pub fn MarkdownEditorSettings::equal(Self, Self) -> Bool
 pub fn MarkdownEditorSettings::from_json(@json.Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
@@ -232,6 +278,57 @@ pub fn MarkdownEditorTargetKind::equal(Self, Self) -> Bool
 pub fn MarkdownEditorTargetKind::not_equal(Self, Self) -> Bool
 pub fn MarkdownEditorTargetKind::to_json(Self) -> @json.Json
 pub fn MarkdownEditorTargetKind::to_repr(Self) -> @debug.Repr
+
+pub struct MarkdownShellMetrics {
+  layout_mode : MarkdownEditorLayoutMode
+  island_margin : Double
+  island_gap : Double
+  island_radius : Double
+  bar_inset : Double
+  top_bar_height : Double
+  status_bar_height : Double
+  sidebar_width : Double
+  sidebar_min_width : Double
+  inspector_width : Double
+  overlay_sidebar_width : Double
+  overlay_inspector_width : Double
+  page_width : Double
+  side_page_width : Double
+  tree_row_height : Double
+  control_height : Double
+}
+
+#derive(Eq, @debug.Debug, @json.ToJson)
+pub enum MarkdownSidebarPanel {
+  FilesPanel
+  OutlinePanel
+}
+pub fn MarkdownSidebarPanel::equal(Self, Self) -> Bool
+pub fn MarkdownSidebarPanel::not_equal(Self, Self) -> Bool
+pub fn MarkdownSidebarPanel::to_json(Self) -> @json.Json
+pub fn MarkdownSidebarPanel::to_repr(Self) -> @debug.Repr
+
+pub struct MarkdownUiTokens {
+  scheme : @core.ColorScheme
+  frame : @core.Color
+  card : @core.Color
+  page : @core.Color
+  page_border : @core.Color
+  page_shadow : @core.ShadowStyle
+  text : @core.Color
+  text_muted : @core.Color
+  text_dim : @core.Color
+  accent : @core.Color
+  accent_fill : @core.Color
+  hover : @core.Color
+  selected : @core.Color
+  selected_inactive : @core.Color
+  divider : @core.Color
+  scrollbar : @core.Color
+  scrollbar_active : @core.Color
+  dirty_dot : @core.Color
+  rich_text : @moui_richtext.MarkdownRichTextPalette
+}
 
 // Type aliases
 

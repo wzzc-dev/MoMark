@@ -10,12 +10,116 @@ fn MarkdownEditorApp::toggle_source_mode(self : MarkdownEditorApp) -> Unit {
 
 ///|
 fn MarkdownEditorApp::toggle_outline(self : MarkdownEditorApp) -> Unit {
-  self.outline_visible = !self.outline_visible
+  if self.sidebar_panel is OutlinePanel && self.outline_visible {
+    self.hide_sidebar_panel()
+  } else {
+    self.set_sidebar_panel(OutlinePanel)
+  }
 }
 
 ///|
 fn MarkdownEditorApp::toggle_file_sidebar(self : MarkdownEditorApp) -> Unit {
-  self.file_sidebar_visible = !self.file_sidebar_visible
+  if self.sidebar_panel is FilesPanel && self.file_sidebar_visible {
+    self.hide_sidebar_panel()
+  } else {
+    self.set_sidebar_panel(FilesPanel)
+  }
+}
+
+///|
+/// Pick the persistent sidebar's panel. The two panels share one left card,
+/// so selecting one hides the other; document info/source remain independent
+/// right-hand inspectors.
+fn MarkdownEditorApp::set_sidebar_panel(
+  self : MarkdownEditorApp,
+  panel : MarkdownSidebarPanel,
+) -> Unit {
+  let was_visible = self.sidebar_visible()
+  self.sidebar_panel = panel
+  match panel {
+    FilesPanel => {
+      self.file_sidebar_visible = true
+      self.outline_visible = false
+    }
+    OutlinePanel => {
+      self.outline_visible = true
+      self.file_sidebar_visible = false
+    }
+  }
+  self.panel_anim_target = 1.0
+  if !was_visible && self.panel_anim_enabled {
+    self.panel_anim_progress = 0.0
+  } else {
+    self.panel_anim_progress = 1.0
+  }
+}
+
+///|
+fn MarkdownEditorApp::hide_sidebar_panel(self : MarkdownEditorApp) -> Unit {
+  self.file_sidebar_visible = false
+  self.outline_visible = false
+  self.panel_anim_target = 0.0
+  if !self.panel_anim_enabled {
+    self.panel_anim_progress = 0.0
+  }
+}
+
+///|
+fn MarkdownEditorApp::advance_panel_anim(self : MarkdownEditorApp) -> Unit {
+  let step = 1.0 / 12.0
+  if self.panel_anim_progress < self.panel_anim_target {
+    self.panel_anim_progress = markdown_editor_min_double(
+      self.panel_anim_target,
+      self.panel_anim_progress + step,
+    )
+  } else if self.panel_anim_progress > self.panel_anim_target {
+    self.panel_anim_progress = markdown_editor_max_double(
+      self.panel_anim_target,
+      self.panel_anim_progress - step,
+    )
+  }
+}
+
+///|
+fn MarkdownEditorApp::panel_anim_fraction(self : MarkdownEditorApp) -> Double {
+  if self.panel_anim_enabled {
+    self.panel_anim_progress
+  } else if self.file_sidebar_visible || self.outline_visible {
+    1.0
+  } else {
+    0.0
+  }
+}
+
+///|
+fn MarkdownEditorApp::set_layout_mode(
+  self : MarkdownEditorApp,
+  mode : MarkdownEditorLayoutMode,
+) -> Unit {
+  self.layout_mode = mode
+  // Entering the workspace with no panel selected would leave an empty
+  // sidebar card; pick the file panel so the layout always reads as intended.
+  if mode is WorkspaceMode &&
+    !self.file_sidebar_visible &&
+    !self.outline_visible {
+    self.set_sidebar_panel(FilesPanel)
+  }
+}
+
+///|
+fn MarkdownEditorApp::set_sidebar_width(
+  self : MarkdownEditorApp,
+  width : Double,
+) -> Unit {
+  self.sidebar_width = markdown_editor_clamp_double(width, 230.0, 420.0)
+}
+
+///|
+fn MarkdownEditorApp::sidebar_visible(self : MarkdownEditorApp) -> Bool {
+  match self.sidebar_panel {
+    FilesPanel => self.file_sidebar_visible
+    OutlinePanel => self.outline_visible
+  }
 }
 
 ///|
@@ -42,6 +146,7 @@ fn MarkdownEditorApp::toggle_zen_mode(self : MarkdownEditorApp) -> Unit {
     self.zen_mode_enabled = true
     self.close_find()
     self.reset_format_palette()
+    self.settings_visible = false
     self.file_sidebar_visible = false
     self.document_info_visible = false
     self.outline_visible = false
@@ -55,6 +160,7 @@ fn MarkdownEditorApp::toggle_format_palette(self : MarkdownEditorApp) -> Unit {
     self.reset_format_palette()
   } else {
     self.format_palette_visible = true
+    self.overlay_anim_frame = 0
   }
 }
 
@@ -109,6 +215,7 @@ fn MarkdownEditorApp::toggle_find(self : MarkdownEditorApp) -> Unit {
 ///|
 fn MarkdownEditorApp::open_find(self : MarkdownEditorApp) -> Unit {
   self.find_visible = true
+  self.overlay_anim_frame = 0
   match
     markdown_editor_find_query_from_selection(self.document, self.selection) {
     Some(query) => self.find_query = query
@@ -148,6 +255,7 @@ fn MarkdownEditorApp::dismiss_auxiliary_panels(
   } else if self.find_visible {
     self.close_find()
   } else if self.format_palette_visible ||
+    self.settings_visible ||
     self.file_sidebar_visible ||
     self.document_info_visible ||
     self.outline_visible ||
@@ -155,6 +263,7 @@ fn MarkdownEditorApp::dismiss_auxiliary_panels(
     self.more_menu_visible ||
     self.active_menu != "" {
     self.reset_format_palette()
+    self.settings_visible = false
     self.file_sidebar_visible = false
     self.document_info_visible = false
     self.outline_visible = false
@@ -523,3 +632,19 @@ fn MarkdownEditorApp::sync_target_inputs(self : MarkdownEditorApp) -> Unit {
 }
 
 ///|
+
+///|
+fn MarkdownEditorApp::set_editor_zoom(
+  self : MarkdownEditorApp,
+  zoom : Double,
+) -> Unit {
+  self.editor_zoom = markdown_editor_clamp_double(zoom, 0.75, 2.0)
+}
+
+///|
+fn MarkdownEditorApp::overlay_anim_progress(self : MarkdownEditorApp) -> Double {
+  markdown_editor_min_double(
+    1.0,
+    self.overlay_anim_frame.to_double() / 12.0,
+  )
+}

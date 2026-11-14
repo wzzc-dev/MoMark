@@ -47,7 +47,7 @@ test "markdown editor chrome caches stable state and refreshes on dirty" {
       @core.PointerEvent::new(
         position=@geometry.Point::new(
           x=app.editor_content_x(980.0, inner_x=2.0),
-          y=84.0,
+          y=136.0,
         ),
         phase=@core.PointerPhase::Down,
       ),
@@ -84,7 +84,7 @@ test "markdown editor scroll does not reparse session" {
     @core.PointerEvent::new(
       position=@geometry.Point::new(
         x=app.editor_content_x(980.0, inner_x=8.0),
-        y=220.0,
+        y=254.0,
       ),
       phase=@core.PointerPhase::Move,
       wheel_delta=@geometry.Point::new(x=0.0, y=-220.0),
@@ -127,7 +127,7 @@ test "markdown editor long scroll keeps cached layer tracking bounded" {
         @core.PointerEvent::new(
           position=@geometry.Point::new(
             x=app.editor_content_x(980.0, inner_x=8.0),
-            y=220.0,
+            y=254.0,
           ),
           phase=@core.PointerPhase::Move,
           wheel_delta=@geometry.Point::new(x=0.0, y=-420.0),
@@ -197,7 +197,7 @@ test "markdown editor scroll renders text across full viewport" {
       @core.PointerEvent::new(
         position=@geometry.Point::new(
           x=app.editor_content_x(980.0, inner_x=8.0),
-          y=220.0,
+          y=254.0,
         ),
         phase=@core.PointerPhase::Move,
         wheel_delta=@geometry.Point::new(x=0.0, y=-600.0),
@@ -210,7 +210,7 @@ test "markdown editor scroll renders text across full viewport" {
   let ys = markdown_editor_draw_text_y_centers(frame.commands)
   // There must be text rendered after scrolling.
   assert_true(ys.length() > 0)
-  // The editor content occupies roughly y=40 (chrome+inset) to y=572 (above
+  // The editor content occupies roughly y=40 (chrome+inset) to y=606 (above
   // the status bar). After the fix, text should appear in the bottom half of
   // the editor viewport. Before the fix, the bottom ~overscan was culled
   // blank, leaving only the status bar text (y≈622) in this Y range.

@@ -135,7 +135,7 @@ test "markdown editor source mode keeps text input canonical" {
       @core.PointerEvent::new(
         position=@geometry.Point::new(
           x=app.editor_content_x(980.0, inner_x=2.0),
-          y=84.0,
+          y=136.0,
         ),
         phase=@core.PointerPhase::Down,
       ),
@@ -164,7 +164,7 @@ test "markdown editor toggles quick format palette from action" {
   let commands = app.runtime(width=980.0, height=640.0).draw_commands()
   assert_true(
     commands.any(command => {
-      command is @core.DrawCommand::DrawText({ text: "Quick Format", .. })
+      command is @core.DrawCommand::DrawText({ text: "Commands", .. })
     }),
   )
   assert_true(

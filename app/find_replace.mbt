@@ -97,16 +97,33 @@ fn markdown_editor_regex_find_matches(
 }
 
 ///|
+let markdown_editor_regex_cache : Ref[Array[(String, Bool, Regex?)]] = Ref([])
+
+///|
+/// Compile a find regex with a tiny query-keyed cache. The find bar's status
+/// label and match refresh both compile the same pattern on every view; a
+/// cache avoids paying that cost while the user types around a fixed query.
 fn markdown_editor_compile_regex(
   query : String,
   case_sensitive : Bool,
 ) -> Regex? {
-  let pattern = if case_sensitive { query } else { "(?i:" + query + ")" }
-  try Regex(pattern) catch {
-    _ => None
-  } noraise {
-    regex => Some(regex)
+  let cache = markdown_editor_regex_cache.val
+  for entry in cache {
+    if entry.0 == query && entry.1 == case_sensitive {
+      return entry.2
+    }
   }
+  let pattern = if case_sensitive { query } else { "(?i:" + query + ")" }
+  let compiled : Regex? = try {
+    Some(Regex(pattern))
+  } catch {
+    _ => None
+  }
+  if cache.length() >= 8 {
+    cache.clear()
+  }
+  cache.push((query, case_sensitive, compiled))
+  compiled
 }
 
 ///|

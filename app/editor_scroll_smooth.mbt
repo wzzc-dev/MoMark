@@ -29,6 +29,7 @@ fn MarkdownEditorApp::editor_scroll_max_offset(
     self.document_info_visible,
     appearance,
     viewport_width~,
+    sidebar_width=self.sidebar_width,
   )
   let content_height = markdown_editor_max_double(
     viewport_height,
@@ -77,4 +78,24 @@ fn MarkdownEditorApp::editor_scroll_jump_to(
   viewport_height : Double,
 ) -> Unit {
   self.editor_scroll_request_to(y, viewport_height)
+}
+
+///|
+/// Apply an already-clamped scroll target from a scrollbar drag. The
+/// indicator knows the content/viewport ratio, so the app only needs to
+/// materialise the one-shot request; reusing the id keeps a rebuild that
+/// carries the same request from restarting the jump.
+fn MarkdownEditorApp::editor_scroll_request_to_clamped(
+  self : MarkdownEditorApp,
+  y : Double,
+) -> Unit {
+  let clamped = markdown_editor_max_double(0.0, y)
+  self.editor_scroll_settled_y = clamped
+  self.next_editor_scroll_request_id = self.next_editor_scroll_request_id + 1
+  self.editor_scroll_request = Some(
+    @core.ScrollRequest::new(
+      id=self.next_editor_scroll_request_id,
+      offset=@core.Point::new(x=0.0, y=clamped),
+    ),
+  )
 }

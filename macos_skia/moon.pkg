@@ -1,5 +1,6 @@
 import {
   "wzzc-dev/moui/apphost",
+  "wzzc-dev/moui/core",
   "moonbitlang/core/env",
   "moonbitlang/async",
   "wzzc-dev/moui/backend/macos" @macos_backend,

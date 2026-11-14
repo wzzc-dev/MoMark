@@ -31,7 +31,7 @@ test "click after scrolling a large single-paragraph document places the caret a
       @core.PointerEvent::new(
         position=@geometry.Point::new(
           x=app.editor_content_x(980.0, inner_x=100.0),
-          y=300.0,
+          y=334.0,
         ),
         phase=@core.PointerPhase::Down,
       ),
@@ -54,7 +54,7 @@ test "click without scrolling a large document moves the caret off the front" {
       @core.PointerEvent::new(
         position=@geometry.Point::new(
           x=app.editor_content_x(980.0, inner_x=100.0),
-          y=500.0,
+          y=534.0,
         ),
         phase=@core.PointerPhase::Down,
       ),

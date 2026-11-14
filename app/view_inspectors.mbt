@@ -90,6 +90,8 @@ fn markdown_editor_filter_tree_items_with_needle(
           id=item.id,
           label=item.label,
           children=filtered_children,
+          icon=item.icon,
+          icon_color=item.icon_color,
         ),
       )
     }
@@ -142,8 +144,9 @@ fn files_inspector(
   session : MarkdownDocumentSession,
   theme : @moui.Theme,
   height~ : Double,
+  width~ : Double = markdown_editor_file_sidebar_width(),
 ) -> @moui.View[MarkdownEditorMsg] {
-  let content_width = markdown_editor_file_sidebar_content_width()
+  let content_width = markdown_editor_max_double(0.0, width - 28.0)
   let recent_paths = app.recent_document_paths
   let file_filter_query = app.file_filter_query
   let filtered_recent_paths = markdown_editor_filter_file_paths(
@@ -155,6 +158,16 @@ fn files_inspector(
     app.directory_tree_items,
     file_filter_query,
   )
+  // The project header already names the root; render its children directly so
+  // the tree does not repeat the project row (Winc's sidebar starts at the
+  // folder contents).
+  let tree_display_items = if working_directory != "" &&
+    tree_items.length() == 1 &&
+    tree_items[0].id == working_directory {
+    tree_items[0].children
+  } else {
+    tree_items
+  }
   let tree_expanded_paths = if file_filter_query.trim().to_owned() == "" {
     app.expanded_tree_paths
   } else {
@@ -166,9 +179,12 @@ fn files_inspector(
   // The folder picker and status text move to a footer pinned to the bottom.
   let tree_scroll_present = tree_expanded && tree_items.length() > 0
   let tree_empty_notice = tree_expanded && tree_items.length() == 0
-  let recent_scroll_present = recent_paths.length() > 0 &&
+  // Winc's sidebar is the tree plus an outline section; once a folder is
+  // open, Recent only steals height from the tree.
+  let recent_scroll_present = working_directory == "" &&
+    recent_paths.length() > 0 &&
     filtered_recent_paths.length() > 0
-  let recent_notice = !recent_scroll_present
+  let recent_notice = working_directory == "" && !recent_scroll_present
   // Only fixed-height rows are counted here; the two list regions flex into
   // whatever height is left over.
   let mut fixed_height = 32.0 + 24.0 + 30.0 + 34.0 + 1.0
@@ -206,9 +222,9 @@ fn files_inspector(
   // to the recent list instead of rendering an empty gap.
   let tree_scroll_height = if tree_scroll_present {
     let visible_count = markdown_editor_count_visible_tree_items(
-      tree_items, tree_expanded_paths,
+      tree_display_items, tree_expanded_paths,
     )
-    let tree_row_height = 30.0
+    let tree_row_height = 28.0
     let spacing_total = if visible_count > 0 {
       (visible_count - 1).to_double() * row_gap
     } else {
@@ -234,23 +250,56 @@ fn files_inspector(
   // folder tree directly below them, and the footer they used to sit in was
   // cramped against the window edge.
   let folder_actions : Array[@moui.View[MarkdownEditorMsg]] = []
-  if working_directory != "" {
+  if working_directory == "" {
     folder_actions.push(
       editor_button(
+        "Pick folder",
+        PickWorkingDirectory,
+        @views.ButtonVariant::Ghost,
+      ),
+    )
+  } else {
+    folder_actions.push(
+      tooltip(
+        button(
+          "",
+          on_click=PickWorkingDirectory,
+          variant=@views.ButtonVariant::Ghost,
+          icon=Some(@views.IconName::FolderOpen),
+          width=28.0,
+          height=28.0,
+        ),
+        "Change folder",
+      ),
+    )
+  }
+  if working_directory != "" {
+    folder_actions.push(
+      tooltip(
+        button(
+          "",
+          on_click=RefreshFileTree,
+          variant=@views.ButtonVariant::Ghost,
+          icon=Some(@views.IconName::Refresh),
+          width=28.0,
+          height=28.0,
+        ),
         "Refresh",
-        RefreshFileTree,
-        @views.ButtonVariant::Ghost),
+      ),
     )
   }
   folder_actions.push(
-    editor_button(
-      if working_directory == "" {
-        "Pick folder"
-      } else {
-        "Change"
-      },
-      PickWorkingDirectory,
-      @views.ButtonVariant::Ghost),
+    tooltip(
+      button(
+        "",
+        on_click=OpenSettings,
+        variant=@views.ButtonVariant::Ghost,
+        icon=Some(@views.IconName::Ellipsis),
+        width=28.0,
+        height=28.0,
+      ),
+      "More",
+    ),
   )
   let file_rows : Array[@moui.View[MarkdownEditorMsg]] = [
     row(folder_actions, spacing=row_gap, align=@views.CrossAlign::Center),
@@ -277,9 +326,28 @@ fn files_inspector(
     file_rows.push(
       row(
         [
-          text("Folder", width=content_width - 28.0, height=24.0)
-          .font(theme.typography.caption)
-          .foreground(theme.palette.muted),
+          container(
+            text("M", width=22.0, height=22.0)
+            .font(theme.typography.caption)
+            .foreground(@graphics.Color::white()),
+            width=22.0,
+            height=22.0,
+            variant=@views.ContainerVariant::Base,
+            background=theme.palette.primary,
+            corner_radius=6.0,
+            padding=0.0,
+          ),
+          button(
+            markdown_editor_file_name(working_directory),
+            on_click=ToggleFileTree,
+            variant=@views.ButtonVariant::Ghost,
+            width=content_width - 62.0,
+            height=24.0,
+            label_align=@text.TextAlign::TextStart,
+          )
+          .font(theme.typography.label)
+          .foreground(theme.palette.foreground),
+          spacer(min_length=0.0, weight=1.0),
           button(
             fold_label,
             on_click=ToggleFileTree,
@@ -296,8 +364,9 @@ fn files_inspector(
       file_rows.push(
         scroll_view(
           @views.tree_view(
-            tree_items,
+            tree_display_items,
             expanded=tree_expanded_paths,
+            selected=app.document_path,
             on_select=Some(id => SelectTreePath(id)),
             on_toggle=Some(id => ToggleTreePath(id)),
             on_secondary_tap=Some(id => {
@@ -318,39 +387,81 @@ fn files_inspector(
       )
     }
   }
-  file_rows.push(
-    text("Recent", width=content_width, height=24.0)
-    .font(theme.typography.caption)
-    .foreground(theme.palette.muted),
-  )
-  if recent_scroll_present {
+  if working_directory == "" {
+    let recent_children : Array[@moui.View[MarkdownEditorMsg]] = []
+    recent_children.push(
+      text("Recent", width=content_width - 16.0, height=24.0)
+      .font(theme.typography.caption)
+      .foreground(theme.palette.muted),
+    )
+    if recent_scroll_present {
+      recent_children.push(
+        scroll_view(
+          file_sidebar_recent_rows(
+            filtered_recent_paths,
+            width=content_width - 16.0,
+            current_path=app.document_path,
+            theme,
+          ),
+          width=content_width - 16.0,
+          height=markdown_editor_max_double(0.0, recent_scroll_height - 16.0),
+        ),
+      )
+    } else if recent_paths.length() == 0 {
+      recent_children.push(
+        text("No recent files", width=content_width - 16.0, height=28.0)
+        .font(theme.typography.caption)
+        .foreground(theme.palette.muted),
+      )
+    } else {
+      recent_children.push(
+        text(
+          "No matching recent files",
+          width=content_width - 16.0,
+          height=28.0,
+        )
+        .font(theme.typography.caption)
+        .foreground(theme.palette.muted),
+      )
+    }
     file_rows.push(
-      scroll_view(
-        file_sidebar_recent_rows(
-          filtered_recent_paths,
-          current_path=app.document_path,
-          theme,
+      container(
+        padding_edges(
+          column(
+            recent_children,
+            spacing=theme.spacing_scale.xs,
+            align=@views.CrossAlign::Start,
+          ),
+          top=8.0,
+          right=8.0,
+          bottom=8.0,
+          left=8.0,
         ),
         width=content_width,
-        height=recent_scroll_height,
+        variant=@views.ContainerVariant::Base,
+        background=theme.palette.surface_variant,
+        corner_radius=8.0,
+        padding=0.0,
       ),
-    )
-  } else if recent_paths.length() == 0 {
-    file_rows.push(
-      text("No recent files", width=content_width, height=28.0)
-      .font(theme.typography.caption)
-      .foreground(theme.palette.muted),
-    )
-  } else {
-    file_rows.push(
-      text("No matching recent files", width=content_width, height=28.0)
-      .font(theme.typography.caption)
-      .foreground(theme.palette.muted),
     )
   }
   // Footer pinned to the bottom: current-document status + folder actions.
   file_rows.push(
     markdown_editor_file_sidebar_divider(theme, width=content_width),
+  )
+  file_rows.push(
+    button(
+      if app.sidebar_panel is OutlinePanel && app.outline_visible {
+        "▾  Outline"
+      } else {
+        "›  Outline"
+      },
+      on_click=SetSidebarPanel(OutlinePanel),
+      variant=@views.ButtonVariant::Ghost,
+      width=content_width,
+      height=28.0,
+      label_align=@text.TextAlign::TextStart,
+    ),
   )
   file_rows.push(
     text(
@@ -378,12 +489,12 @@ fn files_inspector(
     ).on_secondary_tap(
       ContextMenuTargeted(MarkdownEditorContextTarget::ExplorerBackground),
     ),
-    width=markdown_editor_file_sidebar_width(),
+    width~,
     height~,
   )
   container(
     pinned_content,
-    width=markdown_editor_file_sidebar_width(),
+    width~,
     height~,
     variant=@views.ContainerVariant::Base,
     background=theme.palette.surface,
@@ -481,7 +592,13 @@ fn document_info_inspector(
     height~,
     variant=@views.ContainerVariant::Base,
     background=theme.palette.surface,
-    corner_radius=theme.radius_scale.sm,
+    border=Some(
+      @core.BorderStyle::new(
+        brush=@graphics.Brush::solid(theme.palette.outline),
+        width=1.0,
+      ),
+    ),
+    corner_radius=theme.radius_scale.lg,
     padding=0.0,
   )
 }
@@ -547,11 +664,14 @@ fn file_sidebar_recent_rows(
   paths : Array[String],
   current_path~ : String,
   theme : @moui.Theme,
+  width~ : Double = markdown_editor_file_sidebar_content_width(),
 ) -> @moui.View[MarkdownEditorMsg] {
   let rows : Array[@moui.View[MarkdownEditorMsg]] = []
   for path in paths {
     rows.push(
-      file_sidebar_recent_row(path, current=path == current_path),
+      file_sidebar_recent_row(
+        path, current=path == current_path, width~,
+      ),
     )
   }
   column(rows, spacing=theme.spacing_scale.xs, align=@views.CrossAlign::Start)
@@ -561,16 +681,21 @@ fn file_sidebar_recent_rows(
 fn file_sidebar_recent_row(
   path : String,
   current~ : Bool,
+  width~ : Double = markdown_editor_file_sidebar_content_width(),
 ) -> @moui.View[MarkdownEditorMsg] {
+  let (icon, _icon_color) = markdown_editor_tree_icon_for_name(
+    markdown_editor_file_sidebar_recent_label(path),
+  )
   button(
     markdown_editor_file_sidebar_recent_label(path),
     on_click=OpenRecentDocument(path),
+    icon=Some(icon),
     variant=if current {
       @views.ButtonVariant::Tonal
     } else {
       @views.ButtonVariant::Ghost
     },
-    width=markdown_editor_file_sidebar_content_width(),
+    width~,
     height=30.0,
   )
   // Recent rows are files the tree may not contain; the menu's Open action
@@ -640,7 +765,13 @@ fn source_inspector(
     height~,
     variant=@views.ContainerVariant::Base,
     background=theme.palette.surface,
-    corner_radius=theme.radius_scale.sm,
+    border=Some(
+      @core.BorderStyle::new(
+        brush=@graphics.Brush::solid(theme.palette.outline),
+        width=1.0,
+      ),
+    ),
+    corner_radius=theme.radius_scale.lg,
     padding=0.0,
   )
 }
@@ -652,7 +783,9 @@ fn outline_inspector(
   selection : MarkdownEditorSelection,
   theme : @moui.Theme,
   height~ : Double,
+  width~ : Double = markdown_editor_outline_inspector_width(),
 ) -> @moui.View[MarkdownEditorMsg] {
+  let content_width = markdown_editor_max_double(0.0, width - 28.0)
   let visible_outline = markdown_editor_folded_outline(
     session.outline,
     app.folded_headings,
@@ -664,7 +797,7 @@ fn outline_inspector(
   let content = if visible_outline.length() == 0 {
     text(
       "No headings",
-      width=markdown_editor_outline_content_width(),
+      width=content_width,
       height=28.0,
     )
     .font(theme.typography.caption)
@@ -672,7 +805,7 @@ fn outline_inspector(
   } else {
     scroll_view(
       outline_rows(app, session.outline, visible_outline, active_index, theme),
-      width=markdown_editor_outline_content_width(),
+      width=content_width,
       height=markdown_editor_max_double(0.0, height - 52.0),
     )
   }
@@ -682,7 +815,7 @@ fn outline_inspector(
         [
           text(
             "Outline",
-            width=markdown_editor_outline_content_width(),
+            width=content_width,
             height=24.0,
           )
           .font(theme.typography.caption)
@@ -697,11 +830,11 @@ fn outline_inspector(
       bottom=theme.spacing_scale.md,
       left=theme.spacing_scale.sm,
     ),
-    width=markdown_editor_outline_inspector_width(),
+    width~,
     height~,
     variant=@views.ContainerVariant::Base,
     background=theme.palette.surface,
-    corner_radius=0.0,
+    corner_radius=theme.radius_scale.lg,
     padding=0.0,
   )
 }
