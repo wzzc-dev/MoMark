@@ -601,15 +601,10 @@ fn editor_source_layout(
     0.0,
     viewport_height - tab_height,
   )
-  // Page breathing room inside the editor card: the document column starts
-  // with a generous top margin below the tab strip and stops short of the
-  // card's bottom edge (Typora/Winc page padding).
-  let page_padding = markdown_editor_page_padding_top() +
-    markdown_editor_page_padding_bottom()
-  let editor_height = markdown_editor_max_double(
-    0.0,
-    body_height - page_padding,
-  )
+  // The editor surface fills the card below the tab strip. The rich-text
+  // surface owns its small content inset, so adding page padding here would
+  // instead create fixed, non-interactive bands above and below the viewport.
+  let editor_height = body_height
   let animated_sidebar_width = sidebar_width * sidebar_anim
   let sidebars_width = markdown_editor_sidebar_total_width(
     show_source,
@@ -729,11 +724,7 @@ fn editor_source_layout(
   let centered_editor = @views.row(
     [
       @views.spacer(min_length=0.0, weight=1.0),
-      padding_edges(
-        editor_control,
-        top=markdown_editor_page_padding_top(),
-        bottom=markdown_editor_page_padding_bottom(),
-      ),
+      editor_control,
       @views.spacer(min_length=0.0, weight=1.0),
     ],
     spacing=0.0,
@@ -856,18 +847,6 @@ fn editor_source_layout(
 ///|
 fn markdown_editor_tab_strip_height() -> Double {
   32.0
-}
-
-///|
-/// Top page padding inside the editor card, below the tab strip header.
-fn markdown_editor_page_padding_top() -> Double {
-  20.0
-}
-
-///|
-/// Bottom page padding between the document column and the card's lower edge.
-fn markdown_editor_page_padding_bottom() -> Double {
-  16.0
 }
 
 ///|

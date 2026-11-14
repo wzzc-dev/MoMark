@@ -314,3 +314,37 @@ test "dragging the gap between sidebar and editor resizes the sidebar" {
   )
   assert_true(app.sidebar_width > 320.0)
 }
+
+///|
+test "editor surface fills the card below the tab strip and above its edge" {
+  // The card spans y=4..614: the 32px tab strip ends at y=36 and the flush
+  // status bar starts at y=614. Both points land in the bands that used to be
+  // fixed, non-interactive page padding.
+  for y in [44.0, 606.0] {
+    let app = MarkdownEditorApp::new()
+    app.set_document("")
+    let runtime = app.runtime(width=980.0, height=640.0)
+    ignore(runtime.draw_frame())
+    let point = @geometry.Point::new(
+      x=app.editor_content_x(980.0, inner_x=8.0),
+      y~,
+    )
+    runtime.dispatch_event(
+      @core.AppEvent::Pointer(
+        @core.PointerEvent::new(position=point, phase=@core.PointerPhase::Down),
+      ),
+    )
+    runtime.dispatch_event(
+      @core.AppEvent::Pointer(
+        @core.PointerEvent::new(position=point, phase=@core.PointerPhase::Up),
+      ),
+    )
+    runtime.dispatch_event(
+      @core.AppEvent::TextInput(@core.TextInputEvent::InsertText("edge")),
+    )
+    assert_true(
+      app.document() == "edge",
+      msg="editor card band at y=\{y} should accept focus and text",
+    )
+  }
+}
