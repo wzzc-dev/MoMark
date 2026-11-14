@@ -17,10 +17,7 @@ fn MarkdownEditorApp::root(
   }
   let tokens = markdown_ui_tokens(scheme)
   let theme = markdown_ui_theme(tokens)
-  let metrics = markdown_shell_metrics(
-    self.layout_mode,
-    sidebar_width=self.sidebar_width,
-  )
+  let metrics = markdown_shell_metrics(sidebar_width=self.sidebar_width)
   let session = self.document_session.with_rich_text_palette(
     Some(tokens.rich_text),
   )
@@ -61,48 +58,34 @@ fn MarkdownEditorApp::root(
   }
   let scroll_request = self.editor_scroll_request
   // Single slim chrome band, Winc-style: the workspace shell hosts the sidebar
-  // toggle + view switch on the sidebar card's header; the minimal shell has
-  // no persistent sidebar, so the same controls ride at the left edge of the
-  // editor tab strip (with the traffic-light inset).
-  let workspace_shell = self.layout_mode is WorkspaceMode
+  // toggle + view switch on the sidebar card's header. When the sidebar is
+  // collapsed the same toggle rides at the left edge of the editor tab strip
+  // (with the traffic-light inset) so there is always a way back.
   let sidebar_visible = self.sidebar_visible()
-  let has_sidebar_header = !zen && workspace_shell && sidebar_visible
+  // Keep the header mounted while the card animates out: switching the toggle
+  // over to the tab strip only once the card is gone keeps the toggle at the
+  // same x in both states instead of teleporting across the collapsing card.
+  let has_sidebar_header = !zen && (sidebar_visible || panel_animating)
   let sidebar_header = if has_sidebar_header {
     self.markdown_shell_sidebar_header(tokens, metrics, theme)
   } else {
     @views.empty()
   }
-  // Collapsing the persistent sidebar must keep a way back: Winc leaves the
-  // sidebar toggle at the left of the tab strip in that state, while the
-  // segments only make sense with a sidebar card to switch.
-  let tab_leading : Array[@moui.View[MarkdownEditorMsg]] = if zen {
+  let tab_leading : Array[@moui.View[MarkdownEditorMsg]] = if zen ||
+    sidebar_visible ||
+    panel_animating {
     []
-  } else if workspace_shell {
-    if sidebar_visible {
-      []
-    } else {
-      [
-        markdown_shell_icon_button(
-          @views.IconName::Sidebar,
-          "Toggle sidebar",
-          ToggleFileSidebar,
-          theme,
-        ),
-      ]
-    }
   } else {
-    self.markdown_shell_sidebar_controls(tokens, theme)
+    [
+      markdown_shell_icon_button(
+        @views.IconName::Sidebar,
+        "Toggle sidebar",
+        ToggleFileSidebar,
+        theme,
+      ),
+    ]
   }
   let tab_left_inset = if tab_leading.length() > 0 { 78.0 } else { 8.0 }
-  // Toggle (22) alone when the workspace sidebar is collapsed; minimal adds
-  // the segmented track (2 x 20 + spacing + container padding = 46).
-  let tab_leading_width = if tab_leading.length() == 0 {
-    0.0
-  } else if workspace_shell {
-    22.0
-  } else {
-    72.0
-  }
   let children : Array[@moui.View[MarkdownEditorMsg]] = []
   children.push(
     editor_source_layout(
@@ -133,7 +116,6 @@ fn MarkdownEditorApp::root(
         0.0
       },
       tab_leading~,
-      tab_leading_width~,
       tab_left_inset~,
       page_radius=metrics.island_radius,
     ).expanded(),
@@ -297,10 +279,7 @@ fn MarkdownEditorApp::root_with_environment(
   } else {
     self.dark_mode_enabled
   }
-  let metrics = markdown_shell_metrics(
-    self.layout_mode,
-    sidebar_width=self.sidebar_width,
-  )
+  let metrics = markdown_shell_metrics(sidebar_width=self.sidebar_width)
   let zen = self.zen_mode_enabled
   let mut fixed_height = metrics.island_margin * 2.0
   if !zen {

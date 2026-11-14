@@ -42,10 +42,8 @@ pub struct MarkdownEditorApp {
   mut outline_visible : Bool
   mut file_sidebar_visible : Bool
   mut document_info_visible : Bool
-  // Shell presentation state. `layout_mode` selects the Winc-like workspace
-  // or the Typora-style minimal page; `sidebar_panel` decides which panel the
-  // shared left sidebar shows; `sidebar_width` is the persisted drag width.
-  mut layout_mode : MarkdownEditorLayoutMode
+  // Shell presentation state: `sidebar_panel` decides which panel the shared
+  // left sidebar shows; `sidebar_width` is the persisted drag width.
   mut sidebar_panel : MarkdownSidebarPanel
   mut sidebar_width : Double
   mut settings_visible : Bool
@@ -318,7 +316,6 @@ pub enum MarkdownEditorMsg {
   ToggleOutline
   ToggleFileSidebar
   ToggleDocumentInfo
-  SetLayoutMode(MarkdownEditorLayoutMode)
   SetSidebarPanel(MarkdownSidebarPanel)
   SetSidebarWidth(Double)
   ToggleDarkMode
@@ -429,7 +426,6 @@ pub fn MarkdownEditorApp::new() -> MarkdownEditorApp {
     expanded_tree_paths: [],
     directory_tree_items: [],
     document_info_visible: false,
-    layout_mode: WorkspaceMode,
     sidebar_panel: FilesPanel,
     sidebar_width: 300.0,
     settings_visible: false,
@@ -562,7 +558,6 @@ fn MarkdownEditorApp::update_in_place(
     ToggleFileSidebar => self.toggle_file_sidebar()
     ToggleFileTree => self.file_tree_expanded = !self.file_tree_expanded
     ToggleDocumentInfo => self.toggle_document_info()
-    SetLayoutMode(mode) => self.set_layout_mode(mode)
     SetSidebarPanel(panel) => self.set_sidebar_panel(panel)
     SetSidebarWidth(width) => self.set_sidebar_width(width)
     ToggleDarkMode => {
@@ -773,7 +768,6 @@ fn MarkdownEditorApp::update_with_services(
     ToggleOutline
     | ToggleFileSidebar
     | ToggleDocumentInfo
-    | SetLayoutMode(_)
     | SetSidebarPanel(_)
     | SetSidebarWidth(_)
     | ToggleDarkMode

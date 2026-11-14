@@ -1,25 +1,7 @@
 ///|
-/// The two shells MoMark ships.
+/// The single shell MoMark ships: a Winc-like workspace with a persistent
+/// sidebar, a denser top bar, and island cards around the editor.
 ///
-/// `Workspace` is the Winc-like layout: a persistent sidebar, a denser top
-/// bar, and island cards around the editor. `Minimal` keeps the Typora-style
-/// single page: the sidebar and inspectors open as floating overlay cards.
-#derive(Eq, Debug, ToJson)
-pub enum MarkdownEditorLayoutMode {
-  WorkspaceMode
-  MinimalMode
-}
-
-///|
-pub extend MarkdownEditorLayoutMode with Eq::{not_equal, equal}
-
-///|
-pub extend MarkdownEditorLayoutMode with Debug::{to_repr}
-
-///|
-pub extend MarkdownEditorLayoutMode with ToJson::{to_json}
-
-///|
 /// Which panel the persistent sidebar shows. The two panels share one card so
 /// the workspace never grows two competing left columns.
 #derive(Eq, Debug, ToJson)
@@ -72,7 +54,7 @@ pub struct MarkdownUiTokens {
 }
 
 ///|
-/// Island and bar dimensions for one shell.
+/// Island and bar dimensions for the workspace shell.
 ///
 /// `island_margin` is the window-edge inset, `island_gap` the space between
 /// cards, and `bar_inset` the horizontal padding inside the bars. The chrome
@@ -81,7 +63,6 @@ pub struct MarkdownUiTokens {
 /// control, the editor card's header is the tab strip. Controls never sit
 /// closer to the window edge than margin + inset.
 pub struct MarkdownShellMetrics {
-  layout_mode : MarkdownEditorLayoutMode
   island_margin : Double
   island_gap : Double
   island_radius : Double
@@ -101,48 +82,24 @@ pub struct MarkdownShellMetrics {
 
 ///|
 fn markdown_shell_metrics(
-  layout_mode : MarkdownEditorLayoutMode,
   sidebar_width~ : Double = 300.0,
 ) -> MarkdownShellMetrics {
-  match layout_mode {
-    WorkspaceMode =>
-      {
-        layout_mode,
-        island_margin: 4.0,
-        island_gap: 6.0,
-        island_radius: 10.0,
-        bar_inset: 10.0,
-        top_bar_height: 32.0,
-        status_bar_height: 26.0,
-        sidebar_width,
-        sidebar_min_width: 230.0,
-        inspector_width: 240.0,
-        overlay_sidebar_width: 300.0,
-        overlay_inspector_width: 240.0,
-        page_width: markdown_editor_page_width(),
-        side_page_width: markdown_editor_source_editor_width(),
-        tree_row_height: 26.0,
-        control_height: 28.0,
-      }
-    MinimalMode =>
-      {
-        layout_mode,
-        island_margin: 4.0,
-        island_gap: 0.0,
-        island_radius: 10.0,
-        bar_inset: 10.0,
-        top_bar_height: 32.0,
-        status_bar_height: 24.0,
-        sidebar_width: 0.0,
-        sidebar_min_width: 0.0,
-        inspector_width: 0.0,
-        overlay_sidebar_width: 280.0,
-        overlay_inspector_width: 240.0,
-        page_width: markdown_editor_page_width(),
-        side_page_width: markdown_editor_source_editor_width(),
-        tree_row_height: 26.0,
-        control_height: 26.0,
-      }
+  {
+    island_margin: 4.0,
+    island_gap: 6.0,
+    island_radius: 10.0,
+    bar_inset: 10.0,
+    top_bar_height: 32.0,
+    status_bar_height: 26.0,
+    sidebar_width,
+    sidebar_min_width: 230.0,
+    inspector_width: 240.0,
+    overlay_sidebar_width: 300.0,
+    overlay_inspector_width: 240.0,
+    page_width: markdown_editor_page_width(),
+    side_page_width: markdown_editor_source_editor_width(),
+    tree_row_height: 26.0,
+    control_height: 28.0,
   }
 }
 

@@ -679,11 +679,7 @@ pub fn markdown_editor_program_commands(
     markdown_editor_control_shift_shortcut("0"),
     ApplyCommand(SetTableColumnAlignment(None)),
   )
-  add(
-    "Quick Format",
-    markdown_editor_shift_shortcut("p"),
-    ToggleFormatPalette,
-  )
+  add("Quick Format", markdown_editor_shift_shortcut("p"), ToggleFormatPalette)
   add("Settings…", markdown_editor_shortcut(","), OpenSettings)
   both(
     "Zoom In",
@@ -704,16 +700,6 @@ pub fn markdown_editor_program_commands(
     ResetZoom,
   )
   add("Toggle Dark Mode", markdown_editor_no_shortcut(), ToggleDarkMode)
-  add(
-    "Layout: Workspace",
-    markdown_editor_no_shortcut(),
-    SetLayoutMode(WorkspaceMode),
-  )
-  add(
-    "Layout: Minimal",
-    markdown_editor_no_shortcut(),
-    SetLayoutMode(MinimalMode),
-  )
   add("Undo Formatting Command", markdown_editor_alt_shortcut("z"), Undo)
   add("Redo Formatting Command", markdown_editor_alt_shift_shortcut("z"), Redo)
   // Menu-only action: the sidebar exposes it as a button, so it carries no
@@ -880,21 +866,15 @@ pub fn markdown_editor_application_menus() -> Array[@services.ApplicationMenu] {
         markdown_editor_shift_shortcut("p"),
         ToggleFormatPalette,
       ),
-      markdown_editor_menu_item("Settings…", markdown_editor_shortcut(","), OpenSettings),
+      markdown_editor_menu_item(
+        "Settings…",
+        markdown_editor_shortcut(","),
+        OpenSettings,
+      ),
       markdown_editor_menu_item(
         "Toggle Dark Mode",
         markdown_editor_no_shortcut(),
         ToggleDarkMode,
-      ),
-      markdown_editor_menu_item(
-        "Layout: Workspace",
-        markdown_editor_no_shortcut(),
-        SetLayoutMode(WorkspaceMode),
-      ),
-      markdown_editor_menu_item(
-        "Layout: Minimal",
-        markdown_editor_no_shortcut(),
-        SetLayoutMode(MinimalMode),
       ),
       separator,
       markdown_editor_menu_item(

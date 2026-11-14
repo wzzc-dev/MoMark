@@ -216,7 +216,8 @@ fn files_inspector(
     0.0,
     inner - fixed_base - outline_height - gaps * row_gap,
   )
-  let compact = markdown_shell_compact_theme(theme)
+  let compact = markdown_shell_compact_theme(theme, focus_ring=false)
+  let action_size = markdown_shell_chrome_control_height()
   let action_button = fn(
     icon : @views.IconName,
     label : String,
@@ -229,8 +230,8 @@ fn files_inspector(
         variant=@views.ButtonVariant::Ghost,
         icon=Some(icon),
         theme=compact,
-        width=22.0,
-        height=22.0,
+        width=action_size,
+        height=action_size,
       ),
       label,
     )
@@ -248,7 +249,7 @@ fn files_inspector(
   if has_folder {
     let name_width = markdown_editor_max_double(
       72.0,
-      content_width - 20.0 - 18.0 - 3.0 * 22.0 - 6.0 * row_gap,
+      content_width - 20.0 - 18.0 - 3.0 * action_size - 6.0 * row_gap,
     )
     file_rows.push(
       row(
@@ -364,7 +365,7 @@ fn files_inspector(
             "No folder open",
             width=markdown_editor_max_double(
               72.0,
-              content_width - 20.0 - 22.0 - 2.0 * row_gap,
+              content_width - 20.0 - action_size - 3.0 * row_gap,
             ),
             height=24.0,
             align=@text.TextAlign::TextStart,
@@ -878,7 +879,7 @@ fn outline_row(
       } else {
         @views.ButtonVariant::Ghost
       },
-      theme=markdown_shell_compact_theme(theme),
+      theme=markdown_shell_compact_theme(theme, focus_ring=false),
       width=markdown_editor_max_double(96.0, width - indent),
       height=24.0,
       label_align=@text.TextAlign::TextStart,

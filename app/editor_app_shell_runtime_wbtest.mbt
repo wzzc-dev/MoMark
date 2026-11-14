@@ -1,17 +1,13 @@
 ///|
 test "island shell metrics keep the window inset and bar sizes" {
-  let workspace = markdown_shell_metrics(WorkspaceMode)
-  assert_eq(workspace.island_margin, 4.0)
-  assert_eq(workspace.island_gap, 6.0)
-  assert_eq(workspace.island_radius, 10.0)
-  assert_eq(workspace.bar_inset, 10.0)
-  assert_eq(workspace.top_bar_height, 32.0)
-  assert_eq(workspace.status_bar_height, 26.0)
-  let minimal = markdown_shell_metrics(MinimalMode)
-  assert_eq(minimal.island_margin, 4.0)
-  assert_eq(minimal.island_gap, 0.0)
-  assert_eq(minimal.top_bar_height, 32.0)
-  assert_eq(minimal.status_bar_height, 24.0)
+  let shell = markdown_shell_metrics()
+  assert_eq(shell.island_margin, 4.0)
+  assert_eq(shell.island_gap, 6.0)
+  assert_eq(shell.island_radius, 10.0)
+  assert_eq(shell.bar_inset, 10.0)
+  assert_eq(shell.top_bar_height, 32.0)
+  assert_eq(shell.status_bar_height, 26.0)
+  assert_eq(markdown_shell_chrome_control_height(), 24.0)
 }
 
 ///|
@@ -30,6 +26,123 @@ fn markdown_shell_fill_rects(
 }
 
 ///|
+fn markdown_shell_rect_at(
+  rects : Array[@geometry.Rect],
+  x~ : Double,
+  width~ : Double,
+) -> @geometry.Rect? {
+  for rect in rects {
+    if rect.origin.x == x &&
+      rect.size.width == width &&
+      rect.origin.y < 40.0 &&
+      rect.size.height > 20.0 &&
+      rect.size.height < 30.0 {
+      return Some(rect)
+    }
+  }
+  None
+}
+
+///|
+fn markdown_shell_double_close(a : Double, b : Double) -> Bool {
+  let diff = a - b
+  diff < 0.5 && diff > -0.5
+}
+
+///|
+test "collapsed chrome keeps the toggle, tab and actions on one row" {
+  let app = MarkdownEditorApp::new()
+  app.set_document("# Plan")
+  let commands = app.runtime(width=980.0, height=640.0).draw_commands()
+  let rects = markdown_shell_fill_rects(commands)
+  // Leading toggle after the traffic-light inset, then the tab pill.
+  let toggle = markdown_shell_rect_at(rects, x=82.0, width=24.0)
+  let tab = markdown_shell_rect_at(rects, x=122.0, width=168.0)
+  match (toggle, tab) {
+    (Some(toggle), Some(tab)) => {
+      assert_eq(toggle.origin.y, tab.origin.y)
+      assert_eq(toggle.size.height, 24.25)
+      assert_eq(tab.size.height, 24.25)
+      // The 32px band is centered at 20pt, then shifted 4pt up so the row's
+      // center (16pt) sits on the native traffic-light center line.
+      assert_eq(toggle.origin.y + toggle.size.height / 2.0, 16.0)
+    }
+    _ => fail("collapsed chrome is missing the toggle or the tab pill")
+  }
+  // The three view actions are 24px wide with a 2px gap and end 8px inside
+  // the editor card instead of running off its right edge.
+  assert_true(markdown_shell_rect_at(rects, x=892.0, width=24.0) is Some(_))
+  assert_true(markdown_shell_rect_at(rects, x=918.0, width=24.0) is Some(_))
+  assert_true(markdown_shell_rect_at(rects, x=944.0, width=24.0) is Some(_))
+  assert_eq(944.0 + 24.0, 976.0 - 8.0)
+}
+
+///|
+test "expanded header and tab strip share the same chrome row" {
+  let app = MarkdownEditorApp::new()
+  app.set_document("# Plan")
+  app.apply_settings(MarkdownEditorSettings::default())
+  let commands = app.runtime(width=980.0, height=640.0).draw_commands()
+  let rects = markdown_shell_fill_rects(commands)
+  let toggle = markdown_shell_rect_at(rects, x=82.0, width=24.0)
+  let track = markdown_shell_rect_at(rects, x=112.0, width=54.0)
+  let tab = markdown_shell_rect_at(rects, x=318.0, width=168.0)
+  match (toggle, track, tab) {
+    (Some(toggle), Some(track), Some(tab)) => {
+      // The header row and the tab row agree within half a point, and neither
+      // pokes above the card's top edge (the old header offset did).
+      assert_true(markdown_shell_double_close(toggle.origin.y, tab.origin.y))
+      assert_true(
+        markdown_shell_double_close(toggle.size.height, tab.size.height),
+      )
+      assert_true(markdown_shell_double_close(toggle.origin.y, track.origin.y))
+      // Both halves sit on the traffic-light center line (the band center is
+      // 20pt; the row is shifted up 4pt).
+      assert_eq(toggle.origin.y + toggle.size.height / 2.0, 16.0)
+    }
+    _ => fail("expanded chrome is missing the toggle, switch or tab")
+  }
+}
+
+///|
+test "tab actions stay inside the window at the minimum width" {
+  let app = MarkdownEditorApp::new()
+  app.set_document("# Plan")
+  let commands = app.runtime(width=816.0, height=600.0).draw_commands()
+  let rects = markdown_shell_fill_rects(commands)
+  // 816 - island margin (4) - right inset (8) = 804; the three 24px actions
+  // and two 2px gaps put the first one at 728. The old 70px assumption let the
+  // last action run past the card edge.
+  assert_true(markdown_shell_rect_at(rects, x=728.0, width=24.0) is Some(_))
+  assert_true(markdown_shell_rect_at(rects, x=754.0, width=24.0) is Some(_))
+  assert_true(markdown_shell_rect_at(rects, x=780.0, width=24.0) is Some(_))
+  assert_eq(780.0 + 24.0, 816.0 - 4.0 - 8.0)
+}
+
+///|
+test "collapsing the sidebar keeps the toggle at the same height" {
+  let app = MarkdownEditorApp::new()
+  app.set_document("# Plan")
+  app.apply_settings(MarkdownEditorSettings::default())
+  let expanded = markdown_shell_fill_rects(
+    app.runtime(width=980.0, height=640.0).draw_commands(),
+  )
+  let expanded_toggle = markdown_shell_rect_at(expanded, x=82.0, width=24.0)
+  app.update_in_place(ToggleFileSidebar)
+  let collapsed = markdown_shell_fill_rects(
+    app.runtime(width=980.0, height=640.0).draw_commands(),
+  )
+  let collapsed_toggle = markdown_shell_rect_at(collapsed, x=82.0, width=24.0)
+  match (expanded_toggle, collapsed_toggle) {
+    (Some(expanded), Some(collapsed)) => {
+      assert_eq(expanded.origin.y, collapsed.origin.y)
+      assert_eq(expanded.size.height, collapsed.size.height)
+    }
+    _ => fail("the sidebar toggle moved between states or disappeared")
+  }
+}
+
+///|
 test "island cards start at the margin and meet the flush status bar" {
   // Single chrome band: no full-width top bar; the editor card (with its tab
   // header) starts at the island margin and runs down to the status bar.
@@ -37,71 +150,29 @@ test "island cards start at the margin and meet the flush status bar" {
   app.set_document("# Plan")
   let commands = app.runtime(width=980.0, height=640.0).draw_commands()
   let rects = markdown_shell_fill_rects(commands)
-  let workspace = markdown_shell_metrics(WorkspaceMode)
-  let card_height = 640.0 -
-    workspace.status_bar_height -
-    workspace.island_margin
+  let shell = markdown_shell_metrics()
+  let card_height = 640.0 - shell.status_bar_height - shell.island_margin
   // With no sidebar the editor card fills the row; the document measure is
   // centered inside it.
   let card_width = 972.0
-  let card_x = workspace.island_margin
+  let card_x = shell.island_margin
   assert_true(
     rects.any(rect => {
       rect.origin.x == card_x &&
-      rect.origin.y == workspace.island_margin &&
+      rect.origin.y == shell.island_margin &&
       rect.size.width == card_width &&
       rect.size.height == card_height
     }),
   )
-  let status_y = 640.0 - workspace.status_bar_height
+  let status_y = 640.0 - shell.status_bar_height
   assert_true(
     rects.any(rect => {
       rect.origin.x == 0.0 &&
       rect.origin.y == status_y &&
       rect.size.width == 980.0 &&
-      rect.size.height == workspace.status_bar_height
+      rect.size.height == shell.status_bar_height
     }),
   )
-  // Minimal: 4px outer margin, same card band, 24px status bar.
-  app.set_layout_mode(MinimalMode)
-  let minimal_commands = app.runtime(width=980.0, height=640.0).draw_commands()
-  let minimal_rects = markdown_shell_fill_rects(minimal_commands)
-  let minimal = markdown_shell_metrics(MinimalMode)
-  let minimal_card_height = 640.0 -
-    minimal.status_bar_height -
-    minimal.island_margin
-  assert_true(
-    minimal_rects.any(rect => {
-      rect.origin.x == card_x &&
-      rect.origin.y == minimal.island_margin &&
-      rect.size.width == card_width &&
-      rect.size.height == minimal_card_height
-    }),
-  )
-  let minimal_status_y = 640.0 - minimal.status_bar_height
-  assert_true(
-    minimal_rects.any(rect => {
-      rect.origin.x == 0.0 &&
-      rect.origin.y == minimal_status_y &&
-      rect.size.width == 980.0 &&
-      rect.size.height == minimal.status_bar_height
-    }),
-  )
-}
-
-///|
-test "switching shells keeps the document and selection" {
-  let app = MarkdownEditorApp::new()
-  app.set_document("# Plan\n\nBody")
-  app.selection = { caret: 3, selection: None, }
-  app.set_layout_mode(MinimalMode)
-  assert_true(app.layout_mode is MinimalMode)
-  assert_eq(app.document(), "# Plan\n\nBody")
-  assert_eq(app.selection.caret, 3)
-  app.set_layout_mode(WorkspaceMode)
-  assert_true(app.layout_mode is WorkspaceMode)
-  assert_eq(app.document(), "# Plan\n\nBody")
-  assert_eq(app.selection.caret, 3)
 }
 
 ///|
@@ -148,12 +219,11 @@ test "sidebar panel selection keeps one left panel visible" {
 }
 
 ///|
-test "legacy settings migrate to the minimal shell" {
+test "legacy settings migrate to the single shell" {
   let legacy = "{\"dark_mode\":true,\"font_family\":\"Serif\",\"writing_appearance\":\"Warm\",\"focus_mode\":false,\"typewriter_mode\":false,\"zen_mode\":false,\"source_preview\":false,\"outline\":true,\"files\":false,\"document_info\":false}"
   let settings = markdown_editor_decode_settings(legacy)
   assert_true(settings.dark_mode)
   assert_eq(settings.font_family, "Serif")
-  assert_eq(settings.layout_mode, "Minimal")
   assert_eq(settings.sidebar_panel, "Outline")
   assert_true(settings.outline)
   assert_false(settings.files)
@@ -172,7 +242,6 @@ test "settings round-trip carries the shell state" {
     outline: false,
     files: true,
     document_info: false,
-    layout_mode: "Workspace",
     follow_system_scheme: true,
     sidebar_panel: "Files",
     sidebar_width: 340.0,
@@ -180,9 +249,22 @@ test "settings round-trip carries the shell state" {
   }
   let text = ToJson::to_json(settings).stringify(indent=2)
   let decoded = markdown_editor_decode_settings(text)
-  assert_eq(decoded.layout_mode, "Workspace")
   assert_true(decoded.follow_system_scheme)
   assert_eq(decoded.sidebar_width, 340.0)
+}
+
+///|
+test "settings saved with the retired layout field still decode" {
+  // Preferences written while the two-shell switch existed carry a
+  // `layout_mode` key. Dropping the field from the schema must not reset the
+  // rest of the file.
+  let legacy = "{\"dark_mode\":true,\"font_family\":\"Serif\",\"writing_appearance\":\"Warm\",\"focus_mode\":true,\"typewriter_mode\":false,\"zen_mode\":false,\"source_preview\":false,\"outline\":true,\"files\":true,\"document_info\":false,\"layout_mode\":\"Minimal\",\"follow_system_scheme\":false,\"sidebar_panel\":\"Outline\",\"sidebar_width\":310.0,\"editor_zoom\":1.0}"
+  let settings = markdown_editor_decode_settings(legacy)
+  assert_true(settings.dark_mode)
+  assert_eq(settings.font_family, "Serif")
+  assert_true(settings.outline)
+  assert_eq(settings.sidebar_panel, "Outline")
+  assert_eq(settings.sidebar_width, 310.0)
 }
 
 ///|
@@ -347,4 +429,14 @@ test "editor surface fills the card below the tab strip and above its edge" {
       msg="editor card band at y=\{y} should accept focus and text",
     )
   }
+}
+
+///|
+test "chrome buttons suppress the pointer focus ring" {
+  let theme = markdown_ui_theme(markdown_ui_tokens(@core.ColorScheme::Light))
+  let chrome = markdown_shell_compact_theme(theme, focus_ring=false)
+  assert_eq(chrome.palette.focus.a, 0.0)
+  // Dialog controls keep the normal accent ring.
+  let dialog = markdown_shell_compact_theme(theme)
+  assert_eq(dialog.palette.focus, theme.palette.focus)
 }

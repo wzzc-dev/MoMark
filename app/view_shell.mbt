@@ -1,15 +1,63 @@
 ///|
 
 ///|
+/// The one control height used by every piece of window chrome: the sidebar
+/// toggle, the Files/Outline switch, the document tab, the tab actions and the
+/// status-bar settings button. Keeping one height means the chrome never
+/// re-flows vertically when the sidebar collapses or expands.
+fn markdown_shell_chrome_control_height() -> Double {
+  24.0
+}
+
+///|
+/// Vertical shift that puts the 32pt chrome band's center on the native
+/// traffic lights' center line. The cards start at the 4pt island margin, so
+/// the band center is 20pt from the window top; the traffic lights are at
+/// ~16pt. Both the sidebar header and the tab strip apply this shift, which is
+/// why the toggle stays put when the sidebar collapses.
+fn markdown_shell_chrome_row_offset() -> Double {
+  -4.0
+}
+
+///|
 /// Compact control theme for the 32px chrome band. MoUI buttons derive their
-/// height from `typography.control` plus `2 * spacing.sm`, so the explicit
-/// 20–22px heights only take effect with tighter padding and a smaller
-/// control font. Everything else (palette, radii, motion) stays the shell's.
-fn markdown_shell_compact_theme(theme : @moui.Theme) -> @moui.Theme {
-  let control_font = @core.FontSpec::new(size=12.0, weight=500)
+/// footprint from `typography.control` (the icon uses `font.size`) plus
+/// `layout_scale.control_padding_x`, so both have to shrink together: a small
+/// font with desktop padding still produces a 40px-wide icon button. With a
+/// 13px control font, 13px line box and 2px horizontal padding an icon-only
+/// button lands exactly on its 24px frame.
+///
+/// `focus_ring` is off for toolbar chrome: a pointer-down focuses the button
+/// under the cursor, and MoUI then paints its 2px `palette.focus` ring, which
+/// reads as a stray "selected" outline next to the traffic lights. The same
+/// actions stay available from the menus/shortcuts. Text fields keep the
+/// normal focus color.
+fn markdown_shell_compact_theme(
+  theme : @moui.Theme,
+  focus_ring~ : Bool = true,
+) -> @moui.Theme {
+  let control_font = @core.FontSpec::new(
+    size=13.0,
+    weight=500,
+    line_height=13.0,
+  )
   @views.theme(
     base=theme,
+    palette={
+      ..theme.palette,
+      focus: if focus_ring {
+        theme.palette.focus
+      } else {
+        theme.palette.focus.with_alpha(0.0)
+      },
+    },
     spacing_scale={ ..theme.spacing_scale, sm: 2.0, lg: 4.0, },
+    layout_scale={
+      ..theme.layout_scale,
+      control_height: markdown_shell_chrome_control_height(),
+      control_padding_x: 2.0,
+      row_height: markdown_shell_chrome_control_height(),
+    },
     typography={
       ..theme.typography,
       control: control_font,
@@ -33,15 +81,16 @@ fn markdown_shell_icon_button(
   } else {
     @views.ButtonVariant::Ghost
   }
+  let size = markdown_shell_chrome_control_height()
   tooltip(
     button(
       "",
       on_click=message,
       variant~,
       icon=Some(icon),
-      theme=markdown_shell_compact_theme(theme),
-      width=22.0,
-      height=22.0,
+      theme=markdown_shell_compact_theme(theme, focus_ring=false),
+      width=size,
+      height=size,
     ),
     label,
   )
@@ -65,9 +114,9 @@ fn markdown_shell_segment(
       on_click=message,
       variant=@views.ButtonVariant::Ghost,
       icon=Some(icon),
-      theme=markdown_shell_compact_theme(theme),
-      width=20.0,
-      height=20.0,
+      theme=markdown_shell_compact_theme(theme, focus_ring=false),
+      width=markdown_shell_chrome_control_height(),
+      height=markdown_shell_chrome_control_height(),
     ),
     label,
   )
@@ -94,9 +143,8 @@ fn markdown_shell_segment(
 
 ///|
 /// The chrome controls: sidebar toggle plus the Files/Outline segmented view
-/// switch. The workspace shell puts them in the sidebar card's header; the
-/// minimal shell puts them at the left edge of the editor tab strip, since it
-/// has no persistent sidebar card to host them.
+/// switch. They live in the sidebar card's header; when the sidebar is
+/// collapsed the toggle alone moves into the editor tab strip.
 fn MarkdownEditorApp::markdown_shell_sidebar_controls(
   self : MarkdownEditorApp,
   tokens : MarkdownUiTokens,
@@ -107,32 +155,36 @@ fn MarkdownEditorApp::markdown_shell_sidebar_controls(
   let outline_active = self.sidebar_panel is OutlinePanel &&
     self.outline_visible
   let segmented = @views.container(
-    @views.row(
-      [
-        markdown_shell_segment(
-          @views.IconName::Folder,
-          "Files",
-          SetSidebarPanel(FilesPanel),
-          tokens,
-          theme,
-          active=files_active,
-        ),
-        markdown_shell_segment(
-          @views.IconName::ListBullet,
-          "Outline",
-          SetSidebarPanel(OutlinePanel),
-          tokens,
-          theme,
-          active=outline_active,
-        ),
-      ],
-      spacing=2.0,
-      align=@views.CrossAlign::Center,
+    @views.padding_edges(
+      @views.row(
+        [
+          markdown_shell_segment(
+            @views.IconName::Folder,
+            "Files",
+            SetSidebarPanel(FilesPanel),
+            tokens,
+            theme,
+            active=files_active,
+          ),
+          markdown_shell_segment(
+            @views.IconName::ListBullet,
+            "Outline",
+            SetSidebarPanel(OutlinePanel),
+            tokens,
+            theme,
+            active=outline_active,
+          ),
+        ],
+        spacing=2.0,
+        align=@views.CrossAlign::Center,
+      ),
+      left=2.0,
+      right=2.0,
     ),
     variant=@views.ContainerVariant::Base,
     background=tokens.hover,
     corner_radius=8.0,
-    padding=2.0,
+    padding=0.0,
   )
   let sidebar_toggle = markdown_shell_icon_button(
     @views.IconName::Sidebar,
@@ -147,6 +199,9 @@ fn MarkdownEditorApp::markdown_shell_sidebar_controls(
 /// The sidebar card's header band: traffic-light inset, sidebar toggle, and
 /// the view segmented control on the card surface. This is half of the
 /// single 32px chrome band — the editor card's tab strip is the other half.
+/// Both bands center their 24px controls and apply the same 4pt upward shift,
+/// so their centers land on the native traffic lights and collapsing the
+/// sidebar does not move any control up or down.
 fn MarkdownEditorApp::markdown_shell_sidebar_header(
   self : MarkdownEditorApp,
   tokens : MarkdownUiTokens,
@@ -154,8 +209,6 @@ fn MarkdownEditorApp::markdown_shell_sidebar_header(
   theme : @moui.Theme,
 ) -> @moui.View[MarkdownEditorMsg] {
   let controls = self.markdown_shell_sidebar_controls(tokens, theme)
-  // The native traffic lights sit a few points above the card's vertical
-  // center; nudge the header controls up so their centers line up.
   @views.frame(
     @views.row(
       [
@@ -169,7 +222,7 @@ fn MarkdownEditorApp::markdown_shell_sidebar_header(
       align=@views.CrossAlign::Center,
     ),
     height=metrics.top_bar_height,
-  ).offset(dy=-4.0)
+  ).offset(dy=markdown_shell_chrome_row_offset())
 }
 
 ///|
@@ -225,20 +278,12 @@ fn MarkdownEditorApp::markdown_shell_status_bar(
     session.word_count.to_string() +
     " words · " +
     mode
-  let settings_button = tooltip(
-    button(
-      "",
-      on_click=OpenSettings,
-      variant=if self.settings_visible {
-        @views.ButtonVariant::Tonal
-      } else {
-        @views.ButtonVariant::Ghost
-      },
-      icon=Some(@views.IconName::Settings),
-      width=22.0,
-      height=22.0,
-    ),
+  let settings_button = markdown_shell_icon_button(
+    @views.IconName::Settings,
     "Settings",
+    OpenSettings,
+    theme,
+    active=self.settings_visible,
   )
   frame(
     row(
@@ -648,36 +693,7 @@ fn MarkdownEditorApp::markdown_settings_panel(
         theme,
         tokens,
       )
-      let layout_row = markdown_settings_row(
-        "Layout",
-        "Persistent sidebar or floating panels",
-        markdown_settings_segmented(
-          [
-            (
-              "Workspace",
-              SetLayoutMode(WorkspaceMode),
-              self.layout_mode is WorkspaceMode,
-            ),
-            (
-              "Minimal",
-              SetLayoutMode(MinimalMode),
-              self.layout_mode is MinimalMode,
-            ),
-          ],
-          theme,
-          tokens,
-          metrics,
-          width=96.0,
-        ),
-        theme,
-        tokens,
-      )
-      body.push(
-        markdown_settings_group(
-          [mode_row, look_row, font_row, layout_row],
-          tokens,
-        ),
-      )
+      body.push(markdown_settings_group([mode_row, look_row, font_row], tokens))
     }
   }
   let header = @views.row(

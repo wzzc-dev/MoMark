@@ -91,19 +91,6 @@ fn MarkdownEditorApp::panel_anim_fraction(self : MarkdownEditorApp) -> Double {
 }
 
 ///|
-fn MarkdownEditorApp::set_layout_mode(
-  self : MarkdownEditorApp,
-  mode : MarkdownEditorLayoutMode,
-) -> Unit {
-  self.layout_mode = mode
-  // Entering the workspace with no panel selected would leave an empty
-  // sidebar card; pick the file panel so the layout always reads as intended.
-  if mode is WorkspaceMode && !self.file_sidebar_visible {
-    self.set_sidebar_panel(FilesPanel)
-  }
-}
-
-///|
 fn MarkdownEditorApp::set_sidebar_width(
   self : MarkdownEditorApp,
   width : Double,

@@ -1,13 +1,14 @@
 # Markdown Editor 布局说明
 
-> **0.2 shell note.** MoMark now ships two shells selected by
-> `MarkdownEditorLayoutMode`: `WorkspaceMode` (Winc-like island layout with a
-> persistent sidebar and denser bars) and `MinimalMode` (Typora-style page
-> with a thinner shell). Both share `app/ui_tokens.mbt` (frame/card/page
-> colors, island margin/gap/radius, bar heights) and `app/view_shell.mbt`
-> (top bar, status bar, island primitives). The sections below describe the
-> pre-0.2 edge-to-edge layout and are kept for historical reference until the
-> full M4 documentation rewrite.
+> **0.2 shell note.** MoMark ships one shell: the Winc-like workspace with a
+> persistent sidebar, island cards and a single 32px chrome band. Sidebar
+> controls, the document tab and the tab actions all use the same 24px
+> control height and stay centered in that band whether the sidebar is
+> expanded or collapsed. Colors and island metrics live in
+> `app/ui_tokens.mbt`; the shared chrome primitives live in
+> `app/view_shell.mbt`. The sections below describe the pre-0.2 edge-to-edge
+> layout and are kept for historical reference until the full M4 documentation
+> rewrite.
 
 本文档描述 `markdown_editor` 示例应用的完整布局结构，包括窗口层级、各组件尺寸约束和 Typora 风格的贴边布局实现。
 

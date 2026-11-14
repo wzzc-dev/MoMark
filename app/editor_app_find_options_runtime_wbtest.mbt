@@ -134,7 +134,6 @@ test "markdown editor settings round-trip through JSON" {
     outline: false,
     files: true,
     document_info: false,
-    layout_mode: "Workspace",
     follow_system_scheme: false,
     sidebar_panel: "Files",
     sidebar_width: 300.0,

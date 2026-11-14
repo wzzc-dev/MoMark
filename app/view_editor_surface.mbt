@@ -588,7 +588,6 @@ fn editor_source_layout(
   sidebar_header~ : @moui.View[MarkdownEditorMsg] = @views.empty(),
   sidebar_header_height~ : Double = 0.0,
   tab_leading~ : Array[@moui.View[MarkdownEditorMsg]] = [],
-  tab_leading_width~ : Double = 0.0,
   tab_left_inset~ : Double = 8.0,
   page_radius~ : Double = 4.0,
 ) -> @moui.View[MarkdownEditorMsg] {
@@ -717,7 +716,6 @@ fn editor_source_layout(
       width=card_width,
       height=tab_height,
       leading=tab_leading,
-      leading_width=tab_leading_width,
       left_inset=tab_left_inset,
     )
   }
@@ -859,11 +857,23 @@ fn markdown_editor_tab_title_width(title : String) -> Double {
 }
 
 ///|
-/// Total width of the tab pill: padding, file icon, title button, dirty dot,
-/// close button, and the row spacing between them.
-fn markdown_editor_tab_pill_width(title : String, dirty : Bool) -> Double {
-  let dot = if dirty { 10.0 } else { 0.0 }
-  68.0 + markdown_editor_tab_title_width(title) + dot
+/// Width of the icon-only controls on the tab strip (find, source mode,
+/// source preview). The row's right edge is positioned from this constant so
+/// the last action always stays inside the card.
+fn markdown_editor_tab_action_size() -> Double {
+  markdown_shell_chrome_control_height()
+}
+
+///|
+fn markdown_editor_tab_action_spacing() -> Double {
+  2.0
+}
+
+///|
+/// Total width of the tab strip's right action cluster.
+fn markdown_editor_tab_actions_width() -> Double {
+  3.0 * markdown_editor_tab_action_size() +
+  2.0 * markdown_editor_tab_action_spacing()
 }
 
 ///|
@@ -876,39 +886,26 @@ fn markdown_editor_tab_action(
   theme : @moui.Theme,
   active : Bool,
 ) -> @moui.View[MarkdownEditorMsg] {
-  tooltip(
-    button(
-      "",
-      on_click=message,
-      variant=if active {
-        @views.ButtonVariant::Tonal
-      } else {
-        @views.ButtonVariant::Ghost
-      },
-      icon=Some(icon),
-      theme=markdown_shell_compact_theme(theme),
-      width=22.0,
-      height=22.0,
-    ),
-    label,
-  )
+  markdown_shell_icon_button(icon, label, message, theme, active~)
 }
 
 ///|
 /// The tab strip inside the editor card: one document tab with its file icon,
 /// dirty dot, and close affordance, plus new-tab and view actions. Together
-/// with the sidebar card's header it forms the single 32px chrome band; in the
-/// minimal shell, which has no persistent sidebar, the sidebar controls ride
-/// along at the strip's left edge (`leading` + a traffic-light `left_inset`).
+/// with the sidebar card's header it forms the single 32px chrome band; when
+/// the sidebar is collapsed the sidebar toggle rides along at the strip's left
+/// edge (`leading` + a traffic-light `left_inset`). Every control is one
+/// 24px-high row item, centered in the band, so the header and the strip line
+/// up in both sidebar states.
 fn markdown_editor_tab_strip(
   app : MarkdownEditorApp,
   theme : @moui.Theme,
   width~ : Double,
   height~ : Double,
   leading~ : Array[@moui.View[MarkdownEditorMsg]] = [],
-  leading_width~ : Double = 0.0,
   left_inset~ : Double = 8.0,
 ) -> @moui.View[MarkdownEditorMsg] {
+  let control_height = markdown_shell_chrome_control_height()
   let title = markdown_editor_document_title(
     path=app.document_path,
     fallback="Untitled",
@@ -926,9 +923,9 @@ fn markdown_editor_tab_strip(
       on_click=NewDocument,
       variant=@views.ButtonVariant::Ghost,
       icon=Some(@views.IconName::Close),
-      theme=markdown_shell_compact_theme(theme),
-      width=20.0,
-      height=20.0,
+      theme=markdown_shell_compact_theme(theme, focus_ring=false),
+      width=control_height,
+      height=control_height,
     ),
     "Close tab",
   )
@@ -945,9 +942,9 @@ fn markdown_editor_tab_strip(
             title,
             on_click=ToggleDocumentInfo,
             variant=@views.ButtonVariant::Ghost,
-            theme=markdown_shell_compact_theme(theme),
+            theme=markdown_shell_compact_theme(theme, focus_ring=false),
             width=markdown_editor_tab_title_width(title),
-            height=20.0,
+            height=control_height,
             label_align=@text.TextAlign::TextStart,
           )
           .font(theme.typography.caption)
@@ -958,9 +955,7 @@ fn markdown_editor_tab_strip(
         spacing=6.0,
         align=@views.CrossAlign::Center,
       ),
-      top=2.0,
       right=6.0,
-      bottom=2.0,
       left=10.0,
     ),
     variant=@views.ContainerVariant::Base,
@@ -980,9 +975,9 @@ fn markdown_editor_tab_strip(
       on_click=NewDocument,
       variant=@views.ButtonVariant::Ghost,
       icon=Some(@views.IconName::FileNew),
-      theme=markdown_shell_compact_theme(theme),
-      width=22.0,
-      height=22.0,
+      theme=markdown_shell_compact_theme(theme, focus_ring=false),
+      width=control_height,
+      height=control_height,
     ),
     "New document",
   )
@@ -1010,7 +1005,7 @@ fn markdown_editor_tab_strip(
         app.source_preview_visible,
       ),
     ],
-    spacing=2.0,
+    spacing=markdown_editor_tab_action_spacing(),
     align=@views.CrossAlign::Center,
   )
   let strip_children : Array[@moui.View[MarkdownEditorMsg]] = []
@@ -1022,23 +1017,34 @@ fn markdown_editor_tab_strip(
   }
   strip_children.push(tab)
   strip_children.push(new_tab)
+  // Let the row measure its own 24px controls and center them in the band,
+  // exactly like the sidebar header does. Computing the inset from the
+  // nominal height would leave a sub-pixel seam whenever the control font's
+  // line box rounds up, so the two halves of the chrome band would drift
+  // apart. The 4pt shift puts the row's center on the traffic lights.
   let left_row = padding_edges(
-    row(strip_children, spacing=4.0, align=@views.CrossAlign::Center),
-    top=markdown_editor_max_double(0.0, (height - 24.0) / 2.0),
-    bottom=markdown_editor_max_double(0.0, (height - 24.0) / 2.0),
+    @views.frame(
+      row(strip_children, spacing=4.0, align=@views.CrossAlign::Center),
+      height~,
+    ),
     left=left_inset,
-  )
+  ).offset(dy=markdown_shell_chrome_row_offset())
   let left_layer = @views.align(
     left_row,
     alignment=@geometry.Alignment::new(x=-1.0, y=0.0),
   )
   // Absolute right inset: padding shifts the action row from the strip's left
   // edge by the remaining width, so it lands on the card edge regardless of
-  // how the enclosing layout measures intrinsic widths.
+  // how the enclosing layout measures intrinsic widths. The cluster width is
+  // derived from the same 24px control metric as the buttons, so the last
+  // action cannot overflow the card.
   let right_layer = padding_edges(
-    view_actions,
-    left=markdown_editor_max_double(0.0, width - 8.0 - 70.0),
-  )
+    @views.frame(view_actions, height~),
+    left=markdown_editor_max_double(
+      0.0,
+      width - 8.0 - markdown_editor_tab_actions_width(),
+    ),
+  ).offset(dy=markdown_shell_chrome_row_offset())
   // One continuous card surface (no divider), and a stack instead of a row:
   // the stack hands its children the card's width, so the right-aligned
   // action cluster actually lands on the card's edge.

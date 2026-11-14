@@ -6,14 +6,4 @@
 // this repository root.
 members = [
   ".",
-  "./vendor/MoUI/moui",
-  "./vendor/MoUI/moui_richtext",
-  "./vendor/MoUI/moui_skia",
-  "./vendor/MoUI/moui_skia_renderer",
-  "./vendor/MoUI/moui_wgpu_renderer",
-  "./vendor/MoUI/moui_sun",
-  "./vendor/MoUI/moui_sun_renderer",
-  "./vendor/MoUI/moui_text_providers",
-  "./vendor/MoUI/window/modules/window",
-  "./vendor/MoUI/window/modules/windowing",
 ]

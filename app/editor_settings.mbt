@@ -13,7 +13,6 @@ pub struct MarkdownEditorSettings {
   outline : Bool
   files : Bool
   document_info : Bool
-  layout_mode : String
   follow_system_scheme : Bool
   sidebar_panel : String
   sidebar_width : Double
@@ -64,7 +63,6 @@ fn MarkdownEditorSettings::default() -> MarkdownEditorSettings {
     outline: false,
     files: true,
     document_info: false,
-    layout_mode: "Workspace",
     follow_system_scheme: false,
     sidebar_panel: "Files",
     sidebar_width: 300.0,
@@ -106,9 +104,9 @@ fn markdown_editor_decode_settings(text : String) -> MarkdownEditorSettings {
 }
 
 ///|
-/// Map a pre-workspace preferences file onto the new shape. The old app had
-/// no layout concept, so it keeps the minimal shell; every other preference
-/// carries over unchanged.
+/// Map a pre-workspace preferences file onto the new shape. Every preference
+/// carries over unchanged; there is only one shell now, so the old files no
+/// longer select a layout.
 fn markdown_editor_settings_from_legacy(
   legacy : MarkdownEditorLegacySettings,
 ) -> MarkdownEditorSettings {
@@ -123,7 +121,6 @@ fn markdown_editor_settings_from_legacy(
     outline: legacy.outline,
     files: legacy.files,
     document_info: legacy.document_info,
-    layout_mode: "Minimal",
     follow_system_scheme: false,
     sidebar_panel: if legacy.outline {
       "Outline"
@@ -152,10 +149,6 @@ fn MarkdownEditorApp::request_settings_save(
     outline: self.outline_visible,
     files: self.file_sidebar_visible,
     document_info: self.document_info_visible,
-    layout_mode: match self.layout_mode {
-      WorkspaceMode => "Workspace"
-      MinimalMode => "Minimal"
-    },
     follow_system_scheme: self.follow_system_scheme,
     sidebar_panel: match self.sidebar_panel {
       FilesPanel => "Files"
@@ -190,10 +183,6 @@ fn MarkdownEditorApp::apply_settings(
   self.outline_visible = settings.outline
   self.file_sidebar_visible = settings.files || settings.outline
   self.document_info_visible = settings.document_info
-  self.layout_mode = match settings.layout_mode {
-    "Minimal" => MinimalMode
-    _ => WorkspaceMode
-  }
   self.follow_system_scheme = settings.follow_system_scheme
   self.sidebar_panel = match settings.sidebar_panel {
     "Outline" => OutlinePanel

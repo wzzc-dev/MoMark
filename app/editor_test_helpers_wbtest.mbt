@@ -187,7 +187,6 @@ fn MarkdownEditorApp::overwrite_from_for_test(
   self.outline_visible = latest.outline_visible
   self.file_sidebar_visible = latest.file_sidebar_visible
   self.document_info_visible = latest.document_info_visible
-  self.layout_mode = latest.layout_mode
   self.sidebar_panel = latest.sidebar_panel
   self.sidebar_width = latest.sidebar_width
   self.settings_visible = latest.settings_visible
@@ -709,7 +708,7 @@ fn MarkdownEditorApp::editor_content_x(
   inner_x~ : Double = 4.0,
 ) -> Double {
   let appearance = self.appearance_spec()
-  let metrics = markdown_shell_metrics(self.layout_mode)
+  let metrics = markdown_shell_metrics()
   let show_files = self.file_sidebar_visible
   let show_info = self.document_info_visible
   let show_outline = self.outline_visible
