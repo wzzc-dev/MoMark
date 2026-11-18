@@ -1,7 +1,7 @@
 # MoMark (Markdown Editor)
 
 <div align="center">
-  <img src="resource/screenshots/markdown_editor.png" width="600px" alt="Markdown Editor screenshot"/>
+  <img src="resource/screenshots/momark.png" width="600px" alt="Markdown Editor screenshot"/>
 </div>
 
 MoMark is a Typora-style WYSIWYG Markdown editing prototype. A single typed
