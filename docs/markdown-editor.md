@@ -24,6 +24,36 @@ mapping, keyboard and contextual commands, and editing workflows.
 Platform packages should stay thin. Shared editor behavior belongs in the app
 package or the framework package that owns the reusable capability.
 
+## MoUI 0.8.0 Migration Record
+
+Commit `b07f7a7` moved the rich text editing, Markdown block/inline mapping,
+context menus, format bubbles, editor target handling, and edit history onto
+`wzzc-dev/moui_richtext` / `wzzc-dev/moui_markdown` and deleted the local
+duplicates and the vendored copy.
+
+MoUI was being implemented while this migration ran, so the migration was built
+against a frozen source copy of MoUI rather than a moving branch:
+
+- Frozen commit: `daa109e918e006cfbd8d75f7ee49574f73ee93e9`
+- Frozen tree: `696c6b8ba2d1f9f31f65df0280d3080cdfc8ef8d`
+- MoUI worktree clean before the probe and clean again after it, with the commit
+  and tree unchanged
+- Against that frozen source: `MOUI_SKIA_DISABLE_PREBUILD_SKIA=1 moon check`
+  exited 0, and `MOUI_SKIA_DISABLE_PREBUILD_SKIA=1 moon test app` reported
+  `Total tests: 488, passed: 488, failed: 0`
+
+The migration was then replayed against the published registry release instead
+of the frozen copy, with no path dependencies and `moon.work` holding only
+`members = ["."]`. `moon tree` resolves every MoUI family package at `0.8.0`,
+and the same `moon check` (exit 0) and `moon test app` result reproduced:
+`Total tests: 488, passed: 488, failed: 0`.
+
+A bare `moon test` (no package argument) links the macOS backend stub packages
+`macos_skia` / `macos_wgpu`, which need an Objective-C frontend (`cc1obj`); on a
+Linux host without one that link step fails for an environment reason unrelated
+to this migration. Those packages are unchanged from the pre-migration base
+commit, and `moon check` covers them.
+
 The shared app exposes `MarkdownEditorApp::program` and
 `MarkdownEditorApp::program_with_services`; platform entrypoints and wbtest
 helpers construct the actual runtime through `moui/runtime`. Editor input,
