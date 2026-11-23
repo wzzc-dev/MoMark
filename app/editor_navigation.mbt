@@ -506,7 +506,6 @@ fn MarkdownEditorApp::replace_current_find_match(
     return
   }
   self.replace_document_source(next_source, reason=ReplaceEdit)
-  self.record_edit_history(before~)
   let end = range.start + markdown_editor_text_length(replacement)
   let next_matches = self.refresh_find_matches()
   match
@@ -521,6 +520,7 @@ fn MarkdownEditorApp::replace_current_find_match(
       self.scroll_to_source(range.start)
     }
   }
+  self.record_edit_history(before~, after_selection=self.selection)
 }
 
 ///|
@@ -541,7 +541,6 @@ fn MarkdownEditorApp::replace_all_find_matches(
   }
   let before = self.pre_edit_state()
   self.replace_document_source(next_source, reason=ReplaceEdit)
-  self.record_edit_history(before~)
   let start = matches[0].start
   let end = start + markdown_editor_text_length(replacement)
   self.selection = {
@@ -549,6 +548,7 @@ fn MarkdownEditorApp::replace_all_find_matches(
     selection: markdown_editor_replacement_selection(start, end),
   }
   self.sync_target_inputs()
+  self.record_edit_history(before~, after_selection=self.selection)
   self.scroll_to_source(start)
 }
 

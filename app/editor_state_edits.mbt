@@ -58,7 +58,10 @@ fn MarkdownEditorApp::apply_command_to_selection(
     reason=CommandEdit,
   )
   self.document_session = self.document_session.apply(transaction)
-  self.record_edit_history_from_transaction(before~, transaction~)
+  self.record_edit_history_from_transaction(before~, transaction~, after_selection={
+    caret: result.caret,
+    selection: result.selection,
+  })
   self.document = result.source
   self.refresh_find_matches_if_visible()
   self.selection = { caret: result.caret, selection: result.selection, }
@@ -83,7 +86,10 @@ fn MarkdownEditorApp::apply_text_transform(
     transform,
   )
   self.document_session = self.document_session.apply(transaction)
-  self.record_edit_history_from_transaction(before~, transaction~)
+  self.record_edit_history_from_transaction(before~, transaction~, after_selection={
+    caret: transform.caret,
+    selection: transform.selection,
+  })
   self.document = transform.text
   self.refresh_find_matches_if_visible()
   self.selection = { caret: transform.caret, selection: transform.selection, }
@@ -333,9 +339,7 @@ fn markdown_editor_edit_kind(
     return MarkdownEditKind::Other
   }
   let deleted_length = markdown_editor_text_length(transaction.deleted)
-  let replacement_length = markdown_editor_text_length(
-    transaction.replacement,
-  )
+  let replacement_length = markdown_editor_text_length(transaction.replacement)
   let start = transaction.edit_range.start
   if deleted_length == 0 && replacement_length == 1 {
     MarkdownEditKind::Insert
@@ -366,12 +370,15 @@ fn markdown_editor_history_now_ms() -> Int64 {
 fn MarkdownEditorApp::record_edit_history(
   self : MarkdownEditorApp,
   before~ : MarkdownEditorPreEdit,
+  after_selection~ : MarkdownEditorSelection,
 ) -> Unit {
   self.history.record(
     before=before.source,
     after=self.document_session.source(),
     kind=MarkdownEditKind::Other,
     at_ms=markdown_editor_history_now_ms(),
+    selection_before=Some(before.selection),
+    selection_after=Some(after_selection),
   )
 }
 
@@ -383,12 +390,15 @@ fn MarkdownEditorApp::record_edit_history_from_transaction(
   self : MarkdownEditorApp,
   before~ : MarkdownEditorPreEdit,
   transaction~ : MarkdownEditTransaction,
+  after_selection~ : MarkdownEditorSelection,
 ) -> Unit {
   self.history.record(
     before=before.source,
     after=self.document_session.source(),
     kind=markdown_editor_edit_kind(transaction, before.selection.caret),
     at_ms=markdown_editor_history_now_ms(),
+    selection_before=Some(before.selection),
+    selection_after=Some(after_selection),
   )
 }
 
@@ -406,7 +416,11 @@ fn MarkdownEditorApp::restore_history(
   match outcome {
     Some(outcome) => {
       self.replace_document_source(outcome.source, reason=ReplaceEdit)
-      self.selection = { caret: outcome.caret, selection: None, }
+      let restored_selection = match outcome.selection {
+        Some(selection) => selection
+        None => { caret: outcome.caret, selection: None, }
+      }
+      self.selection = restored_selection
       self.sync_target_inputs()
       self.maybe_center_typewriter_selection()
       true
@@ -429,7 +443,10 @@ fn MarkdownEditorApp::toggle_task_at(
         reason=ToggleTaskEdit,
       )
       self.document_session = self.document_session.apply(transaction)
-      self.record_edit_history_from_transaction(before~, transaction~)
+      self.record_edit_history_from_transaction(before~, transaction~, after_selection={
+        caret: result.caret,
+        selection: result.selection,
+      })
 
       self.document = result.source
       self.refresh_find_matches_if_visible()
@@ -452,7 +469,10 @@ fn MarkdownEditorApp::toggle_current_task(self : MarkdownEditorApp) -> Unit {
         reason=ToggleTaskEdit,
       )
       self.document_session = self.document_session.apply(transaction)
-      self.record_edit_history_from_transaction(before~, transaction~)
+      self.record_edit_history_from_transaction(before~, transaction~, after_selection={
+        caret: result.caret,
+        selection: result.selection,
+      })
 
       self.document = result.source
       self.refresh_find_matches_if_visible()

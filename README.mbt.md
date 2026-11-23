@@ -92,14 +92,12 @@ moon run linux_wgpu --target native
 moon test app --target native
 ```
 
-The vendored framework packages have their own suites:
+The editor and Markdown packages are registry dependencies; their suites run in
+a MoUI checkout rather than here:
 
 ```sh
-moon test vendor/MoUI/moui/core --target native
-moon test vendor/MoUI/moui/runtime --target native
-moon test vendor/MoUI/moui/views --target native
-moon test vendor/MoUI/moui_richtext --target native
-(cd vendor/MoUI/window && moon test --release)
+moon test moui_richtext --target native
+moon test moui_markdown --target native
 ```
 
 The app package ships an extensive runtime whitebox suite covering keyboard

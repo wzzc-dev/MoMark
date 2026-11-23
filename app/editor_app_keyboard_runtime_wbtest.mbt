@@ -344,15 +344,18 @@ test "markdown editor indent and outdent actions preserve history" {
   inspect(indented_selection.end, content="21")
   assert_true(app.undo())
   inspect(app.document(), content="Intro\n- one\n- two\nTail")
-  // The shared history returns a caret, not a selection, so undo puts the
-  // caret at the start of the edit and redo at the end of the inserted text.
-  inspect(app.selection_caret(), content="6")
+  guard app.selection.selection is Some(undone_selection) else {
+    fail("expected undo to restore the pre-edit selection")
+  }
+  inspect(undone_selection.start, content="6")
+  inspect(undone_selection.end, content="17")
   assert_true(app.redo())
   inspect(app.document(), content="Intro\n  - one\n  - two\nTail")
-  inspect(app.selection_caret(), content="16")
-  // Outdent acts on the whole selected block, so select it again: the undo
-  // entry no longer carries the pre-edit selection range.
-  app.set_selection(21, Some(@core.TextRange::new(start=6, end=21)))
+  guard app.selection.selection is Some(redone_selection) else {
+    fail("expected redo to restore the post-edit selection")
+  }
+  inspect(redone_selection.start, content="6")
+  inspect(redone_selection.end, content="21")
   app.apply_action("outdent-lines")
   inspect(app.document(), content="Intro\n- one\n- two\nTail")
 }

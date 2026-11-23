@@ -16,13 +16,10 @@ mapping, keyboard and contextual commands, and editing workflows.
   Skia renderer provider.
 - `runtime.mbt`: module-root environment/runtime wiring
   shared by the entrypoints.
-- `moui_richtext/facade.mbt`: public rich text editor wrappers (`markdown_editor`,
-  `controlled_markdown_session_editor`) used by the example.
-- `moui_richtext/rich_text_document.mbt` plus `moui_richtext/rich_text_editor.mbt`:
-  rich text document model, painting, geometry, selection, and editing logic.
-- `moui/core/text_editing.mbt` plus `moui/core/text_layout.mbt`: platform-neutral
-  text editing primitives, `TextSystem`, and paragraph layout contract shared by
-  plain text controls and the rich text addon.
+- Registry dependencies: `wzzc-dev/moui`, `wzzc-dev/moui_richtext` and
+  `wzzc-dev/moui_markdown` at `0.8.0` supply rich text editing, Markdown block
+  and inline mapping, context menus, and format bubbles. The repository keeps no
+  in-tree or vendored copy of those packages.
 
 Platform packages should stay thin. Shared editor behavior belongs in the app
 package or the framework package that owns the reusable capability.
@@ -519,7 +516,8 @@ The editor supports formatted editing for common block and inline structures:
   table inserts it as an isolated table block and keeps the pasted separator
   alignment row intact.
 - Structured shortcut/contextual command history so Markdown transforms can be
-  undone separately from raw text input.
+  undone separately from raw text input; undo/redo restores the selection the
+  command ran on, so a transform can be re-applied without re-selecting.
 - Raw text input undo groups consecutive single-character typing, backspace,
   and forward-delete edits into one entry while they stay in the same edit kind
   at contiguous positions within a short pause window (about half a second), so
