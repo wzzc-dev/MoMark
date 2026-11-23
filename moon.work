@@ -1,9 +1,8 @@
-// MoMark workspace: the app itself plus the vendored MoUI/window sources.
+// MoMark workspace: the app itself.
 //
-// Workspace members override the registry versions declared in `moon.mod`, so
-// `moon build`/`moon test` run against `vendor/MoUI` (including its window
-// submodule) instead of the published packages. Run workspace commands from
-// this repository root.
+// MoUI packages come from the registry versions declared in `moon.mod`; the
+// repository keeps no vendored copy. Run workspace commands from this
+// repository root so one lockfile and build directory serve the app.
 members = [
   ".",
 ]

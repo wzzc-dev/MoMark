@@ -170,42 +170,6 @@ fn MarkdownEditorApp::target_bar(
 }
 
 ///|
-fn markdown_editor_session_caret_rect(
-  session : MarkdownDocumentSession,
-  selection : MarkdownEditorSelection,
-  caret : Int32,
-  editor_frame : @geometry.Rect,
-  editor_font : @text.FontSpec,
-  scroll_offset : @geometry.Point,
-  viewport_height~ : Double,
-  source_mode~ : Bool = false,
-  focus_mode~ : Bool = false,
-  base_dir~ : String? = None,
-) -> @geometry.Rect? {
-  let window = session.rich_text_window(
-    selection,
-    base=editor_font,
-    source_mode~,
-    focus_mode~,
-    base_dir~,
-    scroll_y=scroll_offset.y,
-    viewport_height~,
-    overscan=markdown_editor_visible_overscan(viewport_height),
-    content_width=@moui_richtext.rich_text_editor_content_rect(editor_frame).size.width,
-  )
-  let content = @moui_richtext.rich_text_editor_content_rect(editor_frame).offset(
-    dx=0.0,
-    dy=window.top_padding - scroll_offset.y,
-  )
-  @moui_richtext.rich_text_document_caret_rect_at_source(
-    window.document,
-    caret,
-    content,
-    editor_font,
-  )
-}
-
-///|
 fn editor_button(
   label : String,
   message : MarkdownEditorMsg,

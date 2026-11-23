@@ -19,6 +19,8 @@ using @views {
 ///|
 using @moui_richtext {
   type MarkdownDocumentSession,
+  type MarkdownEditHistory,
+  type MarkdownEditKind,
   type MarkdownEditReason,
   type MarkdownEditTransaction,
   type MarkdownScrollGlide,
@@ -89,8 +91,10 @@ pub struct MarkdownEditorApp {
   mut saved_document : String
   priv mut transfer_status : MarkdownEditorTransferStatus
   priv mut transfer_generation : Int32
-  mut undo_stack : Array[MarkdownEditorHistoryEntry]
-  mut redo_stack : Array[MarkdownEditorHistoryEntry]
+  // Undo/redo over complete document sources, grouped by the shared edit
+  // history. The value is a handle over shared arrays, so a copied app (see
+  // `detached`) keeps undoing into the same history.
+  priv history : MarkdownEditHistory
   // Live scrolling is element-owned (the editor's ViewStateSlot), so a wheel
   // tick does not rebuild the program root. The app keeps only a one-shot
   // programmatic request and the last settled position, refreshed once per
@@ -113,26 +117,6 @@ pub struct MarkdownEditorApp {
 }
 
 ///|
-
-///|
-/// One command-level undo step over the document source: the shared
-/// core delta entry plus the editor selection to restore. The delta
-/// keeps the command history proportional to the command's edits
-/// instead of full document snapshots.
-#derive(Eq, Debug, ToJson)
-struct MarkdownEditorHistoryEntry {
-  delta : @core.TextHistoryEntryContext
-  selection : MarkdownEditorSelection
-}
-
-///|
-pub extend MarkdownEditorHistoryEntry with Eq::{equal, not_equal}
-
-///|
-pub extend MarkdownEditorHistoryEntry with Debug::{to_repr}
-
-///|
-pub extend MarkdownEditorHistoryEntry with ToJson::{to_json}
 
 ///|
 priv struct MarkdownEditorFormatPaletteItem {
@@ -461,8 +445,7 @@ pub fn MarkdownEditorApp::new() -> MarkdownEditorApp {
     saved_document: document,
     transfer_status: TransferReady,
     transfer_generation: 0,
-    undo_stack: [],
-    redo_stack: [],
+    history: MarkdownEditHistory::new(),
     editor_scroll_request: None,
     next_editor_scroll_request_id: 0,
     editor_scroll_settled_y: 0.0,
@@ -492,8 +475,10 @@ fn MarkdownEditorApp::detached(self : MarkdownEditorApp) -> MarkdownEditorApp {
     folded_headings: self.folded_headings.copy(),
     find_matches: self.find_matches.copy(),
     recent_document_paths: self.recent_document_paths.copy(),
-    undo_stack: self.undo_stack.copy(),
-    redo_stack: self.redo_stack.copy(),
+    // The history is a session handle, not per-snapshot state: `detached`
+    // shares it, so a dispatch that edits records into the same history the
+    // caller keeps for undo/redo.
+    history: self.history,
     expanded_tree_paths: self.expanded_tree_paths.copy(),
     directory_tree_items: self.directory_tree_items.copy(),
   }

@@ -57,6 +57,28 @@ test "markdown editor find matching preserves unicode ranges" {
 }
 
 ///|
+/// The find bar persists the app's own options type, and every engine call
+/// goes through this translation; a field left out here would silently change
+/// what the bar searches for.
+test "markdown editor find options translate into package options" {
+  let options = {
+    case_sensitive: true,
+    whole_word: true,
+    regex: true,
+  }
+  let translated = markdown_editor_find_options(options)
+  assert_true(translated.case_sensitive)
+  assert_true(translated.whole_word)
+  assert_true(translated.regex)
+  let defaults = markdown_editor_find_options(
+    MarkdownEditorFindOptions::default(),
+  )
+  assert_false(defaults.case_sensitive)
+  assert_false(defaults.whole_word)
+  assert_false(defaults.regex)
+}
+
+///|
 test "markdown editor regex find uses pattern semantics and stable source ranges" {
   let options = { ..MarkdownEditorFindOptions::default(), regex: true, }
   let matches = markdown_editor_find_matches(

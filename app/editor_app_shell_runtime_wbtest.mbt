@@ -310,16 +310,6 @@ test "zoom commands scale the editor font and reset" {
   assert_true(app.appearance_spec().editor_font_size == base)
 }
 
-///|
-test "find regex compilation is cached per query" {
-  markdown_editor_regex_cache.val = []
-  assert_true(markdown_editor_compile_regex("a+", false) is Some(_))
-  inspect(markdown_editor_regex_cache.val.length(), content="1")
-  assert_true(markdown_editor_compile_regex("a+", false) is Some(_))
-  inspect(markdown_editor_regex_cache.val.length(), content="1")
-  assert_true(markdown_editor_compile_regex("a+", true) is Some(_))
-  inspect(markdown_editor_regex_cache.val.length(), content="2")
-}
 
 ///|
 test "sidebar panel animates open and closed over twelve ticks" {

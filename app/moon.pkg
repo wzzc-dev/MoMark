@@ -3,6 +3,7 @@ import {
   "wzzc-dev/moui/core",
   "wzzc-dev/moui/backend/common/services/native" @image_remote,
   "wzzc-dev/moui_richtext",
+  "wzzc-dev/moui_markdown",
   "wzzc-dev/moui/views",
   "moonbitlang/core/json",
   "moonbitlang/core/env",

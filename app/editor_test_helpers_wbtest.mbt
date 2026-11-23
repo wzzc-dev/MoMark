@@ -218,8 +218,10 @@ fn MarkdownEditorApp::overwrite_from_for_test(
   self.saved_document = latest.saved_document
   self.transfer_status = latest.transfer_status
   self.transfer_generation = latest.transfer_generation
-  self.undo_stack = latest.undo_stack
-  self.redo_stack = latest.redo_stack
+  // `history` is a handle whose arrays are shared by reference, and
+  // `detached` already hands the same handle to the snapshot it produces, so
+  // there is nothing to copy here. Assigning would also need a `mut` field
+  // that no production path writes.
   self.editor_scroll_request = latest.editor_scroll_request
   self.next_editor_scroll_request_id = latest.next_editor_scroll_request_id
   self.editor_scroll_settled_y = latest.editor_scroll_settled_y

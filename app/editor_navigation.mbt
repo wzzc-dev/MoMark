@@ -554,61 +554,43 @@ fn MarkdownEditorApp::replace_all_find_matches(
 
 ///|
 fn MarkdownEditorApp::sync_target_inputs(self : MarkdownEditorApp) -> Unit {
-  let session = self.document_session
-  let selection = self.selection
-  let active_block = markdown_editor_session_active_block(session, selection)
-  let block_label = markdown_editor_session_active_block_label(active_block)
-  self.block_label = block_label
-  // A raw HTML block owns its whole subtree: the `<a>` and `<img>` inside it are
-  // part of the block's markup, not markdown links or images that the inline
-  // editors could rewrite. Classify the block first, so clicking anywhere
-  // inside the rendered block — its images included — offers that block's own
-  // source instead of falling through to a target that cannot edit it. The
-  // gallery in a README is almost entirely images, which is why image targets
-  // used to swallow nearly every click in the region.
-  match markdown_editor_session_selected_html_block_text(active_block) {
-    Some(text) => {
-      self.html_block_text = text
-      self.target_kind = HtmlBlockTarget
-      return
-    }
+  // The richtext session owns classification: one call decides precedence
+  // (html block, footnote, link, image, table, plain) and resolves wiki links
+  // with the host scheme. The app only mirrors the result into the fields its
+  // target editors and menus read, keeping the app enum as the local
+  // vocabulary.
+  let target = self.document_session.target_at(self.selection)
+  self.block_label = target.block_label
+  self.target_kind = markdown_editor_target_kind(target.kind)
+  match target.link_target {
+    Some(target) => self.link_target = target
     None => ()
   }
-  match
-    markdown_editor_session_selected_link_target(
-      session, selection, active_block,
-    ) {
-    Some(target) => {
-      self.link_target = target
-      self.target_kind = LinkTarget
-      return
-    }
+  match target.image_target {
+    Some(target) => self.image_target = target
     None => ()
   }
-  match
-    markdown_editor_session_selected_image_target(
-      session, selection, active_block,
-    ) {
-    Some(target) => {
-      self.image_target = target
-      self.target_kind = ImageTarget
-    }
-    None =>
-      match
-        markdown_editor_session_selected_footnote_text(
-          session, selection, active_block,
-        ) {
-        Some(text) => {
-          self.footnote_text = text
-          self.target_kind = FootnoteTarget
-        }
-        None =>
-          if block_label == "Table" {
-            self.target_kind = TableTools
-          } else {
-            self.target_kind = PlainSelection
-          }
-      }
+  match target.footnote_text {
+    Some(text) => self.footnote_text = text
+    None => ()
+  }
+  match target.html_block_text {
+    Some(text) => self.html_block_text = text
+    None => ()
+  }
+}
+
+///|
+fn markdown_editor_target_kind(
+  kind : @moui_richtext.MarkdownEditorTargetKind,
+) -> MarkdownEditorTargetKind {
+  match kind {
+    @moui_richtext.MarkdownEditorTargetKind::PlainSelection => PlainSelection
+    @moui_richtext.MarkdownEditorTargetKind::LinkTarget => LinkTarget
+    @moui_richtext.MarkdownEditorTargetKind::ImageTarget => ImageTarget
+    @moui_richtext.MarkdownEditorTargetKind::FootnoteTarget => FootnoteTarget
+    @moui_richtext.MarkdownEditorTargetKind::HtmlBlockTarget => HtmlBlockTarget
+    @moui_richtext.MarkdownEditorTargetKind::TableTools => TableTools
   }
 }
 

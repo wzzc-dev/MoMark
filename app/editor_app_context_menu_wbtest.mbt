@@ -138,11 +138,15 @@ test "markdown editor orders each context menu for its surface" {
 ///|
 test "markdown editor scopes editor menu entries to the caret context" {
   // Actions that cannot act on the current caret are left out rather than
-  // shown disabled, matching the context keys mature editors gate on.
-  let mut app = MarkdownEditorApp::new().update(
+  // shown disabled, matching the context keys mature editors gate on. The
+  // menu classifies the target from the live document and selection, so every
+  // case below is a real snippet with a real caret instead of a stubbed label.
+  let app = MarkdownEditorApp::new().update(
     ContextMenuTargeted(MarkdownEditorContextTarget::EditorSurface),
   )
   // A paragraph caret offers no table, task, or inline entries.
+  app.set_document("Intro text")
+  app.set_selection(3, None)
   assert_true(
     !markdown_editor_menu_labels_for_app(app).contains("Insert Table Row"),
   )
@@ -154,13 +158,14 @@ test "markdown editor scopes editor menu entries to the caret context" {
   assert_true(!markdown_editor_menu_labels_for_app(app).contains("Bold"))
 
   // Inline formatting appears once there is selected text to format.
-  app = app.update(SetSelection(0, Some(@core.TextRange::new(start=0, end=4))))
+  app.set_selection(5, Some(@core.TextRange::new(start=0, end=5)))
   assert_true(markdown_editor_menu_labels_for_app(app).contains("Bold"))
   assert_true(markdown_editor_menu_labels_for_app(app).contains("Highlight"))
   assert_true(markdown_editor_menu_labels_for_app(app).contains("Link"))
 
   // Table commands appear only inside a table, and lead the menu there.
-  app.block_label = "Table"
+  app.set_document("| a | b |\n| --- | --- |\n| 1 | 2 |\n")
+  app.set_selection(3, None)
   assert_true(
     markdown_editor_menu_labels_for_app(app).contains("Insert Table Row"),
   )
@@ -176,19 +181,28 @@ test "markdown editor scopes editor menu entries to the caret context" {
   )
 
   // The task toggle addresses the checkbox of the task item under the caret.
-  app.block_label = "Task list"
+  app.set_document("- [ ] task\n")
+  app.set_selection(7, None)
   assert_true(markdown_editor_menu_labels_for_app(app).contains("Toggle Task"))
   assert_true(
     !markdown_editor_menu_labels_for_app(app).contains("Insert Table Row"),
   )
 
   // "Open Target" resolves a link or an image under the caret.
-  app.block_label = "Paragraph"
-  app.target_kind = LinkTarget
+  app.set_document("See [MoUI](https://wzzc-dev.github.io/MoUI) docs")
+  app.set_selection(7, None)
   assert_true(markdown_editor_menu_labels_for_app(app).contains("Open Target"))
-  app.target_kind = ImageTarget
+  app.set_document("See ![logo](assets/logo.png) here")
+  app.set_selection(8, None)
   assert_true(markdown_editor_menu_labels_for_app(app).contains("Open Target"))
-  app.target_kind = HtmlBlockTarget
+
+  // Raw HTML blocks and footnote references are targets the shared catalog
+  // knows but this app cannot open, so the row is filtered out.
+  app.set_document("<div>\nhi\n</div>\n")
+  app.set_selection(7, None)
+  assert_true(!markdown_editor_menu_labels_for_app(app).contains("Open Target"))
+  app.set_document("Text[^1]\n\n[^1]: note\n")
+  app.set_selection(6, None)
   assert_true(!markdown_editor_menu_labels_for_app(app).contains("Open Target"))
 }
 

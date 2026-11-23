@@ -63,8 +63,6 @@ pub struct MarkdownEditorApp {
   mut document_path : String
   mut recent_document_paths : Array[String]
   mut saved_document : String
-  mut undo_stack : Array[MarkdownEditorHistoryEntry]
-  mut redo_stack : Array[MarkdownEditorHistoryEntry]
   mut editor_scroll_request : @core.ScrollRequest?
   mut editor_scroll_settled_y : Double
   // private fields
@@ -117,13 +115,6 @@ pub fn MarkdownEditorFontFamily::equal(Self, Self) -> Bool
 pub fn MarkdownEditorFontFamily::not_equal(Self, Self) -> Bool
 pub fn MarkdownEditorFontFamily::to_json(Self) -> @json.Json
 pub fn MarkdownEditorFontFamily::to_repr(Self) -> @debug.Repr
-
-#derive(Eq, @debug.Debug, @json.ToJson)
-type MarkdownEditorHistoryEntry
-pub fn MarkdownEditorHistoryEntry::equal(Self, Self) -> Bool
-pub fn MarkdownEditorHistoryEntry::not_equal(Self, Self) -> Bool
-pub fn MarkdownEditorHistoryEntry::to_json(Self) -> @json.Json
-pub fn MarkdownEditorHistoryEntry::to_repr(Self) -> @debug.Repr
 
 #derive(@json.FromJson)
 type MarkdownEditorLegacySettings
@@ -256,7 +247,7 @@ pub struct MarkdownEditorSettings {
   editor_zoom : Double
 }
 pub fn MarkdownEditorSettings::equal(Self, Self) -> Bool
-pub fn MarkdownEditorSettings::from_json(@json.Json, @json.JsonPath) -> Self raise @json.JsonDecodeError
+pub fn MarkdownEditorSettings::from_json(@json.Json, @json.DecodeContext) -> Self raise @json.JsonDecodeError
 pub fn MarkdownEditorSettings::not_equal(Self, Self) -> Bool
 pub fn MarkdownEditorSettings::to_json(Self) -> @json.Json
 pub fn MarkdownEditorSettings::to_repr(Self) -> @debug.Repr

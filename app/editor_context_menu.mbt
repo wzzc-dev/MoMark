@@ -74,37 +74,30 @@ fn markdown_editor_chrome_menu_labels() -> Array[String] {
 fn markdown_editor_editor_surface_labels(
   app : MarkdownEditorApp,
 ) -> Array[String] {
-  let mut labels : Array[String] = []
-  if app.is_inside_table() {
-    labels = labels +
-      [
-        "Insert Table Row", "Insert Table Column", "Delete Table Row", "Delete Table Column",
-        "Table Align Left", "Table Align Center", "Table Align Right", "Table Align Auto",
-      ]
-  }
-  if app.has_openable_target() {
-    labels.push("Open Target")
-  }
-  if app.has_active_selection() {
-    labels = labels +
-      [
-        "Bold", "Italic", "Strikethrough", "Inline Code", "Highlight", "Link", "Image",
-      ]
-  }
-  // Block commands act at the caret, so they stay visible without a selection.
-  labels = labels +
-    [
-      "Paragraph", "Heading 1", "Heading 2", "Heading 3", "Heading 4", "Heading 5",
-      "Heading 6", "Bullet List", "Ordered List", "Task List", "Quote", "Code Block",
-      "Duplicate Block", "Move Block Up", "Move Block Down",
-    ]
-  if app.is_inside_task_item() {
-    labels.push("Toggle Task")
+  let target = app.document_session.target_at(app.selection)
+  // The shared catalog offers "Open Target" for footnote and raw-html targets
+  // too; this app's open action resolves only links and images, so the row is
+  // dropped for a target it cannot open. The flag and the filter read the same
+  // live target, so the cached target inputs the host last synced cannot drift
+  // from the selection the menu is built for.
+  let openable = markdown_editor_target_opens(target)
+  let items = @moui_markdown.markdown_editor_surface_menu_items(
+    target~,
+    has_selection=app.has_active_selection(),
+    in_task_item=(
+      target.block_kind is @moui_richtext.MarkdownBlockKind::TaskListItem(_)
+    ),
+    has_openable_target=openable,
+  )
+  let labels : Array[String] = []
+  for item in items {
+    if item.action != "open-target" || openable {
+      labels.push(item.label)
+    }
   }
   labels +
   [
-    "Indent Lines", "Outdent Lines", "Hard Line Break", "Insert Table of Contents",
-    "Insert YAML Front Matter", "Find", "Find/Replace", "Save", "Save As", "Import Markdown from Clipboard",
+    "Find", "Find/Replace", "Save", "Save As", "Import Markdown from Clipboard",
     "Export Markdown", "Export HTML", "Toggle Source Preview", "Toggle Source Mode",
     "Toggle Quick Format",
   ]
@@ -247,25 +240,15 @@ fn MarkdownEditorApp::has_active_selection(self : MarkdownEditorApp) -> Bool {
 }
 
 ///|
-/// Whether the caret sits in a table, i.e. the table commands have a cell to
-/// act on.
-fn MarkdownEditorApp::is_inside_table(self : MarkdownEditorApp) -> Bool {
-  self.block_label == "Table"
-}
-
-///|
-/// Whether the caret sits in a task item, i.e. there is a checkbox to toggle.
-fn MarkdownEditorApp::is_inside_task_item(self : MarkdownEditorApp) -> Bool {
-  self.block_label == "Task list"
-}
-
-///|
 /// Whether "Open Target" has something to resolve: a link or an image under
 /// the caret. Raw HTML blocks own their whole subtree and are edited through
 /// the HTML target field instead, so they do not offer it.
-fn MarkdownEditorApp::has_openable_target(self : MarkdownEditorApp) -> Bool {
-  match self.target_kind {
-    LinkTarget | ImageTarget => true
+fn markdown_editor_target_opens(
+  target : @moui_richtext.MarkdownEditorTarget,
+) -> Bool {
+  match target.kind {
+    @moui_richtext.MarkdownEditorTargetKind::LinkTarget
+    | @moui_richtext.MarkdownEditorTargetKind::ImageTarget => true
     _ => false
   }
 }
